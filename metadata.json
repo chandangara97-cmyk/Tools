@@ -1,0 +1,10 @@
+{
+  "name": "Scheme Hub 2026",
+  "description": "Field survey tools for Himachal Pradesh: PLFS tracking, Urban Frame Survey blocks and boundaries, office bills and TA/DA, KML converters, survey indices and GIS property survey.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

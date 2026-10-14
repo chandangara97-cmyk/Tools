@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Shapefile → Town-wise KML</title>
+
+<!-- shpjs (direct shapefile support) -->
+<script src="https://cdn.jsdelivr.net/npm/shpjs@3.4.1/dist/shp.min.js"></script>
+
+<!-- JSZip -->
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+<style>
+:root{
+  --bg:#020617;
+  --panel:#0b1222;
+  --card:#0f172a;
+  --border:#22304a;
+  --accent:#38bdf8;
+  --green:#10b981;
+  --red:#fb7185;
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:system-ui,Segoe UI,Roboto,Arial;
+  color:var(--text);
+  background:
+    radial-gradient(900px 420px at 15% 10%, rgba(56,189,248,.14), transparent 60%),
+    radial-gradient(900px 420px at 85% 20%, rgba(167,139,250,.12), transparent 60%),
+    var(--bg);
+}
+.wrap{max-width:1200px;margin:auto;padding:18px}
+h1{margin:0;font-size:22px;font-weight:900}
+p{margin:6px 0 0;color:var(--muted);font-size:13px}
+
+.card{
+  background:linear-gradient(180deg,#0f172a,#0b1222);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:16px;
+  margin-top:16px;
+}
+
+label{
+  display:block;
+  font-size:12px;
+  font-weight:900;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+
+input,select{
+  width:100%;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:#020617;
+  color:var(--text);
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.grid{grid-template-columns:1fr}}
+
+.actions{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
+
+button{
+  padding:12px 18px;
+  border-radius:14px;
+  border:none;
+  font-weight:900;
+  cursor:pointer;
+}
+.primary{
+  background:linear-gradient(180deg,#38bdf8,#0ea5e9);
+  color:#020617;
+}
+.success{
+  background:linear-gradient(180deg,#10b981,#059669);
+  color:#020617;
+}
+.success:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+.console{
+  margin-top:12px;
+  background:#000;
+  border-radius:14px;
+  padding:12px;
+  height:220px;
+  overflow:auto;
+  font-family:monospace;
+  font-size:12px;
+}
+.ok{color:var(--green)}
+.err{color:var(--red)}
+.badge{
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  color:var(--muted);
+  font-size:12px;
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<h1>Shapefile → Town-wise KML</h1>
+<p>Upload shapefiles directly → export KMLs grouped under town folders</p>
+
+<div class="card">
+  <label>Upload Shapefiles (select ALL together)</label>
+  <input id="shpFiles" type="file" multiple
+    accept=".shp,.shx,.dbf,.prj,.cpg">
+  <div class="badge" id="status">Waiting for files…</div>
+</div>
+
+<div class="card">
+  <div class="grid">
+    <div>
+      <label>Town field (folder name)</label>
+      <select id="townField" disabled></select>
+    </div>
+    <div>
+      <label>b field</label>
+      <select id="bField" disabled></select>
+    </div>
+    <div>
+      <label>w field</label>
+      <select id="wField" disabled></select>
+    </div>
+    <div>
+      <label>iv field</label>
+      <select id="ivField" disabled></select>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="primary" id="prepareBtn" disabled>Prepare ZIP</button>
+    <button class="success" id="downloadBtn" disabled>Download ZIP</button>
+  </div>
+
+  <div id="log" class="console"></div>
+</div>
+
+</div>
+
+<script>
+const logEl = document.getElementById("log");
+const statusEl = document.getElementById("status");
+const townSel = document.getElementById("townField");
+const bSel = document.getElementById("bField");
+const wSel = document.getElementById("wField");
+const ivSel = document.getElementById("ivField");
+const prepareBtn = document.getElementById("prepareBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+
+let features = [];
+let outBlobUrl = null;
+
+const log = (m,c)=>{
+  const d=document.createElement("div");
+  d.textContent=m;
+  if(c)d.className=c;
+  logEl.appendChild(d);
+  logEl.scrollTop=logEl.scrollHeight;
+};
+
+function safeName(v){
+  return String(v ?? "UNKNOWN")
+    .trim()
+    .replace(/[\\/:*?"<>|]/g,"_")
+    .replace(/\s+/g,"_");
+}
+
+function fillSelect(sel, fields){
+  sel.innerHTML="";
+  fields.forEach(f=>{
+    const o=document.createElement("option");
+    o.value=f; o.textContent=f;
+    sel.appendChild(o);
+  });
+}
+
+document.getElementById("shpFiles").addEventListener("change", async e=>{
+  logEl.innerHTML="";
+  features=[];
+  prepareBtn.disabled=true;
+  downloadBtn.disabled=true;
+  statusEl.textContent="Reading shapefile…";
+
+  try{
+    const fileMap={};
+    for(const f of e.target.files){
+      fileMap[f.name]=await f.arrayBuffer();
+    }
+
+    const gj = await shp(fileMap);
+    const fc = gj.type==="FeatureCollection" ? gj : gj[Object.keys(gj)[0]];
+    features = fc.features;
+
+    const fields = Object.keys(features[0].properties || {});
+    fillSelect(townSel,fields);
+    fillSelect(bSel,fields);
+    fillSelect(wSel,fields);
+    fillSelect(ivSel,fields);
+
+    [townSel,bSel,wSel,ivSel].forEach(s=>s.disabled=false);
+    prepareBtn.disabled=false;
+
+    statusEl.textContent=`Loaded ${features.length} features`;
+    log(`Loaded ${features.length} features`,"ok");
+  }catch(err){
+    statusEl.textContent="Load failed";
+    log("Error: "+err,"err");
+  }
+});
+
+prepareBtn.onclick = async ()=>{
+  log("Building KML ZIP…","ok");
+  downloadBtn.disabled=true;
+
+  const zip = new JSZip();
+  let count=0;
+
+  for(const f of features){
+    const p=f.properties||{};
+    const town=safeName(p[townSel.value]);
+    const b=p[bSel.value], w=p[wSel.value], iv=p[ivSel.value];
+    if(b==null||w==null||iv==null) continue;
+
+    const coords=f.geometry.coordinates[0]
+      .map(pt=>`${pt[0]},${pt[1]},0`).join(" ");
+
+    const kml=`<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+<Placemark>
+<name>b${b}_w${w}_iv${iv}</name>
+<Polygon>
+<outerBoundaryIs><LinearRing>
+<coordinates>${coords}</coordinates>
+</LinearRing></outerBoundaryIs>
+</Polygon>
+</Placemark>
+</Document>
+</kml>`;
+
+    zip.folder(town).file(`b${b}_w${w}_iv${iv}.kml`,kml);
+    count++;
+  }
+
+  const blob=await zip.generateAsync({type:"blob"});
+  outBlobUrl=URL.createObjectURL(blob);
+  downloadBtn.disabled=false;
+
+  log(`✅ ${count} KML files created`,"ok");
+};
+
+downloadBtn.onclick = ()=>{
+  if(!outBlobUrl)return;
+  const a=document.createElement("a");
+  a.href=outBlobUrl;
+  a.download="output_kml_by_town.zip";
+  a.click();
+};
+</script>
+
+<script src="assets/tools.js"></script><script src="assets/hub-nav.js"></script>
+</body>
+</html>

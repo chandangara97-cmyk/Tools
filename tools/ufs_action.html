@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover" />
+  <title>UFS | Progress & Action Plan</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#020617;
+      --panel:#0f172a;
+      --card:#111c33;
+      --border:#334155;
+      --accent:#38bdf8;
+      --green:#10b981;
+      --amber:#f59e0b;
+      --danger:#ef4444;
+      --text:#f8fafc;
+      --muted:#94a3b8;
+      --rail:72px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:"Plus Jakarta Sans",system-ui,Arial,sans-serif;
+      background: radial-gradient(900px 420px at 18% 10%, rgba(56,189,248,.14), transparent 60%),
+                  radial-gradient(850px 420px at 85% 20%, rgba(16,185,129,.10), transparent 60%),
+                  linear-gradient(180deg,#000814,var(--bg));
+      color:var(--text);
+      height:100vh;height:100dvh;
+      overflow:hidden;
+    }
+
+    /* Left Rail */
+    .left-rail{
+      position:fixed; inset:0 auto 0 0;
+      width:var(--rail);
+      background:#0f172a;
+      border-right:1px solid var(--border);
+      display:flex; flex-direction:column; align-items:center;
+      padding-top:14px; gap:18px;
+      z-index:9999;
+    }
+    .left-rail a{
+      width:56px;
+      text-align:center;
+      font-size:11px;
+      font-weight:900;
+      text-decoration:none;
+      color:#fff;
+      padding:8px 6px;
+      border-radius:12px;
+      line-height:1.2;
+    }
+    .left-rail a:hover{ background:#1e293b; transform:translateX(2px); }
+    .left-rail a.hub{ color:var(--accent); }
+    .left-rail a.weekly{ color:var(--green); }
+    .left-rail a.action{ color:var(--amber); }
+
+    .app{
+      margin-left:var(--rail);
+      height:100vh;height:100dvh;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+
+    /* Top bar */
+    .topbar{
+      position:sticky; top:0;
+      z-index:50;
+      background: rgba(15,23,42,.92);
+      backdrop-filter: blur(14px);
+      border-bottom:1px solid var(--border);
+      padding:14px 16px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .brand{
+      display:flex; flex-direction:column;
+      gap:2px;
+      min-width: 320px;
+    }
+    .brand .t1{
+      font-weight:900;
+      color:#cbeeff;
+      letter-spacing:.6px;
+      font-size:14px;
+    }
+    .brand .t2{
+      font-weight:900;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .controls{
+      margin-left:auto;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .field{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.25);
+    }
+    .field label{
+      font-size:11px;
+      font-weight:900;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .field input, .field select{
+      background:transparent;
+      border:none;
+      outline:none;
+      color:#fff;
+      font-weight:900;
+      font-size:12px;
+    }
+
+    .btn{
+      border:none;
+      cursor:pointer;
+      padding:10px 12px;
+      border-radius:12px;
+      font-weight:900;
+      font-size:12px;
+      color:#001019;
+      background:var(--accent);
+    }
+    .btn:hover{ filter:brightness(1.05); transform:translateY(-1px); }
+    .btn.secondary{ background:transparent; color:var(--text); border:1px solid rgba(255,255,255,.14); }
+    .btn.green{ background:var(--green); color:#00110a; }
+    .btn.danger{ background:var(--danger); color:#140000; }
+    .btn.amber{ background:var(--amber); color:#1d1200; }
+
+    /* Workspace layout */
+    .workspace{
+      flex:1;
+      overflow:auto;
+      padding:16px;
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    @media (max-width: 1050px){
+      .workspace{ grid-template-columns: 1fr; }
+    }
+
+    .panel{
+      background: rgba(17,28,51,.78);
+      border:1px solid rgba(51,65,85,.85);
+      border-radius:16px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.5);
+      overflow:hidden;
+    }
+    .panel-head{
+      padding:14px 14px 10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .panel-head h3{
+      margin:0;
+      font-size:13px;
+      font-weight:900;
+      letter-spacing:.4px;
+      color:#eaf6ff;
+    }
+    .panel-body{ padding:12px 14px 14px; }
+
+    .kpis{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-bottom:12px;
+    }
+    .kpi{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.25);
+      border-radius:14px;
+      padding:12px;
+    }
+    .kpi .l{ font-size:10px; font-weight:900; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; }
+    .kpi .v{ font-size:20px; font-weight:900; margin-top:6px; }
+
+    .chart-wrap{
+      background: rgba(0,0,0,.22);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      padding:10px;
+    }
+
+    /* Table */
+    .table-wrap{
+      overflow:auto;
+      border-top:1px solid rgba(255,255,255,.08);
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width: 1100px;
+      background:#fff;
+      color:#000;
+    }
+    th, td{
+      border:2px solid #000;
+      padding:6px;
+      font-size:12px;
+      text-align:center;
+      vertical-align:middle;
+    }
+    th{
+      background:#eaf2ff;
+      font-weight:900;
+      position:sticky;
+      top:0;
+      z-index:5;
+    }
+    td .in{
+      width:100%;
+      border:none;
+      outline:none;
+      background:transparent;
+      text-align:center;
+      font-weight:800;
+      font-size:12px;
+    }
+    td.left{
+      text-align:left;
+      font-weight:900;
+    }
+    tr.total-row td{
+      background:#f1f5ff;
+      font-weight:900;
+    }
+
+    .hint{
+      font-size:11px;
+      color: rgba(255,255,255,.75);
+      font-weight:700;
+      padding:10px 14px 14px;
+      border-top:1px solid rgba(255,255,255,.08);
+    }
+
+    @media print{
+      .left-rail,.topbar{ display:none !important; }
+      body{ background:#fff; overflow:visible; }
+      .app{ margin:0; height:auto; }
+      .workspace{ grid-template-columns:1fr; padding:0; overflow:visible; }
+      .panel{ box-shadow:none; border: none; border-radius:0; background:transparent; }
+      table{ min-width: 0; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Left rail navigation -->
+  <nav class="left-rail">
+    <a href="index.html" class="hub">🏠 HUB</a>
+    <a href="ufs_weekly.html" class="weekly">🗓️ Weekly</a>
+    <a href="ufs_monthly.html">📅 Monthly</a>
+    <a href="ufs_action.html" class="action">📈 Action</a>
+  </nav>
+
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <div class="t1">UFS | Progress Dashboard + Action Plan</div>
+        <div class="t2">Track allotted wards, completed wards, blocks formed, and tours used — employee-wise.</div>
+      </div>
+
+      <div class="field">
+        <label>RO / Office</label>
+        <select id="office" onchange="saveAndRecalc()">
+          <option>RO Shimla</option>
+          <option>RO (Other)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Month</label>
+        <select id="month" onchange="saveAndRecalc()">
+          <option value="Jan">Jan</option><option value="Feb">Feb</option><option value="Mar">Mar</option>
+          <option value="Apr">Apr</option><option value="May">May</option><option value="Jun">Jun</option>
+          <option value="Jul">Jul</option><option value="Aug">Aug</option><option value="Sep">Sep</option>
+          <option value="Oct">Oct</option><option value="Nov">Nov</option><option value="Dec">Dec</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Year</label>
+        <input id="year" value="2026" inputmode="numeric" oninput="saveAndRecalc()" />
+      </div>
+
+      <div class="controls">
+        <button class="btn secondary" onclick="addRow()">➕ Add Employee</button>
+        <button class="btn amber" onclick="exportCSV()">📥 Export CSV</button>
+        <button class="btn green" onclick="window.print()">🖨️ Print</button>
+        <button class="btn danger" onclick="resetAll()">🧹 Reset</button>
+      </div>
+    </div>
+
+    <div class="workspace">
+
+      <!-- LEFT: KPIs + Charts -->
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Live Progress</h3>
+          <div style="font-size:11px;font-weight:900;color:var(--muted)">Auto-updates</div>
+        </div>
+
+        <div class="panel-body">
+          <div class="kpis">
+            <div class="kpi">
+              <div class="l">Allotted Wards</div>
+              <div class="v" id="k_allotted">0</div>
+            </div>
+            <div class="kpi">
+              <div class="l">Wards Completed</div>
+              <div class="v" id="k_completed">0</div>
+            </div>
+            <div class="kpi">
+              <div class="l">Blocks Formed</div>
+              <div class="v" id="k_blocks">0</div>
+            </div>
+            <div class="kpi">
+              <div class="l">Tours Used</div>
+              <div class="v" id="k_tours">0</div>
+            </div>
+          </div>
+
+          <div class="chart-wrap">
+            <canvas id="barChart" height="220"></canvas>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="chart-wrap">
+            <canvas id="donutChart" height="220"></canvas>
+          </div>
+        </div>
+
+        <div class="hint">
+          Tip: Update table values → charts & totals update automatically ✅
+        </div>
+      </div>
+
+      <!-- RIGHT: Action Plan Table -->
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Action Plan (Employee-wise)</h3>
+          <div style="font-size:11px;font-weight:900;color:var(--muted)">Editable</div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:60px">Sl. No.</th>
+                <th style="width:100px">SRO NAME</th>
+                <th style="width:220px">Employee Name</th>
+                <th style="width:120px">TOWN NAME</th>
+                <th style="width:160px">JSO ID</th>
+                <th style="width:140px">Wards Allotted</th>
+                <th style="width:130px">Wards Completed</th>
+                <th style="width:120px">Blocks Formed</th>
+                <th style="width:120px">Tours Days</th>
+              </tr>
+            </thead>
+
+            <tbody id="tbody"></tbody>
+
+            <tbody>
+              <tr class="total-row">
+                <td></td>
+                <td colspan="4" class="left">TOTAL</td>
+                <td id="t_allotted">0</td>
+                <td id="t_completed">0</td>
+                <td id="t_blocks">0</td>
+                <td id="t_tours">0</td>
+                <td></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="hint">
+          Columns you asked: <b>UH, Employee, UH Ground, Enumerator No, Wards Allotted, Wards Completed, Blocks Formed, Tours Used</b>.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+  const KEY = "ufs_action_plan_v1";
+
+  const $ = (id)=>document.getElementById(id);
+  const toNum = (v)=>{
+    const n = parseFloat(String(v??"").replace(/,/g,""));
+    return isNaN(n) ? 0 : n;
+  };
+
+  // starter rows (edit anytime)
+  const defaultRows = [
+    {uh:"UFS-SML-01", name:"", ground:"Shimla", enumNo:"", allotted:0, completed:0, blocks:0, tours:0, remarks:"", upd:"Y"},
+    {uh:"UFS-HMP-01", name:"", ground:"Hamirpur", enumNo:"", allotted:0, completed:0, blocks:0, tours:0, remarks:"", upd:"Y"},
+  ];
+
+  let rows = [];
+  let barChart, donutChart;
+
+  function buildRow(r, i){
+    return `
+      <tr data-i="${i}">
+        <td>${i+1}</td>
+        <td><input class="in" value="${r.uh||""}" oninput="edit(${i},'uh',this.value)"></td>
+        <td><input class="in" value="${r.name||""}" oninput="edit(${i},'name',this.value)"></td>
+        <td><input class="in" value="${r.ground||""}" oninput="edit(${i},'ground',this.value)"></td>
+        <td><input class="in" value="${r.enumNo||""}" oninput="edit(${i},'enumNo',this.value)"></td>
+
+        <td><input class="in" value="${r.allotted??""}" inputmode="numeric" oninput="edit(${i},'allotted',this.value)"></td>
+        <td><input class="in" value="${r.completed??""}" inputmode="numeric" oninput="edit(${i},'completed',this.value)"></td>
+        <td><input class="in" value="${r.blocks??""}" inputmode="numeric" oninput="edit(${i},'blocks',this.value)"></td>
+        <td><input class="in" value="${r.tours??""}" inputmode="numeric" oninput="edit(${i},'tours',this.value)"></td>
+
+        <td><input class="in" value="${r.remarks||""}" oninput="edit(${i},'remarks',this.value)"></td>
+        <td><input class="in" value="${(r.upd||"").toUpperCase()}" oninput="edit(${i},'upd',this.value.toUpperCase())"></td>
+      </tr>
+    `;
+  }
+
+  function render(){
+    $("tbody").innerHTML = rows.map(buildRow).join("");
+    recalc();
+  }
+
+  function recalc(){
+    let allotted=0, completed=0, blocks=0, tours=0;
+    rows.forEach(r=>{
+      allotted += toNum(r.allotted);
+      completed += toNum(r.completed);
+      blocks += toNum(r.blocks);
+      tours += toNum(r.tours);
+    });
+
+    $("t_allotted").textContent = allotted;
+    $("t_completed").textContent = completed;
+    $("t_blocks").textContent = blocks;
+    $("t_tours").textContent = tours;
+
+    $("k_allotted").textContent = allotted;
+    $("k_completed").textContent = completed;
+    $("k_blocks").textContent = blocks;
+    $("k_tours").textContent = tours;
+
+    updateCharts(allotted, completed, blocks, tours);
+    save();
+  }
+
+  function updateCharts(allotted, completed, blocks, tours){
+    const labels = rows.map(r => r.name?.trim() ? r.name.trim() : (r.uh || "UH"));
+    const compData = rows.map(r => toNum(r.completed));
+    const allData = rows.map(r => toNum(r.allotted));
+
+    // Bar chart: completed vs allotted per employee
+    if(!barChart){
+      barChart = new Chart(document.getElementById("barChart"),{
+        type:"bar",
+        data:{
+          labels,
+          datasets:[
+            {label:"Wards Allotted", data: allData},
+            {label:"Wards Completed", data: compData}
+          ]
+        },
+        options:{
+          responsive:true,
+          plugins:{
+            legend:{labels:{color:"#e5e7eb", font:{weight:"700"}}},
+            tooltip:{enabled:true}
+          },
+          scales:{
+            x:{ticks:{color:"#cbd5e1", font:{weight:"700"}}, grid:{color:"rgba(255,255,255,.06)"}},
+            y:{ticks:{color:"#cbd5e1", font:{weight:"700"}}, grid:{color:"rgba(255,255,255,.06)"}, beginAtZero:true}
+          }
+        }
+      });
+    } else {
+      barChart.data.labels = labels;
+      barChart.data.datasets[0].data = allData;
+      barChart.data.datasets[1].data = compData;
+      barChart.update();
+    }
+
+    // Donut chart: overall completion
+    const pending = Math.max(0, allotted - completed);
+    if(!donutChart){
+      donutChart = new Chart(document.getElementById("donutChart"),{
+        type:"doughnut",
+        data:{
+          labels:["Completed","Pending"],
+          datasets:[{data:[completed,pending]}]
+        },
+        options:{
+          responsive:true,
+          plugins:{
+            legend:{labels:{color:"#e5e7eb", font:{weight:"800"}}}
+          }
+        }
+      });
+    } else {
+      donutChart.data.datasets[0].data = [completed, pending];
+      donutChart.update();
+    }
+  }
+
+  window.edit = function(i, key, val){
+    if(!rows[i]) return;
+    rows[i][key] = val;
+    recalc();
+  };
+
+  function addRow(){
+    rows.push({uh:"", name:"", ground:"", enumNo:"", allotted:0, completed:0, blocks:0, tours:0, remarks:"", upd:"Y"});
+    render();
+  }
+
+  function resetAll(){
+    if(!confirm("Reset action plan data?")) return;
+    localStorage.removeItem(KEY);
+    load();
+  }
+
+  function save(){
+    const payload = {
+      office: $("office").value,
+      month: $("month").value,
+      year: $("year").value,
+      rows
+    };
+    localStorage.setItem(KEY, JSON.stringify(payload));
+  }
+
+  function saveAndRecalc(){ recalc(); }
+
+  function load(){
+    const raw = localStorage.getItem(KEY);
+    if(!raw){
+      rows = JSON.parse(JSON.stringify(defaultRows));
+      render();
+      return;
+    }
+    try{
+      const obj = JSON.parse(raw);
+      $("office").value = obj.office || "RO Shimla";
+      $("month").value = obj.month || "Jan";
+      $("year").value = obj.year || "2026";
+      rows = Array.isArray(obj.rows) ? obj.rows : JSON.parse(JSON.stringify(defaultRows));
+      render();
+    } catch(e){
+      rows = JSON.parse(JSON.stringify(defaultRows));
+      render();
+    }
+  }
+
+  function exportCSV(){
+    const hdr = [
+      "Sl.No","UH Code","Employee Name","UH Ground/Area","Enumerator No",
+      "Wards Allotted","Wards Completed","Blocks Formed","Tours Used","Remarks/Action","Updated"
+    ];
+    const lines = [hdr.join(",")];
+
+    rows.forEach((r, idx)=>{
+      lines.push([
+        idx+1,
+        csv(r.uh), csv(r.name), csv(r.ground), csv(r.enumNo),
+        num(r.allotted), num(r.completed), num(r.blocks), num(r.tours),
+        csv(r.remarks), csv(r.upd)
+      ].join(","));
+    });
+
+    lines.push([
+      "", "TOTAL","","","",
+      $("t_allotted").textContent,
+      $("t_completed").textContent,
+      $("t_blocks").textContent,
+      $("t_tours").textContent,
+      "",""
+    ].join(","));
+
+    const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `UFS_ActionPlan_${$("office").value.replace(/\s+/g,"_")}_${$("month").value}_${$("year").value}.csv`;
+    a.click();
+  }
+  function csv(v){
+    const s = String(v ?? "").replace(/"/g,'""');
+    return `"${s}"`;
+  }
+  function num(v){
+    return String(v ?? "").replace(/,/g,"");
+  }
+
+  // init
+  window.addRow = addRow;
+  window.resetAll = resetAll;
+  window.exportCSV = exportCSV;
+  window.saveAndRecalc = saveAndRecalc;
+
+  load();
+</script>
+
+<script src="assets/tools.js"></script><script src="assets/hub-nav.js"></script>
+</body>
+</html>

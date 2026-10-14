@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>UFS Scrutiny Tool</title>
+<script src="assets/vendor/exceljs.min.js"></script>
+<style>
+  :root{
+    --ink:#1c1f24; --muted:#6b7280; --line:#e2e5ea; --bg:#f6f7f9; --card:#ffffff;
+    --accent:#2f5d50; --accent-ink:#ffffff; --warn:#b3541e; --ok:#2f7d4f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  header{background:var(--accent);color:var(--accent-ink);padding:22px 28px;}
+  header h1{margin:0;font-size:20px;font-weight:600;letter-spacing:.2px}
+  header p{margin:6px 0 0;font-size:13px;opacity:.85}
+  main{max-width:980px;margin:0 auto;padding:24px 20px 60px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin-bottom:18px}
+  .card h2{font-size:15px;margin:0 0 12px;color:var(--accent)}
+  .rules{font-size:13px;color:var(--muted);line-height:1.6}
+  .rules ol{margin:6px 0 0;padding-left:20px}
+  .picker{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  input[type=file]{font-size:13px}
+  button{background:var(--accent);color:#fff;border:none;padding:10px 18px;border-radius:6px;font-size:14px;cursor:pointer}
+  button:disabled{background:#a9b3ae;cursor:not-allowed}
+  button.secondary{background:#fff;color:var(--accent);border:1px solid var(--accent)}
+  #fileList{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.6;max-height:160px;overflow:auto}
+  #fileList .missing{color:var(--warn)}
+  #fileList .found{color:var(--ok)}
+  #status{font-size:13px;margin-top:12px;color:var(--muted)}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:8px}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+  th{background:#eef1ee;font-weight:600}
+  tr:nth-child(even) td{background:#fafbfa}
+  .count-badge{display:inline-block;background:#eef1ee;color:var(--accent);border-radius:20px;padding:2px 10px;font-size:12px;margin-left:8px}
+  .actions{margin-top:16px;display:flex;gap:10px}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>UFS Scrutiny Tool</h1>
+  <p>Runs entirely in your browser &mdash; no Python, no server, no data leaves this device.</p>
+</header>
+<main>
+
+  <div class="card">
+    <h2>What this checks</h2>
+    <div class="rules">
+      Point this at the survey folder. <strong>Multiple towns are supported</strong>, and every file is found no
+      matter how deep it's nested &mdash; the picker crawls every subfolder. Put each town in its own subfolder,
+      each containing (at any nesting depth inside it) a <code>Portal Data/</code> folder with that town's
+      <code>*_listing.xls</code>, <code>*_blockboundary.xls</code>, <code>*_wardboundary.xls</code>,
+      <code>*_ivunitboundary.xls</code>, <code>*_townboundary.xls</code>, and optionally a <code>QGIS/</code> folder
+      with the block/ward/iv boundary shapefiles, e.g.:
+      <pre style="background:#f6f7f9;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:12px;overflow:auto;margin:8px 0">Survey Folder/
+  Solan Town/
+    Portal Data/  *_listing.xls  *_blockboundary.xls  ...
+    QGIS/         block_boundary.shp/.dbf  ward_boundary.dbf  iv_boundary.dbf
+  Baddi Town/
+    Portal Data/  ...
+    QGIS/         ...</pre>
+      A single-town folder (files directly under <code>Portal Data/</code> with no town subfolder) still works exactly
+      as before. Every rule below runs independently per town, and results are combined into one report with a
+      <strong>Town</strong> column so you can tell entries apart.
+      <ol>
+        <li>Listing sequence should start at the North-West corner of the block.</li>
+        <li>Household count per block should be 120&ndash;150; else a remark is required.</li>
+        <li>Major commercial complexes (banks, dispensaries, etc.) must carry a Landmark Type tag.</li>
+        <li>Record numbers in Listing/Boundary Excel exports must match the Record No in the GIS attribute table.</li>
+        <li>Block boundary polygons must not overlap.</li>
+        <li><strong>New:</strong> if a block's "Other Details" description names a house number, owner, or structure
+            (e.g. referring to another entry in that block), that referenced entry must actually exist in the
+            same block's listing &mdash; otherwise it's flagged.</li>
+        <li><strong>New:</strong> a block boundary's North/East/South/West description must name a structure that
+            actually exists in that block's listing.</li>
+        <li><strong>New:</strong> Area Type and Auxiliary Information codes must be filled in for each block, and
+            Auxiliary Information should reflect any landmark-type structures (bank, school, hostel, etc.) actually
+            found in that block's listing.</li>
+        <li><strong>New:</strong> structure names mentioned in a block's Other Details (block schedule description)
+            must match a structure actually present in that block's listing &mdash; catches typos, word-order
+            swaps, and mismatched blocks.</li>
+        <li><strong>New (best-effort):</strong> structure and owner names embedded directly in the North/East/South/West
+            route text (including "H/o &hellip;" owner references) are extracted and checked against the listing.
+            This is free-text parsing, so treat its results as a shortlist to review, not a final verdict.</li>
+      </ol>
+      <span class="hint">(Block numbering spiral order still needs manual/GIS visual review, same as before &mdash; not auto-checked.)</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>1. Select the survey folder</h2>
+    <div class="picker">
+      <input type="file" id="folderInput" webkitdirectory directory multiple>
+      <button id="runBtn" disabled>Run scrutiny</button>
+    </div>
+    <div id="fileList"></div>
+    <div id="status"></div>
+  </div>
+
+  <div class="card" id="resultsCard" style="display:none">
+    <h2>2. Findings <span class="count-badge" id="countBadge"></span></h2>
+    <div id="resultsTable"></div>
+    <div class="actions">
+      <button id="downloadBtn">Download Scrutiny Report (.xlsx)</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+/* ---------------------------------------------------------------------
+   Landmark keyword map (mirrors the Python tool)
+--------------------------------------------------------------------- */
+const LANDMARK_KEYWORD_MAP = {
+  "Bank": ["bank","atm"], "Hospital": ["hospital"],
+  "Clinic or Dispensary": ["dispensary","clinic","nursing home"],
+  "School": ["school"], "Hostel": ["hostel"], "Church": ["church"],
+  "Mosque": ["mosque"], "Temple": ["temple","mandir"],
+  "Post Office": ["post office"], "Police Station": ["police station"],
+  "Bus Station": ["bus station","bus stand"], "Railway Station": ["railway station"],
+  "Railway Track": ["railway track","rail track"], "Cinema Hall": ["cinema"],
+  "Community Centre": ["community centre","community center"],
+  "Metro Station": ["metro station"], "Vacant Plot": ["vacant plot","vacant land"],
+  "Place of Pavement Dwellers": ["pavement dweller"]
+};
+
+// Maps a matched structure-level landmark type to the substring(s) that should
+// appear somewhere in the block's Auxilliary Information 1-5 codes. The block-level
+// Auxiliary Information dropdown groups some categories together (e.g. "Post Office
+// Or Police Station-1"), and doesn't have a slot for every structure-level type
+// (Hospital, Church, Mosque, Temple, Railway Track, Vacant Plot) -- those are
+// simply not checked against Auxiliary Information since there's no matching code.
+const AUX_MATCH_KEYWORDS = {
+  "Hostel": ["hostel"],
+  "Post Office": ["post office"],
+  "Police Station": ["police station"],
+  "Bus Station": ["bus station", "terminus"],
+  "Railway Station": ["railway", "metro"],
+  "Metro Station": ["railway", "metro"],
+  "Clinic or Dispensary": ["dispensary", "clinic"],
+  "Bank": ["banking"],
+  "School": ["school"],
+  "Cinema Hall": ["cinema"],
+  "Community Centre": ["community"],
+  "Place of Pavement Dwellers": ["pavement"],
+};
+
+/* ---------------------------------------------------------------------
+   File discovery from a picked directory
+--------------------------------------------------------------------- */
+// Match by the type keyword appearing anywhere in the filename (not anchored
+// to the end) -- real portal exports are named like
+// "NSSO_listing_06-01-23 15_08_21.xls" or "..._listing_06-01-23_15_08_21.xls",
+// with a date/time stamp *after* the keyword, not "..._listing.xls". Matching
+// only the very end of the filename (the previous version's behaviour) missed
+// every real file. basename() also keeps this from matching on folder names.
+function basename(path){ return String(path||"").split('/').pop(); }
+const NEED = [
+  {key:"listing",   test:f => /\.xls$/i.test(f) && /listing/i.test(basename(f))},
+  {key:"blockx",    test:f => /\.xls$/i.test(f) && /blockboundary/i.test(basename(f))},
+  {key:"wardx",     test:f => /\.xls$/i.test(f) && /wardboundary/i.test(basename(f))},
+  {key:"ivx",       test:f => /\.xls$/i.test(f) && /ivunitboundary/i.test(basename(f))},
+  {key:"townx",     test:f => /\.xls$/i.test(f) && /townboundary/i.test(basename(f))},
+  {key:"block_dbf", test:f => /\.dbf$/i.test(f) && /block/i.test(basename(f)) && /boundary/i.test(basename(f))},
+  {key:"block_shp", test:f => /\.shp$/i.test(f) && /block/i.test(basename(f)) && /boundary/i.test(basename(f))},
+  {key:"ward_dbf",  test:f => /\.dbf$/i.test(f) && /ward/i.test(basename(f)) && /boundary/i.test(basename(f))},
+  {key:"iv_dbf",    test:f => /\.dbf$/i.test(f) && /\biv/i.test(basename(f)) && /boundary/i.test(basename(f))},
+];
+
+// The folder picker (webkitdirectory) already hands us every file in every
+// nested subfolder, however deep, so no explicit recursion is needed here --
+// we just scan the full flat file list it returns and match by filename
+// pattern alone (folder naming, e.g. "Portal Data" / "QGIS", is no longer
+// required to find a file, only used below to group files into towns).
+//
+// Town grouping: take the file's containing folder path (everything between
+// the picked root folder and the filename), and drop a trailing "Portal
+// Data" / "QGIS" segment if present, since that's a shared subfolder name
+// used inside every town, not a town identifier. Whatever folder path is
+// left is the town key, so files nested at any depth under the same town
+// folder -- with any structure inside it -- still group together.
+function townKeyFromPath(path){
+  const parts = String(path||"").split('/');
+  const dirParts = parts.slice(1, -1); // drop root folder and filename
+  while (dirParts.length && /^(portal data|qgis)$/i.test(dirParts[dirParts.length-1])){
+    dirParts.pop();
+  }
+  return dirParts.join('/');
+}
+
+let townGroups = {}; // townKey -> { listing, blockx, wardx, ivx, townx, block_dbf, block_shp, ward_dbf, iv_dbf }
+
+document.getElementById('folderInput').addEventListener('change', (e) => {
+  const files = Array.from(e.target.files);
+  townGroups = {};
+  for (const f of files){
+    const path = f.webkitRelativePath || f.name;
+    const rule = NEED.find(r => r.test(path));
+    if (!rule) continue;
+    const tk = townKeyFromPath(path);
+    if (!townGroups[tk]) townGroups[tk] = {};
+    townGroups[tk][rule.key] = f;
+  }
+  const townKeys = Object.keys(townGroups);
+  const list = document.getElementById('fileList');
+  const PORTAL_KEYS = ["listing","blockx","wardx","ivx","townx"];
+  const QGIS_KEYS = ["block_dbf","block_shp","ward_dbf","iv_dbf"];
+  const KEY_LABEL = {
+    listing:"Listing", blockx:"Block boundary schedule", wardx:"Ward boundary schedule",
+    ivx:"IV Unit boundary schedule", townx:"Town boundary schedule",
+    block_dbf:"Block boundary .dbf", block_shp:"Block boundary .shp",
+    ward_dbf:"Ward boundary .dbf", iv_dbf:"IV Unit boundary .dbf"
+  };
+  function sectionRows(tk, keys){
+    return keys.map(key => {
+      const f = townGroups[tk][key];
+      return `<div class="${f ? 'found' : 'missing'}">${f ? '✓' : '✗'} ${KEY_LABEL[key]} ${f ? '&mdash; ' + f.webkitRelativePath : '(not found)'}</div>`;
+    }).join('');
+  }
+  if (!townKeys.length){
+    list.innerHTML = '<div class="missing">✗ No matching files found under a "Portal Data" or "QGIS" folder.</div>';
+  } else {
+    list.innerHTML = townKeys.map(tk => {
+      const label = tk ? tk : '(single-town / no subfolder)';
+      const havePortalCore = ["listing","blockx","wardx","ivx"].every(k => townGroups[tk][k]);
+      return `<div style="margin-bottom:16px">
+        <div style="font-weight:600;color:var(--ink);margin-bottom:6px">${label}</div>
+        <div style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-bottom:8px">
+          <div style="font-weight:600;color:var(--accent);font-size:12.5px;margin-bottom:4px">Portal Data
+            ${havePortalCore ? '<span class="count-badge">sufficient for listing vs. schedule scrutiny</span>' : ''}</div>
+          ${sectionRows(tk, PORTAL_KEYS)}
+        </div>
+        <div style="border:1px solid var(--line);border-radius:6px;padding:8px 10px">
+          <div style="font-weight:600;color:var(--accent);font-size:12.5px;margin-bottom:4px">QGIS
+            <span class="hint">(optional &mdash; only needed for record-match &amp; polygon-overlap checks)</span></div>
+          ${sectionRows(tk, QGIS_KEYS)}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  const haveAnyListing = townKeys.some(tk => townGroups[tk].listing);
+  document.getElementById('runBtn').disabled = !haveAnyListing;
+  document.getElementById('status').textContent = haveAnyListing
+    ? `Ready. ${townKeys.length} town(s) detected. Missing files just skip the rules that need them, same as the Python tool.`
+    : 'Need at least one listing export (Portal Data/*_listing.xls) to run anything.';
+});
+
+/* ---------------------------------------------------------------------
+   Readers
+--------------------------------------------------------------------- */
+function readAsText(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsText(file); }); }
+function readAsBuf(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsArrayBuffer(file); }); }
+
+// Portal "xls" exports are actually HTML tables. Pick the biggest table = the data table.
+function parsePortalXls(html){
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const tables = Array.from(doc.querySelectorAll('table'));
+  if (!tables.length) return null;
+  const table = tables.reduce((a,b)=> (b.querySelectorAll('tr').length > a.querySelectorAll('tr').length ? b : a));
+  const rows = Array.from(table.querySelectorAll('tr'));
+  if (!rows.length) return null;
+  const headerCells = Array.from(rows[0].querySelectorAll('th,td')).map(c=>c.textContent.trim());
+  const dataRows = [];
+  for (let i=1;i<rows.length;i++){
+    const cells = Array.from(rows[i].querySelectorAll('td'));
+    if (!cells.length) continue;
+    const obj = {};
+    headerCells.forEach((h,idx)=> obj[h] = (cells[idx]?cells[idx].textContent:'').trim());
+    dataRows.push(obj);
+  }
+  return {columns: headerCells, rows: dataRows};
+}
+
+// Minimal .dbf reader -> list of row objects
+function readDbf(buf){
+  const dv = new DataView(buf);
+  const numrec = dv.getUint32(4, true);
+  const lenheader = dv.getUint16(8, true);
+  const recsize = dv.getUint16(10, true);
+  const numfields = Math.floor((lenheader - 33) / 32);
+  const fields = [];
+  const dec = new TextDecoder('latin1');
+  for (let i=0;i<numfields;i++){
+    const off = 32 + i*32;
+    const nameBytes = new Uint8Array(buf, off, 11);
+    let name = dec.decode(nameBytes).split('\0')[0];
+    const flen = dv.getUint8(off+16);
+    fields.push({name, flen});
+  }
+  const records = [];
+  let pos = lenheader;
+  for (let i=0;i<numrec;i++){
+    let off = pos + 1; // skip deletion flag
+    const row = {};
+    for (const f of fields){
+      const bytes = new Uint8Array(buf, off, f.flen);
+      row[f.name] = dec.decode(bytes).trim();
+      off += f.flen;
+    }
+    row.__raw = row;
+    records.push(row);
+    pos += recsize;
+  }
+  return records;
+}
+
+// Minimal .shp reader for polygon shapes -> [{points:[[x,y],...]}]
+function readShpPolygons(buf){
+  const dv = new DataView(buf);
+  const shapes = [];
+  let pos = 100;
+  const n = buf.byteLength;
+  while (pos < n){
+    const reclen = dv.getInt32(pos+4, false); // big-endian, in 16-bit words
+    pos += 8;
+    const contentStart = pos;
+    const stype = dv.getInt32(contentStart, true);
+    if (stype === 5){
+      const numparts = dv.getInt32(contentStart+36, true);
+      const numpoints = dv.getInt32(contentStart+40, true);
+      const ptsStart = contentStart + 44 + 4*numparts;
+      const pts = [];
+      for (let i=0;i<numpoints;i++){
+        const x = dv.getFloat64(ptsStart + 16*i, true);
+        const y = dv.getFloat64(ptsStart + 16*i + 8, true);
+        pts.push([x,y]);
+      }
+      shapes.push({points: pts});
+    }
+    pos += reclen*2;
+  }
+  return shapes;
+}
+
+/* ---------------------------------------------------------------------
+   Geometry helpers (ported 1:1 from the Python tool)
+--------------------------------------------------------------------- */
+function bbox(points){
+  const xs = points.map(p=>p[0]), ys = points.map(p=>p[1]);
+  return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+}
+function bboxOverlap(b1,b2){ return !(b1[2]<b2[0] || b2[2]<b1[0] || b1[3]<b2[1] || b2[3]<b1[1]); }
+function polygonArea(poly){
+  let a=0; const n=poly.length;
+  for (let i=0;i<n;i++){ const [x1,y1]=poly[i]; const [x2,y2]=poly[(i+1)%n]; a += x1*y2 - x2*y1; }
+  return Math.abs(a)/2;
+}
+function isConvex(poly){
+  const n = poly.length; if (n<3) return false;
+  let sign=0;
+  for (let i=0;i<n;i++){
+    const a=poly[i], b=poly[(i+1)%n], c=poly[(i+2)%n];
+    const cross = (b[0]-a[0])*(c[1]-b[1]) - (b[1]-a[1])*(c[0]-b[0]);
+    if (Math.abs(cross) > 1e-15){
+      const s = cross>0?1:-1;
+      if (sign===0) sign=s; else if (sign!==s) return false;
+    }
+  }
+  return true;
+}
+function clipPolygon(subject, clip){
+  const inside = (p,a,b) => (b[0]-a[0])*(p[1]-a[1]) - (b[1]-a[1])*(p[0]-a[0]) >= 0;
+  const intersect = (p1,p2,a,b) => {
+    const [x1,y1]=p1,[x2,y2]=p2,[x3,y3]=a,[x4,y4]=b;
+    const d = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4);
+    if (Math.abs(d) < 1e-15) return p2;
+    const t = ((x1-x3)*(y3-y4) - (y1-y3)*(x3-x4)) / d;
+    return [x1 + t*(x2-x1), y1 + t*(y2-y1)];
+  };
+  let output = subject;
+  const cn = clip.length;
+  for (let i=0;i<cn;i++){
+    const a=clip[i], b=clip[(i+1)%cn];
+    if (!output.length) break;
+    const input = output; output = [];
+    const n = input.length;
+    for (let j=0;j<n;j++){
+      const cur = input[j], prev = input[(j-1+n)%n];
+      const curIn = inside(cur,a,b), prevIn = inside(prev,a,b);
+      if (curIn){ if (!prevIn) output.push(intersect(prev,cur,a,b)); output.push(cur); }
+      else if (prevIn){ output.push(intersect(prev,cur,a,b)); }
+    }
+  }
+  return output;
+}
+function intersectionArea(poly1, poly2){
+  const [clip, subject] = isConvex(poly2) ? [poly2, poly1] : [poly1, poly2];
+  const result = clipPolygon(subject, clip);
+  if (result.length < 3) return 0;
+  return polygonArea(result);
+}
+function polygonsOverlap(pts1, pts2, tolerance=0.02){
+  const area1 = polygonArea(pts1), area2 = polygonArea(pts2);
+  const minArea = Math.min(area1, area2);
+  if (minArea <= 0) return false;
+  const inter = intersectionArea(pts1, pts2);
+  return inter > tolerance * minArea;
+}
+
+/* ---------------------------------------------------------------------
+   Grouping helper
+--------------------------------------------------------------------- */
+function groupBy(rows, keyFn){
+  const map = new Map();
+  for (const r of rows){
+    const k = keyFn(r);
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(r);
+  }
+  return map;
+}
+const blockKey = r => `${r["IV Unit Number"]}|${r["Ward No"]}|${r["Block Number"]}`;
+const isBlank = v => ["", "0", "-", "nan", "not applicable"].includes(String(v||"").trim().toLowerCase());
+// Every portal export (listing, block/ward/iv boundary) carries an "Observer
+// Name" column identifying who recorded that entry. Findings pull it from
+// whichever row(s) triggered the discrepancy so the report shows who to
+// follow up with. obsOfMany() is for rules spanning a group of rows, where
+// more than one observer may have contributed entries to the same block.
+const obsOf = row => String((row && (row["Observer Name"]||row["Observer name"]||row["observer name"]))||"").trim() || "-";
+const obsOfMany = rows => {
+  const names = [...new Set((rows||[]).map(obsOf).filter(n => n && n !== "-"))];
+  return names.length ? names.join(", ") : "-";
+};
+
+/* ---------------------------------------------------------------------
+   Best-effort free-text extraction of structure/owner names from a
+   North/East/South/West boundary route sentence, e.g.:
+   "Starting from Vacant Plot moving on Ridge-Sanjauli road covering
+    MC Shops, Rain Shelter upto Paras Traders(S S Paints)."
+   and owner references like "upto Summer Lyton i.e. H/o Sanjay Karol Ravi Sood".
+--------------------------------------------------------------------- */
+const OWNER_PAT = /h\.?\/o\.?\s*([A-Za-z][A-Za-z .]{2,40}?)(?=[.,;]| upto| moving| covering| then| which|$)/gi;
+const KEYWORD_PAT = /(?:starting from|from|covering|excluding|upto|near)\s+(.+?)(?=\s+(?:starting from|from|moving|covering|excluding|upto|near|then|which)\b|[.;]|$)/gi;
+const NOISE_RE = /^\s*($|imaginary boundary|ward boundary|nala|circular road|[\w \-]*\broad\b[\w \-]*$|forest area|point of start|starting point of block|the starting point of block|stairs|path|junction|shop no\.?|house no\.?)\s*$/i;
+
+function extractBoundaryNamesAndOwners(text){
+  text = String(text||"").trim();
+  if (isBlank(text)) return {names:[], owners:[]};
+  const owners = [];
+  let m;
+  const ownerRe = new RegExp(OWNER_PAT.source, OWNER_PAT.flags);
+  while ((m = ownerRe.exec(text))) owners.push(m[1].trim());
+
+  const names = [];
+  const keywordRe = new RegExp(KEYWORD_PAT.source, KEYWORD_PAT.flags);
+  while ((m = keywordRe.exec(text))){
+    let span = m[1].replace(new RegExp(OWNER_PAT.source, OWNER_PAT.flags), "");
+    span = span.replace(/\bi\.e\.?\s*$/i, "").trim().replace(/\.+$/,"").trim();
+    for (const token of span.split(",")){
+      let name = token.trim().replace(/\.+$/,"").trim();
+      name = name.replace(/^(?:the\s+)/i, "").trim();
+      if (!name || name.length < 3 || NOISE_RE.test(name)) continue;
+      if (/\bexcluded\b/i.test(name)) continue; // explicitly marked as not part of this block -- absence from listing is expected
+      names.push(name);
+    }
+  }
+  return {names: [...new Set(names)], owners: [...new Set(owners)]};
+}
+
+/* ---------------------------------------------------------------------
+   Fuzzy/normalized matching so spelling variants, punctuation differences
+   (e.g. "Park 6" vs "Park - 6"), and reordered words (e.g. "Rain Shelter
+   Talland" vs "Talland Rain Shelter") are treated as the same structure
+   instead of being flagged as mismatches.
+--------------------------------------------------------------------- */
+function normalizeForMatch(s){
+  return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+}
+const STOPWORDS = new Set(["of","the","and","at","in","for"]);
+function tokenSetKey(s){
+  return normalizeForMatch(s).split(" ").filter(t => t && !STOPWORDS.has(t)).sort().join(" ");
+}
+function tokenSet(s){
+  return new Set(normalizeForMatch(s).split(" ").filter(t => t && !STOPWORDS.has(t)));
+}
+function levenshtein(a, b){
+  const m = a.length, n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  const dp = new Array(n + 1);
+  for (let j = 0; j <= n; j++) dp[j] = j;
+  for (let i = 1; i <= m; i++){
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= n; j++){
+      const tmp = dp[j];
+      dp[j] = Math.min(dp[j] + 1, dp[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = tmp;
+    }
+  }
+  return dp[n];
+}
+function nameSimilarity(a, b){
+  const la = a.length, lb = b.length;
+  if (!la && !lb) return 1;
+  return 1 - levenshtein(a, b) / Math.max(la, lb);
+}
+// Checks candidate against every item already in `set`. Matches on:
+// exact normalized text, same words in any order/punctuation (ignoring
+// connector words like "of"), a close spelling (edit-distance ratio >=
+// threshold, e.g. "Viila" vs "Villa"), or the candidate's words all being
+// present in a longer listing name (e.g. free-text extraction only
+// captured "Block A" out of the full "Verma Apartment Block A").
+// looseOverlap: for free-text extraction where BOTH sides may have their
+// words jumbled/reordered with minor differences (not just a clean subset
+// or exact reorder) -- if most of the words are shared either way, treat
+// it as the same name rather than flagging it.
+function fuzzyNameMatch(candidate, set, threshold = 0.8, looseOverlap = false){
+  const normCand = normalizeForMatch(candidate);
+  if (!normCand) return true;
+  const tokenCand = tokenSetKey(candidate);
+  const candTokens = tokenSet(candidate);
+  for (const item of set){
+    if (!item) continue;
+    const normItem = normalizeForMatch(item);
+    if (!normItem) continue;
+    if (normItem === normCand) return true;
+    if (tokenSetKey(item) === tokenCand) return true;
+    if (nameSimilarity(normCand, normItem) >= threshold) return true;
+    if (candTokens.size >= 2){
+      const itemTokens = tokenSet(item);
+      if ([...candTokens].every(t => itemTokens.has(t))) return true;
+      if (looseOverlap && candTokens.size && itemTokens.size){
+        const shared = [...candTokens].filter(t => itemTokens.has(t)).length;
+        const union = new Set([...candTokens, ...itemTokens]).size;
+        if (shared / union >= 0.6) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/* ---------------------------------------------------------------------
+   Main scrutiny logic (ported + new Rule 6)
+--------------------------------------------------------------------- */
+async function runScrutiny(picked){
+  const findings = [];
+
+  const listing = picked.listing ? parsePortalXls(await readAsText(picked.listing)) : null;
+  const blockx  = picked.blockx  ? parsePortalXls(await readAsText(picked.blockx))  : null;
+  const wardx   = picked.wardx   ? parsePortalXls(await readAsText(picked.wardx))   : null;
+  const ivx     = picked.ivx     ? parsePortalXls(await readAsText(picked.ivx))     : null;
+
+  const lrows = listing ? listing.rows : [];
+
+  // ---- Rule: household norms (120-150) ----
+  if (listing){
+    const groups = groupBy(lrows, blockKey);
+    for (const [key, rows] of groups){
+      const [iv,ward,block] = key.split('|');
+      const hh = rows.reduce((s,r)=> s + (parseFloat(r["Number of Households"])||0), 0);
+      if (hh < 120 || hh > 150){
+        findings.push({iv,ward,block, item:"Norms of households", record:"-", severity:"Error", observer: obsOfMany(rows),
+          entry: `Number of households is ${hh}, outside the 120-150 norm.`,
+          remark: "Please give remarks in the schedule to justify the situation."});
+      }
+    }
+  }
+
+  // ---- Rule: listing sequence should start at North-West ----
+  if (listing){
+    const groups = groupBy(lrows, blockKey);
+    for (const [key, rows] of groups){
+      const [iv,ward,block] = key.split('|');
+      const sorted = [...rows].sort((a,b)=> String(a["Creation Time"]).localeCompare(String(b["Creation Time"])));
+      const firstCorner = String(sorted[0]["Corner Point"]||"").trim();
+      let desc = null;
+      if (["","0","-","nan"].includes(firstCorner.toLowerCase())) desc = "is blank/not recorded";
+      else if (!["north-west","nw","north west"].includes(firstCorner.toLowerCase())) desc = `is '${firstCorner}', not North-West`;
+      if (desc){
+        findings.push({iv,ward,block, item:"Listing sequence", record: sorted[0]["Record No"]||"-", severity:"Error", observer: obsOf(sorted[0]),
+          entry: `Corner Point of the first-listed structure ${desc}.`,
+          remark: "Listing should start from the North-West corner structure/point; please check & rectify."});
+      }
+    }
+  }
+
+  // ---- Rule: structures matching a known Landmark Type category must be tagged ----
+  if (listing){
+    for (const row of lrows){
+      const name = String(row["Name of Structure"]||"").toLowerCase();
+      const landmark = String(row["Landmark"]||"").trim().toLowerCase();
+      let matchedType = null;
+      for (const [ltype, kws] of Object.entries(LANDMARK_KEYWORD_MAP)){
+        if (kws.some(kw => name.includes(kw))){ matchedType = ltype; break; }
+      }
+      if (matchedType && isBlank(landmark)){
+        findings.push({iv:row["IV Unit Number"], ward:row["Ward No"], block:row["Block Number"],
+          item:"Landmark", record: row["Record No"]||"-", severity:"Warning", observer: obsOf(row),
+          entry: `Structure '${row["Name of Structure"]}' (Record No ${row["Record No"]}) appears to be a '${matchedType}' but is not tagged with that Landmark Type.`,
+          remark: `Please tag with Landmark Type '${matchedType}' if applicable, and check & rectify.`});
+      }
+    }
+  }
+
+  // ---- NEW Rule: description (Other Details) references must exist in the same block's listing ----
+  if (listing){
+    const groups = groupBy(lrows, blockKey);
+    const refPatterns = [
+      {label:"house number", re:/\b(?:h\.?\s*no\.?|house\s*no\.?|hh\s*no\.?|sr\.?\s*no\.?)\s*[:\-]?\s*([A-Za-z0-9\/]+)/i,
+       matchField: r => r["House Number"]},
+      {label:"owner name", re:/\b(?:owner|s\/o|d\/o|w\/o|c\/o)\s*[:\-]?\s*([A-Za-z][A-Za-z.\s]{2,40})/i,
+       matchField: r => r["Name of the Owner"]},
+      {label:"structure name", re:/\b(?:same as|refer(?:s|red)? to|structure named?)\s*[:\-]?\s*([A-Za-z][A-Za-z.\s]{2,40})/i,
+       matchField: r => r["Name of Structure"]},
+    ];
+    for (const [key, rows] of groups){
+      const [iv,ward,block] = key.split('|');
+      for (const row of rows){
+        const details = String(row["Other Details"]||"").trim();
+        if (isBlank(details)) continue;
+        for (const p of refPatterns){
+          const m = details.match(p.re);
+          if (!m) continue;
+          const ref = m[1].trim().toLowerCase();
+          if (!ref) continue;
+          const found = rows.some(other => other !== row && String(p.matchField(other)||"").trim().toLowerCase() === ref);
+          if (!found){
+            findings.push({iv,ward,block, item:"Description cross-reference", record: row["Record No"]||"-", severity:"Warning", observer: obsOf(row),
+              entry: `Other Details for Record No ${row["Record No"]} ("${details}") references a ${p.label} ("${m[1].trim()}") that could not be found among this block's listing entries.`,
+              remark: "Please verify the referenced household/structure is listed in this block, or correct the description."});
+          }
+        }
+      }
+    }
+  }
+
+  // ---- NEW Rule: block boundary description (North/East/South/West) names must exist in that block's listing ----
+  // Most blocks describe their boundary as a route ("Starting from X moving on road covering
+  // A, B upto Y"), which isn't meant to name a single existing structure exactly. Only blocks
+  // that consist of a single structure give the bare structure name on all four sides -- that's
+  // the case this check applies to, to avoid false-positiving on every route description.
+  if (blockx && listing){
+    const listingGroups = groupBy(lrows, blockKey);
+    for (const brow of blockx.rows){
+      const sides = ["North","East","South","West"].map(s => String(brow[s]||"").trim());
+      const allBlank = sides.every(isBlank);
+      const allSame = !allBlank && sides.every(v => v.toLowerCase() === sides[0].toLowerCase());
+      if (!allSame) continue; // route-style description -- not a single-structure claim, skip
+      const key = blockKey(brow);
+      const group = listingGroups.get(key) || [];
+      const val = sides[0];
+      const found = group.some(r => String(r["Name of Structure"]||"").trim().toLowerCase() === val.toLowerCase());
+      if (!found){
+        findings.push({iv:brow["IV Unit Number"], ward:brow["Ward No"], block:brow["Block Number"], observer: obsOf(brow),
+          item:"Block boundary description", record: brow["Record No"]||"-", severity:"Warning",
+          entry: `Block boundary (North/East/South/West) is described as '${val}', but no structure with that name was found in this block's listing.`,
+          remark: "Please verify the block boundary description matches an actual listed structure, and check & rectify."});
+      }
+    }
+  }
+
+  // ---- NEW Rule: Area Type presence ----
+  if (blockx){
+    for (const brow of blockx.rows){
+      const areaType1 = String(brow["Type of Area 1 (Code)"]||"").trim();
+      if (isBlank(areaType1)){
+        findings.push({iv:brow["IV Unit Number"], ward:brow["Ward No"], block:brow["Block Number"], observer: obsOf(brow),
+          item:"Area Type", record: brow["Record No"]||"-", severity:"Error",
+          entry: "Type of Area 1 (Code) is blank/not specified for this block.",
+          remark: "Please specify the Area Type for this block."});
+      }
+    }
+  }
+
+  // ---- NEW Rule: Auxiliary Information presence -- only flagged when this block's listing
+  // actually contains a landmark-type structure (school, bank, post office, etc.). A block
+  // with no such structure has nothing to tag, so blank Auxiliary Information there is expected
+  // and not a discrepancy.
+  if (blockx && listing){
+    const listingGroups = groupBy(lrows, blockKey);
+    for (const brow of blockx.rows){
+      const auxVals = [1,2,3,4,5].map(i => String(brow[`Auxilliary Information ${i} (Code)`]||"").trim());
+      if (auxVals.some(v => !isBlank(v))) continue; // already has something tagged
+      const key = blockKey(brow);
+      const group = listingGroups.get(key) || [];
+      const hasLandmark = group.some(r => {
+        const nm = String(r["Name of Structure"]||"").toLowerCase();
+        return Object.values(LANDMARK_KEYWORD_MAP).some(kws => kws.some(kw => nm.includes(kw)));
+      });
+      if (!hasLandmark) continue; // nothing in the listing to tag -- blank is fine
+      findings.push({iv:brow["IV Unit Number"], ward:brow["Ward No"], block:brow["Block Number"], observer: obsOf(brow),
+        item:"Auxiliary Information", record: brow["Record No"]||"-", severity:"Warning",
+        entry: "All five Auxiliary Information codes are blank/not specified for this block, but its listing contains a landmark-type structure.",
+        remark: "Please specify Auxiliary Information for this block."});
+    }
+  }
+
+  // ---- NEW Rule: Auxiliary Information should reflect landmark types actually present in the block's listing ----
+  if (blockx && listing){
+    const listingGroups = groupBy(lrows, blockKey);
+    for (const brow of blockx.rows){
+      const key = blockKey(brow);
+      const group = listingGroups.get(key) || [];
+      const matchedTypes = new Set();
+      for (const r of group){
+        const nm = String(r["Name of Structure"]||"").toLowerCase();
+        for (const [ltype, kws] of Object.entries(LANDMARK_KEYWORD_MAP)){
+          if (kws.some(kw => nm.includes(kw))) matchedTypes.add(ltype);
+        }
+      }
+      if (!matchedTypes.size) continue;
+      const auxJoined = [1,2,3,4,5].map(i => String(brow[`Auxilliary Information ${i} (Code)`]||"").toLowerCase()).join(" | ");
+      for (const ltype of matchedTypes){
+        const kws = AUX_MATCH_KEYWORDS[ltype];
+        if (!kws) continue;
+        if (!kws.some(kw => auxJoined.includes(kw))){
+          findings.push({iv:brow["IV Unit Number"], ward:brow["Ward No"], block:brow["Block Number"], observer: obsOf(brow),
+            item:"Auxiliary Information mismatch", record: brow["Record No"]||"-", severity:"Error",
+            entry: `This block's listing contains a structure matching '${ltype}', but none of the Auxiliary Information codes for the block reflect this.`,
+            remark: `Please tag Auxiliary Information for '${ltype}' at the block level if applicable, and check & rectify.`});
+        }
+      }
+    }
+  }
+
+  // ---- NEW Rule: block boundary "Other Details" (block schedule description) names
+  // must match a structure in that block's listing. Other Details often mixes free-text
+  // explanatory notes ("This block consists a single structure...") with a comma-separated
+  // list of notable structure names -- split on sentence-ending periods, skip segments that
+  // read as explanatory notes, and check the remaining comma-separated names against the
+  // block's listing Name of Structure values.
+  if (blockx && listing){
+    const listingGroups = groupBy(lrows, blockKey);
+    const EXPLANATORY_RE = /this block|consists|specified limit|households|hence|due to|because of|large area|more than|less no/i;
+    for (const brow of blockx.rows){
+      const details = String(brow["Other Details"]||"").trim();
+      if (isBlank(details)) continue;
+      const key = blockKey(brow);
+      const group = listingGroups.get(key) || [];
+      const names = new Set(group.map(r => String(r["Name of Structure"]||"").trim().toLowerCase()));
+      const segments = details.split(/\.(?:\s+|$)/).map(s => s.trim()).filter(Boolean);
+      for (const seg of segments){
+        if (EXPLANATORY_RE.test(seg)) continue; // explanatory note, not a name list
+        for (const token of seg.split(",")){
+          const name = token.trim();
+          if (!name) continue;
+          if (!fuzzyNameMatch(name, names)){
+            findings.push({iv:brow["IV Unit Number"], ward:brow["Ward No"], block:brow["Block Number"], observer: obsOf(brow),
+              item:"Block description vs listing", record: brow["Record No"]||"-", severity:"Warning",
+              entry: `Block's Other Details names '${name}', not found in this block's listing (Name of Structure).`,
+              remark: "Close spelling/punctuation/word-order variants are already filtered out -- please verify this one is genuinely missing from the listing."});
+          }
+        }
+      }
+    }
+  }
+
+  // ---- NEW Rule: Auxiliary Information present at block level must be backed up by a
+  // matching landmark/structure in that block's listing (the reverse of the rule above,
+  // which checks listing -> Auxiliary Information). Reuses the same LANDMARK_KEYWORD_MAP /
+  // AUX_MATCH_KEYWORDS so both directions agree on what counts as a match.
+  if (blockx && listing){
+    const listingGroups = groupBy(lrows, blockKey);
+    for (const brow of blockx.rows){
+      const key = blockKey(brow);
+      const group = listingGroups.get(key) || [];
+      const haystacks = group.map(r => [r["Name of Structure"], r["Landmark"], r["Other Details"]]
+        .map(v => String(v||"").toLowerCase()).join(" "));
+      const auxJoined = [1,2,3,4,5].map(i => String(brow[`Auxilliary Information ${i} (Code)`]||"").toLowerCase()).join(" | ");
+      const checkedTypes = new Set();
+      for (const [ltype, auxKws] of Object.entries(AUX_MATCH_KEYWORDS)){
+        if (checkedTypes.has(ltype)) continue;
+        if (!auxKws.some(kw => auxJoined.includes(kw))) continue; // this Auxiliary Info type isn't flagged for this block
+        checkedTypes.add(ltype);
+        const nameKws = LANDMARK_KEYWORD_MAP[ltype] || [];
+        const found = haystacks.some(h => nameKws.some(kw => h.includes(kw)));
+        if (!found){
+          findings.push({iv:brow["IV Unit Number"], ward:brow["Ward No"], block:brow["Block Number"], observer: obsOf(brow),
+            item:"Auxiliary Information mismatch", record: "-", severity:"Error",
+            entry: `Block's Auxiliary Information indicates a '${ltype}', but no matching structure/landmark was found in this block's listing (Name of Structure / Landmark / Other Details).`,
+            remark: "Verify the corresponding landmark/structure is actually recorded in the listing schedule for this block, and check & rectify."});
+        }
+      }
+    }
+  }
+
+  // ---- NEW Rule: names/owners embedded in North/East/South/West route text vs listing ----
+  // The route narration ("Starting from X moving on road covering A, B upto Y", with owner
+  // references like "H/o Sanjay Karol Ravi Sood") contains far more names than just the
+  // single-structure case above. This is free-text parsing, so it's best-effort: short
+  // fragments and route/boundary words get filtered, but some noise (a truncated word, a
+  // stray "Junction") will still slip through -- flag results here are a shortlist to skim,
+  // not a final discrepancy list the way the other rules are.
+  if (blockx && listing){
+    const listingGroups = groupBy(lrows, blockKey);
+    for (const brow of blockx.rows){
+      const key = blockKey(brow);
+      const group = listingGroups.get(key) || [];
+      const structSet = new Set(group.map(r => String(r["Name of Structure"]||"").trim().toLowerCase()));
+      const ownerSet = new Set(group.map(r => String(r["Name of the Owner"]||"").trim().toLowerCase()));
+      ownerSet.delete(""); ownerSet.delete("0"); ownerSet.delete("nan");
+      const structOrCombo = new Set(structSet);
+      for (const r of group){
+        const sn = String(r["Name of Structure"]||"").trim();
+        const on = String(r["Name of the Owner"]||"").trim();
+        if (sn && on && !isBlank(on)) structOrCombo.add(`${sn} ${on}`.toLowerCase());
+      }
+
+      const allNames = new Set(), allOwners = new Set();
+      for (const side of ["North","East","South","West"]){
+        const {names, owners} = extractBoundaryNamesAndOwners(brow[side]);
+        names.forEach(n => allNames.add(n));
+        owners.forEach(o => allOwners.add(o));
+      }
+      for (const name of allNames){
+        if (!fuzzyNameMatch(name, structOrCombo, 0.8, true)){
+          findings.push({iv:brow["IV Unit Number"], ward:brow["Ward No"], block:brow["Block Number"], observer: obsOf(brow),
+            item:"Boundary route text vs listing", record: brow["Record No"]||"-", severity:"Warning",
+            entry: `Boundary text (N/E/S/W) mentions structure '${name}', not found in this block's listing (Name of Structure).`,
+            remark: "Best-effort text extraction -- close spelling/punctuation/word-order variants are already filtered out, so verify this one before treating it as an error."});
+        }
+      }
+      for (const owner of allOwners){
+        if (!fuzzyNameMatch(owner, ownerSet, 0.8, true)){
+          findings.push({iv:brow["IV Unit Number"], ward:brow["Ward No"], block:brow["Block Number"], observer: obsOf(brow),
+            item:"Boundary route text vs listing", record: brow["Record No"]||"-", severity:"Warning",
+            entry: `Boundary text (N/E/S/W) mentions owner '${owner}' (via H/o reference), not found in this block's listing (Name of the Owner).`,
+            remark: "Best-effort text extraction -- close spelling/punctuation/word-order variants are already filtered out, so verify this one before treating it as an error."});
+        }
+      }
+    }
+  }
+
+  // ---- Rule: record number matching between Excel exports and GIS attribute tables ----
+  const dbfSets = {};
+  for (const [gisKey, excelName] of [["block_dbf","Block boundary"], ["ward_dbf","Ward boundary"], ["iv_dbf","IV Unit boundary"]]){
+    if (picked[gisKey]){
+      const records = readDbf(await readAsBuf(picked[gisKey]));
+      const keyName = records.length ? Object.keys(records[0]).find(k => k.toLowerCase().includes('record')) : null;
+      dbfSets[excelName] = keyName ? new Set(records.map(r => String(r[keyName]).trim())) : new Set();
+    }
+  }
+  function checkRecordMatch(parsed, layerName){
+    if (!parsed || !dbfSets[layerName] || !parsed.columns.includes("Record No")) return;
+    for (const row of parsed.rows){
+      const rn = String(row["Record No"]).trim();
+      if (!dbfSets[layerName].has(rn)){
+        findings.push({iv: row["IV Unit Number"]||"-", ward: row["Ward No"]||"-", block: row["Block Number"]||"-",
+          item: `${layerName} record match`, record: rn, severity:"Error", observer: obsOf(row),
+          entry: `Record No ${rn} in ${layerName} Excel export not found in ${layerName} GIS layer.`,
+          remark: "Please verify GIS project and Excel export are in sync."});
+      }
+    }
+  }
+  checkRecordMatch(blockx, "Block boundary");
+  checkRecordMatch(wardx, "Ward boundary");
+  checkRecordMatch(ivx, "IV Unit boundary");
+
+  // ---- Rule: block polygon overlap check ----
+  if (picked.block_shp && picked.block_dbf){
+    const shapes = readShpPolygons(await readAsBuf(picked.block_shp));
+    const records = readDbf(await readAsBuf(picked.block_dbf));
+    const n = Math.min(shapes.length, records.length);
+    const boxes = shapes.slice(0,n).map(s => bbox(s.points));
+    for (let i=0;i<n;i++){
+      for (let j=i+1;j<n;j++){
+        if (bboxOverlap(boxes[i], boxes[j]) && polygonsOverlap(shapes[i].points, shapes[j].points)){
+          const r1 = records[i], r2 = records[j];
+          const b1 = r1["b"] || r1["block"] || "?";
+          const b2 = r2["b"] || r2["block"] || "?";
+          findings.push({iv: r1["iv"]||"-", ward: r1["w"]||"-", block: `${b1} & ${b2}`,
+            item: "Overlap in QGIS", record: `${r1["record"]||r1["Record"]||"-"} & ${r2["record"]||r2["Record"]||"-"}`, severity:"Error", observer: "-",
+            entry: `Block ${b1} and Block ${b2} boundary polygons appear to overlap.`,
+            remark: "Please rectify the QGIS project to remove overlap."});
+        }
+      }
+    }
+  }
+
+  let meta = null;
+  if (listing && lrows.length){
+    const r0 = lrows[0];
+    meta = {"State": r0["State Name"]||"", "District": r0["District Name"]||"",
+             "Town/City": r0["Town Name"]||"", "IV Unit Number": r0["IV Unit Number"]||""};
+  }
+
+  return {findings, meta};
+}
+
+/* ---------------------------------------------------------------------
+   Maps a finding's rule label (the "item" field) to the file(s) it was
+   read from, so the report can show where each entry came from.
+--------------------------------------------------------------------- */
+const ITEM_SOURCE_MAP = {
+  "Norms of households": "Listing",
+  "Listing sequence": "Listing",
+  "Landmark": "Listing",
+  "Description cross-reference": "Listing",
+  "Block boundary description": "Block Boundary + Listing",
+  "Area Type": "Block Boundary",
+  "Auxiliary Information": "Block Boundary",
+  "Auxiliary Information mismatch": "Block Boundary + Listing",
+  "Block description vs listing": "Block Boundary + Listing",
+  "Boundary route text vs listing": "Block Boundary + Listing",
+  "Overlap in QGIS": "QGIS shapefile/DBF",
+};
+function sourceForFinding(f){
+  if (f.source) return f.source;
+  if (ITEM_SOURCE_MAP[f.item]) return ITEM_SOURCE_MAP[f.item];
+  const m = /^(.+) record match$/.exec(f.item||"");
+  if (m) return `${m[1]} Excel vs QGIS DBF`;
+  return "-";
+}
+
+/* ---------------------------------------------------------------------
+   Report writer (matches the official Scrutiny Report layout) via ExcelJS
+--------------------------------------------------------------------- */
+async function writeReport(findings, meta){
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Scrutiny Report");
+
+  ws.mergeCells("A1:M1");
+  ws.getCell("A1").value = "SCRUTINY REPORT";
+  ws.getCell("A1").font = {bold:true, size:13};
+  ws.getCell("A1").alignment = {horizontal:"center", vertical:"middle", wrapText:true};
+
+  ws.mergeCells("A2:M2");
+  ws.getCell("A2").value = "URBAN FRAME SURVEY PHASE 2022-27";
+  ws.getCell("A2").font = {bold:true};
+  ws.getCell("A2").alignment = {horizontal:"center", vertical:"middle", wrapText:true};
+
+  // meta is now an array (one object per town) rather than a single object,
+  // so town-level header info lists every town processed instead of just one.
+  const metas = Array.isArray(meta) ? meta : (meta ? [meta] : []);
+  let row = 4;
+  if (metas.length === 1){
+    for (const [label, val] of Object.entries(metas[0])){
+      ws.getCell(row,1).value = label; ws.getCell(row,1).font = {bold:true};
+      ws.getCell(row,2).value = val;
+      row++;
+    }
+    row++;
+  } else if (metas.length > 1){
+    ws.getCell(row,1).value = "Towns covered"; ws.getCell(row,1).font = {bold:true};
+    ws.getCell(row,2).value = metas.map(m => m["Town/City"]).filter(Boolean).join(", ");
+    row += 2;
+  }
+
+  const headerRow = row;
+  const headers = ["Sr. No.","Town","IV Unit\nNumber","Ward\nNumber","Block\nNumber","Record No\n(wrong entry)",
+    "Description of Items","Entry as noted","Corrected entry, if any","Remarks","Source","Observer\nName","Status"];
+  const thin = {style:"thin"};
+  const border = {top:thin, left:thin, bottom:thin, right:thin};
+  headers.forEach((h, idx) => {
+    const c = ws.getCell(headerRow, idx+1);
+    c.value = h; c.font = {bold:true};
+    c.alignment = {horizontal:"center", vertical:"middle", wrapText:true};
+    c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FFD9D9D9"}};
+    c.border = border;
+  });
+
+  let r = headerRow + 1;
+  const ERROR_FILL = {type:"pattern", pattern:"solid", fgColor:{argb:"FFF4CCCC"}};
+  const WARNING_FILL = {type:"pattern", pattern:"solid", fgColor:{argb:"FFFFF2CC"}};
+  findings.forEach((f, idx) => {
+    const status = f.severity === "Error" ? "Error" : "Warning"; // default to Warning if unset
+    const vals = [idx+1, f.town||"-", f.iv, f.ward, f.block, f.record||"-", f.item, f.entry, "", f.remark, sourceForFinding(f), f.observer||"-", status];
+    vals.forEach((v, col) => {
+      const c = ws.getCell(r, col+1);
+      c.value = v; c.border = border;
+      c.alignment = [7,8,9,10].includes(col+1)
+        ? {horizontal:"left", vertical:"top", wrapText:true}
+        : {horizontal:"center", vertical:"middle", wrapText:true};
+      if (col+1 === 13){
+        c.fill = status === "Error" ? ERROR_FILL : WARNING_FILL;
+        c.font = {bold:true, color:{argb: status === "Error" ? "FFCC0000" : "FF806000"}};
+      }
+    });
+    r++;
+  });
+  if (!findings.length){
+    ws.getCell(r,1).value = "No discrepancies found.";
+    r++;
+  }
+
+  const widths = [7,14,9,9,9,14,18,42,22,30,20,18,12];
+  widths.forEach((w, i) => { ws.getColumn(i+1).width = w; });
+
+  const buf = await wb.xlsx.writeBuffer();
+  return buf;
+}
+
+/* ---------------------------------------------------------------------
+   UI wiring
+--------------------------------------------------------------------- */
+let lastFindings = [], lastMeta = null;
+
+document.getElementById('runBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true; btn.textContent = "Running…";
+  const allFindings = [];
+  const allMetas = [];
+  try{
+    const townKeys = Object.keys(townGroups);
+    for (const tk of townKeys){
+      document.getElementById('status').textContent = `Reading files and running checks… (${tk || 'single-town'})`;
+      const {findings, meta} = await runScrutiny(townGroups[tk]);
+      const townLabel = (meta && meta["Town/City"]) || tk || "-";
+      findings.forEach(f => f.town = townLabel);
+      allFindings.push(...findings);
+      if (meta) allMetas.push({...meta, "Town/City": townLabel});
+    }
+    lastFindings = allFindings; lastMeta = allMetas;
+    renderResults(allFindings);
+    document.getElementById('status').textContent = `Done. ${townKeys.length} town(s) processed, ${allFindings.length} scrutiny point(s) found.`;
+  } catch(err){
+    console.error(err);
+    document.getElementById('status').textContent = "Error: " + err.message;
+  }
+  btn.disabled = false; btn.textContent = "Run scrutiny";
+});
+
+function renderResults(findings){
+  document.getElementById('resultsCard').style.display = 'block';
+  document.getElementById('countBadge').textContent = findings.length;
+  const el = document.getElementById('resultsTable');
+  if (!findings.length){ el.innerHTML = "<p>No discrepancies found.</p>"; return; }
+  let html = "<table><thead><tr><th>#</th><th>Town</th><th>IV</th><th>Ward</th><th>Block</th><th>Record No</th><th>Item</th><th>Entry</th><th>Remark</th><th>Observer</th></tr></thead><tbody>";
+  findings.forEach((f, i) => {
+    html += `<tr><td>${i+1}</td><td>${f.town||"-"}</td><td>${f.iv}</td><td>${f.ward}</td><td>${f.block}</td><td>${f.record||"-"}</td><td>${f.item}</td><td>${f.entry}</td><td>${f.remark}</td><td>${f.observer||"-"}</td></tr>`;
+  });
+  html += "</tbody></table>";
+  el.innerHTML = html;
+}
+
+document.getElementById('downloadBtn').addEventListener('click', async () => {
+  const buf = await writeReport(lastFindings, lastMeta);
+  const blob = new Blob([buf], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = "Scrutiny_Report.xlsx";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+</script>
+<script src="assets/tools.js"></script><script src="assets/hub-nav.js"></script>
+</body>
+</html>

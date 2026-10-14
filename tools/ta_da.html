@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>TA/DA Calculation Sheet</title>
+
+<style>
+  :root{
+    --paper-w: 297mm;         /* A4 landscape */
+    --paper-h: 210mm;
+    --printZoom: 1;           /* auto-fit for one-page print */
+  }
+
+  body{
+    margin:0;
+    padding:16px;
+    background:#f3f5f7;
+    font-family: Arial, Helvetica, sans-serif;
+    color:#111;
+  }
+
+  /* ===== Screen (Landscape Preview) ===== */
+  .stage{ max-width:1280px; margin:0 auto; }
+  .toolbar{
+    display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;
+    margin:0 0 10px;
+  }
+  .btn{
+    cursor:pointer; border:none; border-radius:8px;
+    padding:10px 14px; font-weight:900;
+    background:#1a4f8d; color:#fff;
+  }
+  .btn.secondary{ background:#2f3b4a; }
+  .btn.danger{ background:#b42318; }
+  .btn:active{ transform:scale(.99); }
+
+  .paper{
+    width: var(--paper-w);
+    min-height: var(--paper-h);
+    background:#fff;
+    border:1px solid #cfd6df;
+    box-shadow:0 10px 24px rgba(0,0,0,.12);
+    border-radius:12px;
+    overflow:hidden;
+    margin:0 auto;
+  }
+  .sheet{ padding:10mm; }
+
+  /* responsive scaling for small screens */
+  .paper-scale{ transform-origin: top center; }
+  @media (max-width: 1100px){ .paper-scale{ transform: scale(.92); } }
+  @media (max-width: 900px){  .paper-scale{ transform: scale(.82); } }
+  @media (max-width: 720px){  .paper-scale{ transform: scale(.72); } }
+
+  /* ===== Table ===== */
+  table{
+    width:100%;
+    border-collapse:collapse;
+    table-layout:fixed;
+    font-size:13px;
+  }
+  td, th{
+    border:1px solid #000;
+    padding:6px 6px;
+    text-align:center;
+    vertical-align:middle;
+    word-wrap:break-word;
+  }
+  .title{
+    font-weight:700;
+    font-size:16px;
+    padding:10px 6px;
+  }
+  .hdrline{ text-align:left; font-weight:600; }
+  .left{ text-align:left; }
+
+  input, select{
+    width:100%;
+    border:none;
+    outline:none;
+    background:transparent;
+    text-align:center;
+    font-size:13px;
+    padding:2px 0;
+    font-family: inherit;
+  }
+  .left input, .left select{ text-align:left; padding-left:2px; }
+
+  .grouphead{ font-weight:700; padding:2px !important; }
+  .colhead th{ font-weight:700; padding-top:2px; padding-bottom:2px; }
+  .totalrow td{ font-weight:700; }
+
+  .rate-badge{
+    font-weight:700;
+    text-align:right;
+    font-size:12px;
+  }
+  .rate-badge span{
+    display:inline-block;
+    padding:2px 8px;
+    border:1px solid #000;
+    border-radius:999px;
+    margin-left:6px;
+  }
+
+  .mini{
+    display:inline-flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .mini input[type="date"]{
+    width:160px;
+    border:1px solid #000;
+    padding:4px 6px;
+    border-radius:6px;
+    background:#fff;
+    text-align:left;
+  }
+  .btn-mini{
+    border:none;
+    cursor:pointer;
+    font-weight:800;
+    padding:6px 10px;
+    border-radius:8px;
+    background:#1a4f8d;
+    color:#fff;
+  }
+  .btn-mini.gray{ background:#2f3b4a; }
+  .btn-mini.red{ background:#b42318; }
+  .btn-mini:active{ transform: scale(.99); }
+
+  .ranges{
+    margin-top:8px;
+    border:1px solid #000;
+    border-radius:10px;
+    padding:10px;
+    background:#fff;
+  }
+  .ranges h4{
+    margin:0 0 8px;
+    font-size:12.5px;
+    font-weight:900;
+    letter-spacing:.2px;
+  }
+  .range-list{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:6px;
+  }
+  .range-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:8px 10px;
+    border:1px solid #000;
+    border-radius:10px;
+    background:#f8fafc;
+    font-weight:800;
+    font-size:12px;
+  }
+  .range-item .meta{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .range-item code{
+    background:#fff;
+    border:1px solid #000;
+    padding:2px 6px;
+    border-radius:999px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight:900;
+  }
+  .range-item .actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  tr.sel{
+    outline: 3px solid #1a4f8d;
+    outline-offset:-3px;
+    background:#eef6ff;
+  }
+
+  /* ===== PRINT/PDF =====
+     Requirements:
+     - A4 landscape
+     - Use ~90% width
+     - Use ~90% height (auto-fit with zoom)
+     - One page
+     - Do not print range row + rate row + toolbar buttons
+  */
+  @page{
+    size: A4 landscape;
+    margin: 5mm 6mm;
+  }
+
+  @media print{
+    html, body{
+      margin:0 !important;
+      padding:0 !important;
+      background:#fff !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* auto-fit for one page (no transform to avoid blank pdf) */
+    body{ zoom: var(--printZoom); }
+
+    /* hide toolbar only (keep content printable) */
+    .toolbar{ display:none !important; }
+
+    /* remove preview look */
+    .paper{
+      border:none !important;
+      box-shadow:none !important;
+      border-radius:0 !important;
+      width:100% !important;
+      min-height:auto !important;
+      margin:0 !important;
+    }
+    .paper-scale{ transform:none !important; }
+    .sheet{ padding:0 !important; }
+
+    /* hide rows not required in print */
+    .no-print{ display:none !important; }
+
+    /* print table sizing */
+    table{
+      width:90% !important;
+      margin:0 auto !important;
+      font-size:10.6px !important;
+    }
+    th, td{
+      padding:1.8px 2px !important;
+      line-height:1.2 !important;
+    }
+    input, select{
+      font-size:10.6px !important;
+      padding:0 !important;
+      line-height:1.05 !important;
+    }
+
+    table, tr, td, th{
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+  }
+</style>
+</head>
+
+<body>
+  <div class="stage">
+    <!-- Toolbar (screen only; hidden in print) -->
+    <div class="toolbar">
+      <button class="btn secondary" onclick="addRow()">+ Add Row</button>
+      <button class="btn secondary" onclick="duplicateSelected()">➕ Add Journey Day (Duplicate Selected)</button>
+      <button class="btn danger" onclick="deleteSelected()">🗑 Delete Selected</button>
+      <button class="btn danger" onclick="clearRows()">Clear Rows</button>
+      <button class="btn" onclick="generatePDF()">Generate PDF</button>
+    </div>
+
+    <!-- A4 Landscape preview -->
+    <div class="paper paper-scale">
+      <div class="sheet">
+        <table id="tada">
+          <!-- compact columns -->
+          <colgroup>
+            <col style="width:8%">
+            <col style="width:6%">
+            <col style="width:8%">
+            <col style="width:8%">
+            <col style="width:9%">
+            <col style="width:7%">
+            <col style="width:6%">
+            <col style="width:7%">
+            <col style="width:11%">
+          </colgroup>
+
+          <!-- spacer (screen only) -->
+          <tr class="no-print"><td colspan="9" style="border:none; padding:4px;"></td></tr>
+
+          <tr>
+            <td colspan="9" class="title">
+              दोरा भत्ता / दैनिक भत्ता गणना पत्र &nbsp;|&nbsp; TA/DA CALCULATION SHEET
+            </td>
+          </tr>
+
+          <tr class="no-print"><td colspan="9" style="border:none; padding:6px;"></td></tr>
+
+          <tr>
+            <td colspan="5" class="hdrline left">
+              नाम/Name :
+              <input id="name" class="left" placeholder="Enter Name" />
+            </td>
+            <td colspan="4" class="hdrline left">
+              पद-नाम/Designation :
+              <select id="desig" class="left" onchange="updateRates()">
+                <option value="">Select Designation</option>
+                <option value="ENUM">Enumerator</option>
+                <option value="SUP">Survey Supervisor</option>
+                <option value="SSO">Senior Statistical Officer</option>
+              </select>
+            </td>
+          </tr>
+
+          <tr>
+            <td colspan="3" class="hdrline left">
+              स्थान /Place :
+              <input id="place" class="left" placeholder="Enter Place" />
+            </td>
+            <td colspan="3" class="hdrline left">
+              माह/Month :
+              <input id="month" class="left" type="month" />
+            </td>
+            <td colspan="3" class="hdrline left">
+              वर्ष /Year :
+              <input id="year" class="left" type="number" placeholder="2025" />
+            </td>
+          </tr>
+
+          <!-- Range controller (SCREEN ONLY; not printed) -->
+          <tr class="no-print">
+            <td colspan="9" class="hdrline left">
+              <div class="mini">
+                <span><b>Tour Range:</b></span>
+                <span>From</span>
+                <input id="fromDate" type="date" />
+                <span>To</span>
+                <input id="toDate" type="date" />
+                <span>Total Days: <b id="tourDays">0</b></span>
+                <button type="button" class="btn-mini" onclick="addRange()">Add Range</button>
+                <button type="button" class="btn-mini gray" onclick="generateAllRanges()">Generate All Ranges</button>
+              </div>
+
+              <div class="ranges" id="rangesBox">
+                <h4>Saved Ranges (multiple allowed in month)</h4>
+                <div class="range-list" id="rangeList"></div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Rates row (SCREEN ONLY; not printed) -->
+          <tr class="no-print">
+            <td colspan="9" class="rate-badge">
+              Applied Rates:
+              <span id="rateText">DA ₹0 | Hotel ₹0</span>
+              <span style="margin-left:10px;">Tip:</span>
+              <span style="border-style:dashed;">Click row to select • “Add Journey Day” duplicates selected date • Double-tap Hotel cell toggles No-Hotel</span>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="grouphead"></td>
+            <td colspan="4" class="grouphead">DA Details</td>
+            <td colspan="3" class="grouphead">Travelling Detail</td>
+            <td class="grouphead"></td>
+          </tr>
+
+          <tr class="colhead">
+            <th>Date</th>
+            <th>No. of DA</th>
+            <th>DA Amount</th>
+            <th>Hotel Bill</th>
+            <th>Total DA (3+4)</th>
+            <th>Mode</th>
+            <th>K.M.</th>
+            <th>Total Fare</th>
+            <th>Total (5+8)</th>
+          </tr>
+
+          <tbody id="rows"></tbody>
+
+          <tr class="totalrow">
+            <td colspan="2" class="left">Grand Total</td>
+            <td id="gDA">0</td>
+            <td id="gHotel">0</td>
+            <td id="gTDA">0</td>
+            <td></td>
+            <td></td>
+            <td id="gFare">0</td>
+            <td id="gAll">0</td>
+          </tr>
+
+          <tr>
+            <td colspan="9" class="left" style="border-top:none; padding-top:12px;">
+              <span style="font-weight:700;">दिनांक:-</span>
+              <span style="display:inline-block; width:220px; border-bottom:1px solid #000; margin:0 14px 0 8px;"></span>
+              <span style="float:right; font-weight:700;">संबन्धित क्षेत्र कर्मचारी के हस्ताक्षर</span>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script>
+  /* =====================
+     ALL ORIGINAL FUNCTIONS
+     ===================== */
+
+  // Rates
+  let DA_RATE = 0;
+  let HOTEL_RATE = 0;
+
+  const rowsEl   = document.getElementById("rows");
+  const rateText = document.getElementById("rateText");
+  const rangeList = document.getElementById("rangeList");
+
+  // Ranges: {id, fromISO, toISO, days}
+  let ranges = [];
+  let selectedRow = null;
+
+  function money(n){
+    n = Number(n || 0);
+    const rounded = Math.round(n * 100) / 100;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
+  }
+
+  function updateRates(){
+    const d = document.getElementById("desig").value;
+
+    if(d === "ENUM"){
+      DA_RATE = 500;
+      HOTEL_RATE = 900;
+    } else if(d === "SUP"){
+      DA_RATE = 600;
+      HOTEL_RATE = 900;
+    } else if(d === "SSO"){
+      DA_RATE = 1000;
+      HOTEL_RATE = 938;
+    } else {
+      DA_RATE = 0;
+      HOTEL_RATE = 0;
+    }
+
+    rateText.textContent = `DA ₹${money(DA_RATE)} | Hotel ₹${money(HOTEL_RATE)}`;
+    recalc();
+  }
+
+  // Tour range helpers
+  function parseDate(v){
+    if(!v) return null;
+    const d = new Date(v + "T00:00:00");
+    return isNaN(d) ? null : d;
+  }
+  function toISO(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${dd}`;
+  }
+  function dayDiffInclusive(a, b){
+    const ms = 24*60*60*1000;
+    const diff = Math.round((b - a) / ms);
+    return diff >= 0 ? diff + 1 : 0;
+  }
+
+  function updateTourDaysUI(){
+    const from = parseDate(document.getElementById("fromDate").value);
+    const to   = parseDate(document.getElementById("toDate").value);
+    const days = (from && to) ? dayDiffInclusive(from, to) : 0;
+    document.getElementById("tourDays").textContent = days;
+    return { from, to, days };
+  }
+
+  document.addEventListener("input", (e)=>{
+    if(e.target && (e.target.id === "fromDate" || e.target.id === "toDate")){
+      updateTourDaysUI();
+    }
+  });
+
+  function addRange(){
+    const { from, to, days } = updateTourDaysUI();
+    if(!from || !to || !days) return;
+
+    const item = {
+      id: String(Date.now()) + "_" + Math.floor(Math.random()*9999),
+      fromISO: toISO(from),
+      toISO: toISO(to),
+      days
+    };
+    ranges.push(item);
+    renderRanges();
+  }
+
+  function removeRange(id){
+    ranges = ranges.filter(r => r.id !== id);
+    renderRanges();
+  }
+
+  function renderRanges(){
+    rangeList.innerHTML = "";
+    if(!ranges.length){
+      rangeList.innerHTML = `<div style="font-weight:800; color:#333;">No ranges added yet.</div>`;
+      return;
+    }
+
+    ranges.forEach((r, idx)=>{
+      const div = document.createElement("div");
+      div.className = "range-item";
+      div.innerHTML = `
+        <div class="meta">
+          <span><b>Range ${idx+1}:</b></span>
+          <code>${r.fromISO}</code>
+          <span>to</span>
+          <code>${r.toISO}</code>
+          <span>(Days: <b>${r.days}</b>)</span>
+        </div>
+        <div class="actions">
+          <button class="btn-mini" type="button" onclick="generateRange('${r.id}', true)">Append Rows</button>
+          <button class="btn-mini gray" type="button" onclick="generateRange('${r.id}', false)">Replace Rows</button>
+          <button class="btn-mini red" type="button" onclick="removeRange('${r.id}')">Remove</button>
+        </div>
+      `;
+      rangeList.appendChild(div);
+    });
+  }
+
+  // Generate rows for a specific range
+  // append=true -> add to existing; append=false -> replace table rows with this range only
+  function generateRange(id, append){
+    const r = ranges.find(x => x.id === id);
+    if(!r) return;
+
+    const from = parseDate(r.fromISO);
+    const to = parseDate(r.toISO);
+    const days = dayDiffInclusive(from, to);
+    if(!append) rowsEl.innerHTML = "";
+
+    const cur = new Date(from);
+    for(let i=0;i<days;i++){
+      const iso = toISO(cur);
+      const isLastDay = (i === days - 1);
+
+      addRow({
+        date: iso,
+        days: 1,
+        noHotel: isLastDay,
+        rangeId: r.id
+      });
+
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    sortRowsByDate();
+    recalc();
+  }
+
+  function generateAllRanges(){
+    if(!ranges.length) return;
+    rowsEl.innerHTML = "";
+    ranges.forEach(r => generateRange(r.id, true)); // append
+    sortRowsByDate();
+    recalc();
+  }
+
+  // Rows / selection / journey day
+  function addRow(prefill = {}){
+    const tr = document.createElement("tr");
+
+    tr.dataset.nohotel = prefill.noHotel ? "1" : "0";
+    tr.dataset.rangeid = prefill.rangeId || "";
+
+    tr.innerHTML = `
+      <td><input type="date" value="${prefill.date || ""}" oninput="recalc()"></td>
+      <td><input type="number" min="0" step="1" value="${prefill.days ?? 1}" oninput="recalc()"></td>
+      <td class="da">0</td>
+      <td class="hotel">0</td>
+      <td class="tda">0</td>
+      <td><input value="${prefill.mode || ""}"></td>
+      <td><input type="number" min="0" step="0.1" value="${prefill.km || ""}" oninput="recalc()"></td>
+      <td><input type="number" min="0" step="0.01" value="${prefill.fare || ""}" oninput="recalc()"></td>
+      <td class="total">0</td>
+    `;
+
+    tr.addEventListener("click", ()=> selectRow(tr));
+
+    // double tap hotel cell -> toggle No-Hotel
+    tr.querySelector(".hotel").addEventListener("dblclick", (e)=>{
+      e.stopPropagation();
+      tr.dataset.nohotel = (tr.dataset.nohotel === "1") ? "0" : "1";
+      recalc();
+    });
+
+    rowsEl.appendChild(tr);
+    recalc();
+  }
+
+  function selectRow(tr){
+    if(selectedRow) selectedRow.classList.remove("sel");
+    selectedRow = tr;
+    selectedRow.classList.add("sel");
+  }
+
+  function duplicateSelected(){
+    if(!selectedRow) return;
+
+    const date = selectedRow.children[0].querySelector("input").value;
+    const days = selectedRow.children[1].querySelector("input").value;
+    const mode = selectedRow.children[5].querySelector("input").value;
+    const km   = selectedRow.children[6].querySelector("input").value;
+    const fare = selectedRow.children[7].querySelector("input").value;
+
+    addRow({
+      date,
+      days: Number(days || 1),
+      mode,
+      km,
+      fare,
+      noHotel: false,
+      rangeId: selectedRow.dataset.rangeid || ""
+    });
+
+    sortRowsByDate();
+    recalc();
+  }
+
+  function deleteSelected(){
+    if(!selectedRow) return;
+    selectedRow.remove();
+    selectedRow = null;
+    recalc();
+  }
+
+  function clearRows(){
+    rowsEl.innerHTML = "";
+    selectedRow = null;
+    addRow(); addRow(); addRow();
+  }
+
+  function sortRowsByDate(){
+    const trs = Array.from(rowsEl.querySelectorAll("tr"));
+    trs.sort((a,b)=>{
+      const da = a.children[0].querySelector("input").value || "9999-12-31";
+      const db = b.children[0].querySelector("input").value || "9999-12-31";
+      if(da < db) return -1;
+      if(da > db) return 1;
+      return 0;
+    });
+    rowsEl.innerHTML = "";
+    trs.forEach(tr => rowsEl.appendChild(tr));
+  }
+
+  // Calculation
+  function recalc(){
+    let gDA = 0, gHotel = 0, gTDA = 0, gFare = 0, gAll = 0;
+
+    [...rowsEl.querySelectorAll("tr")].forEach(tr => {
+      const days = Number(tr.children[1].querySelector("input").value || 0);
+      const fare = Number(tr.children[7].querySelector("input").value || 0);
+
+      const da = days * DA_RATE;
+
+      const noHotel = tr.dataset.nohotel === "1";
+      const hotel = noHotel ? 0 : (days * HOTEL_RATE);
+
+      const tda = da + hotel;
+      const total = tda + fare;
+
+      tr.querySelector(".da").textContent = money(da);
+      tr.querySelector(".hotel").textContent = money(hotel);
+      tr.querySelector(".hotel").title = noHotel ? "No Hotel (toggled / last day)" : "Double-tap to toggle No-Hotel";
+      tr.querySelector(".tda").textContent = money(tda);
+      tr.querySelector(".total").textContent = money(total);
+
+      gDA += da;
+      gHotel += hotel;
+      gTDA += tda;
+      gFare += fare;
+      gAll += total;
+    });
+
+    document.getElementById("gDA").textContent = money(gDA);
+    document.getElementById("gHotel").textContent = money(gHotel);
+    document.getElementById("gTDA").textContent = money(gTDA);
+    document.getElementById("gFare").textContent = money(gFare);
+    document.getElementById("gAll").textContent = money(gAll);
+  }
+
+  // Auto-fill year from month if empty
+  document.getElementById("month").addEventListener("input", (e) => {
+    const val = e.target.value; // yyyy-mm
+    if(val && !document.getElementById("year").value){
+      document.getElementById("year").value = val.split("-")[0];
+    }
+  });
+
+  /* ===== One-page print fit (~90% height) using zoom (safe, avoids blank PDF) ===== */
+  function fitPrint(){
+    document.documentElement.style.setProperty("--printZoom","1");
+
+    requestAnimationFrame(()=>{
+      const table = document.getElementById("tada");
+      const targetH = window.innerHeight * 0.90;     // 90% page height
+      const tableH  = table.getBoundingClientRect().height;
+
+      let z = 1;
+      if(tableH > targetH){
+        z = targetH / tableH;
+      }
+
+      // safety clamp (readable)
+      z = Math.max(0.55, Math.min(1, z));
+      document.documentElement.style.setProperty("--printZoom", String(z));
+    });
+  }
+
+  window.addEventListener("beforeprint", fitPrint);
+  window.addEventListener("afterprint", ()=> {
+    document.documentElement.style.setProperty("--printZoom","1");
+  });
+
+  // PDF button (prints; Range + Rate rows are hidden by .no-print)
+  function generatePDF(){
+    fitPrint();
+
+    const oldTitle = document.title;
+    const nm = (document.getElementById("name").value || "TA-DA").trim().replace(/\s+/g,"_");
+    const mm = (document.getElementById("month").value || "").replace("-","_");
+    document.title = `${nm}_${mm || "Sheet"}`;
+
+    setTimeout(()=>window.print(), 80);
+    setTimeout(()=>{ document.title = oldTitle; }, 500);
+  }
+
+  // Start
+  addRow(); addRow(); addRow();
+  updateRates();
+  renderRanges();
+</script>
+
+<script src="assets/tools.js"></script><script src="assets/hub-nav.js"></script>
+</body>
+</html>

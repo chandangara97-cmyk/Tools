@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Bulk WKT → KML (Auto b/w/iv) + ZIP Download</title>
+
+<!-- JSZip for ZIP download -->
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+<style>
+  :root{
+    --bg:#020617; --panel:#0b1222; --card:#0f172a; --border:#22304a;
+    --text:#e5e7eb; --muted:#94a3b8; --accent:#38bdf8;
+    --good:#86efac; --bad:#fca5a5;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; color:var(--text); font-family:system-ui,Segoe UI,Arial;
+    background:
+      radial-gradient(1000px 650px at 12% 10%, rgba(56,189,248,.16), transparent 60%),
+      radial-gradient(900px 600px at 90% 20%, rgba(167,139,250,.14), transparent 55%),
+      var(--bg);
+  }
+  .wrap{max-width:1200px;margin:0 auto;padding:18px}
+  h1{margin:0 0 6px;font-size:18px}
+  .sub{color:var(--muted);font-size:12px}
+  .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:12px;margin-top:14px}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}}
+  .card{
+    background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+    border:1px solid var(--border); border-radius:16px; padding:14px;
+    box-shadow:0 12px 30px rgba(0,0,0,.35);
+  }
+  label{display:block;color:var(--muted);font-size:12px;margin:10px 0 6px}
+  textarea,input,select{
+    width:100%; background:#020617; color:var(--text);
+    border:1px solid var(--border); border-radius:12px;
+    padding:10px 12px; outline:none;
+  }
+  textarea{min-height:300px;resize:vertical;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.35}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  button{
+    cursor:pointer; border:1px solid var(--border);
+    background:linear-gradient(180deg, rgba(56,189,248,.22), rgba(56,189,248,.10));
+    color:var(--text); padding:10px 14px; border-radius:12px; font-weight:900;
+  }
+  button.secondary{background:#0b1326}
+  .hint{color:var(--muted);font-size:12px;margin-top:10px}
+  .log{
+    background:#020617; border:1px solid var(--border); border-radius:14px;
+    padding:12px; font-size:12px; max-height:520px; overflow:auto;
+  }
+  .ok{color:var(--good)}
+  .bad{color:var(--bad)}
+  .pill{display:inline-block;padding:4px 10px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:12px}
+  .topline{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topline">
+    <div>
+      <h1>Bulk WKT → KML Generator</h1>
+      <div class="sub">Auto-detects <b>b</b>, <b>w</b>, <b>iv</b> from each row and downloads all KMLs as a ZIP.</div>
+    </div>
+    <div class="pill" id="status">Ready</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <label>1) Upload your data file (TXT/CSV) OR paste rows below</label>
+      <input id="file" type="file" accept=".txt,.csv,.tsv,.log" />
+
+      <label>2) Paste rows (each row must contain MULTIPOLYGON + numbers at end)</label>
+      <textarea id="input" placeholder="Example row:
+MULTIPOLYGON (((77.1680 31.0942, 77.1672 31.0933, ...)))    17    34    15    3962014
+
+Supported:
+- Tabs or spaces between columns
+- Last numbers must include at least: b w iv
+- Optional recordno at end (recommended)
+"></textarea>
+
+      <div class="row">
+        <div>
+          <label>File naming</label>
+          <select id="naming">
+            <option value="bwiv">b{b}w{w}iv{iv}.kml</option>
+            <option value="bwivrec" selected>b{b}_w{w}_iv{iv}_{rec}.kml (if rec exists)</option>
+          </select>
+        </div>
+        <div>
+          <label>If recordno missing, generate rec as</label>
+          <select id="recFallback">
+            <option value="line" selected>Line number</option>
+            <option value="timestamp">Timestamp</option>
+            <option value="none">No record</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="btns">
+        <button id="btnConvert">Convert → Download ZIP</button>
+        <button class="secondary" id="btnSample">Load Sample</button>
+        <button class="secondary" id="btnClear">Clear</button>
+      </div>
+
+      <div class="hint">
+        ✅ Your WKT is usually <b>lng lat</b> (QGIS/WKT) and KML needs <b>lon,lat</b> — this tool keeps correct order.<br/>
+        ✅ If one line has MultiPolygon + “17 34 15 3962014”, it becomes <b>b17_w34_iv15_3962014.kml</b>.
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Result Log</label>
+      <div class="log" id="log">Nothing yet.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const el = (id)=>document.getElementById(id);
+
+function setStatus(msg, ok=true){
+  const s = el("status");
+  s.textContent = msg;
+  s.style.color = ok ? "var(--good)" : "var(--bad)";
+}
+
+function escapeXml(s){
+  return String(s ?? "").replace(/[<>&'"]/g, c => ({
+    "<":"&lt;", ">":"&gt;", "&":"&amp;", "'":"&apos;", '"':"&quot;"
+  }[c]));
+}
+
+/**
+ * Extracts first ring from MULTIPOLYGON WKT and returns KML coordinate lines (lon,lat,0)
+ * Input pairs are expected as "lng lat" separated by spaces, each pair separated by commas.
+ */
+function wktMultiPolygonToKmlCoords(wkt){
+  const m = String(wkt).match(/MULTIPOLYGON\s*\(\(\(([\s\S]*?)\)\)\)/i);
+  if(!m) return null;
+  const inside = m[1];
+  const coords = inside.split(",").map(p=>{
+    const parts = p.trim().split(/\s+/).filter(Boolean);
+    if(parts.length < 2) return null;
+    const lng = parts[0], lat = parts[1];
+    const Lng = Number(lng), Lat = Number(lat);
+    if(!Number.isFinite(Lng) || !Number.isFinite(Lat)) return null;
+    // basic range checks
+    if(Math.abs(Lat) > 90 || Math.abs(Lng) > 180) return null;
+    return `${Lng},${Lat},0`;
+  });
+  if(coords.some(x=>x===null)) return null;
+  return coords.join("\n");
+}
+
+function makeKml(name, coords, b, w, iv, rec){
+  const safeName = escapeXml(name);
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>${safeName}</name>
+  <Placemark>
+    <name>${safeName}</name>
+    <ExtendedData>
+      <Data name="block"><value>${escapeXml(b)}</value></Data>
+      <Data name="ward"><value>${escapeXml(w)}</value></Data>
+      <Data name="iv"><value>${escapeXml(iv)}</value></Data>
+      ${rec ? `<Data name="record"><value>${escapeXml(rec)}</value></Data>` : ``}
+    </ExtendedData>
+    <Polygon>
+      <tessellate>1</tessellate>
+      <outerBoundaryIs>
+        <LinearRing>
+          <coordinates>
+${coords}
+          </coordinates>
+        </LinearRing>
+      </outerBoundaryIs>
+    </Polygon>
+  </Placemark>
+</Document>
+</kml>`;
+}
+
+/**
+ * AUTO-PICK b w iv (and optional rec) from a full row string.
+ * Expected row ending: ... <b> <w> <iv> [<rec>]
+ *
+ * Examples it matches:
+ *  MULTIPOLYGON (((...)))    17   34   15   3962014
+ *  MULTIPOLYGON (((...)))\t17\t34\t15\t3962014
+ *  MULTIPOLYGON (((...))) 17 34 15
+ */
+function parseRow(row){
+  const r = row.trim();
+  if(!r) return null;
+  if(!/MULTIPOLYGON/i.test(r)) return {error:"No MULTIPOLYGON found"};
+  // Capture WKT + trailing integers (at least 3, up to 4)
+  const m = r.match(/(MULTIPOLYGON\s*\(\(\([\s\S]*?\)\)\))\s+(\d+)\s+(\d+)\s+(\d+)(?:\s+(\d+))?\s*$/i);
+  if(!m) return {error:"Could not detect b w iv at end"};
+  const wkt = m[1];
+  const b = m[2], w = m[3], iv = m[4];
+  const rec = m[5] || "";
+  return {wkt, b, w, iv, rec};
+}
+
+function normalizeFileName(name){
+  return name.replace(/[\\/:*?"<>|]+/g, "_");
+}
+
+function buildFileName(b,w,iv,rec, namingMode, recFallbackValue){
+  if(namingMode === "bwiv"){
+    return normalizeFileName(`b${b}w${w}iv${iv}.kml`);
+  }
+  // bwivrec mode
+  if(rec){
+    return normalizeFileName(`b${b}_w${w}_iv${iv}_${rec}.kml`);
+  }
+  if(recFallbackValue === "none"){
+    return normalizeFileName(`b${b}_w${w}_iv${iv}.kml`);
+  }
+  return normalizeFileName(`b${b}_w${w}_iv${iv}_${recFallbackValue}.kml`);
+}
+
+async function convertNow(){
+  const log = el("log");
+  log.innerHTML = "";
+
+  const raw = el("input").value.trim();
+  const lines = raw ? raw.split(/\r?\n/) : [];
+  if(lines.length === 0){
+    setStatus("Paste rows or upload file", false);
+    log.innerHTML = `<span class="bad">❌ No input rows.</span>`;
+    return;
+  }
+
+  const namingMode = el("naming").value;
+  const recFallbackMode = el("recFallback").value;
+
+  const zip = new JSZip();
+  let ok = 0, bad = 0;
+
+  for(let i=0;i<lines.length;i++){
+    const row = lines[i].trim();
+    if(!row) continue;
+
+    const parsed = parseRow(row);
+    if(!parsed || parsed.error){
+      bad++;
+      log.innerHTML += `<div class="bad">❌ Line ${i+1}: ${escapeXml(parsed?.error || "Invalid row")}</div>`;
+      continue;
+    }
+
+    const coords = wktMultiPolygonToKmlCoords(parsed.wkt);
+    if(!coords){
+      bad++;
+      log.innerHTML += `<div class="bad">❌ Line ${i+1}: WKT parsed, but coordinates invalid</div>`;
+      continue;
+    }
+
+    let rec = parsed.rec;
+    if(!rec){
+      if(recFallbackMode === "line") rec = String(i+1);
+      else if(recFallbackMode === "timestamp") rec = String(Date.now());
+      else rec = ""; // none
+    }
+
+    const fname = buildFileName(parsed.b, parsed.w, parsed.iv, parsed.rec, namingMode, rec || "");
+    const placemarkName = fname.replace(/\.kml$/i,"");
+
+    const kml = makeKml(placemarkName, coords, parsed.b, parsed.w, parsed.iv, parsed.rec || rec || "");
+    zip.file(fname, kml);
+    ok++;
+    log.innerHTML += `<div class="ok">✅ ${escapeXml(fname)} (b=${parsed.b}, w=${parsed.w}, iv=${parsed.iv}${(parsed.rec||rec)?`, rec=${parsed.rec||rec}`:""})</div>`;
+  }
+
+  if(ok === 0){
+    setStatus("No valid rows", false);
+    log.innerHTML += `<div class="bad"><br/>❌ Nothing generated. Check your row format.</div>`;
+    return;
+  }
+
+  setStatus(`Generated ${ok} file(s)${bad?` | ${bad} failed`:``}`, true);
+
+  const blob = await zip.generateAsync({type:"blob"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "kml_files.zip";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+}
+
+el("btnConvert").addEventListener("click", convertNow);
+
+el("btnClear").addEventListener("click", ()=>{
+  el("input").value = "";
+  el("file").value = "";
+  el("log").textContent = "Nothing yet.";
+  setStatus("Ready", true);
+});
+
+el("btnSample").addEventListener("click", ()=>{
+  el("input").value =
+`MULTIPOLYGON (((77.11624202530902039 31.1036693434085123, 77.11644029120547827 31.10384709903982525, 77.11693937432416135 31.10397016063073394, 77.11749315148324513 31.10400434440598616, 77.11803325513223228 31.10403852818123838, 77.11890152302363788 31.10407271195649059, 77.11942111640746589 31.10405220169133855, 77.12011846542260685 31.10388811957012578, 77.12061754854128992 31.10342322022669848, 77.12109612139482806 31.10272587121155397, 77.12133540782159002 31.10250025829489218, 77.12146530616755058 31.10216525729742543, 77.12156102073825537 31.10195331789086381, 77.12151448535797726 31.10171654932844731, 77.12156039418476894 31.10156275475872789, 77.12164989855391184 31.1014610715272326, 77.12192336875592957 31.10138586722167631, 77.1222446962432997 31.10126280563077117, 77.12248086616175158 31.10117023428973582, 77.12266344749014024 31.10100642731637777, 77.12253081801505061 31.10105573747927821, 77.12243612538472348 31.10110043269832047, 77.1219848995513928 31.1012286218555154, 77.12165844449773999 31.10130553534983378, 77.12150290832033761 31.1013585202014724, 77.12121405541945762 31.10151234719010915, 77.12101749871175116 31.10166617417874591, 77.12094058521743989 31.1017653071269784, 77.12074061013220216 31.10185162115949353, 77.12051499721553682 31.10197040977849525, 77.12021930755956589 31.10209660488212791, 77.11990025899055468 31.10236095941074552, 77.11974757146113291 31.10253187828701016, 77.1195356320545784 31.10264810312286698, 77.11928950887275391 31.10267545014307089, 77.11725671370437851 31.1031449073231947, 77.11661861656634187 31.10309932895619056, 77.11640610743022251 31.10319077055498482, 77.11624202530902039 31.1036693434085123)))  1  6  1  3986201
+MULTIPOLYGON (((77.16802634399942917 31.0942037642692739, 77.16722460139847328 31.0933243054107642, 77.16696430159710474 31.09324930377308149, 77.16702165579063433 31.0930640056093921, 77.167211365815362 31.09290959047298841, 77.16746284189464689 31.09265370253265814, 77.16762805634110123 31.09270688801859706, 77.16736578095176924 31.09228310620528291, 77.16612163613842768 31.09215075037407772, 77.16405026738006256 31.09263054026219208, 77.16330025100323553 31.09292172309084279, 77.16309730539538236 31.09337173291693901, 77.16314142400578646 31.09402468835087774, 77.16577971690780657 31.09556883971493946, 77.16967097834516665 31.09600781988840978, 77.16984304092574121 31.09561957611687433, 77.17027981516871193 31.09554457447919162, 77.17038081674063221 31.09509539581646109, 77.16991363070238208 31.09471955646467833, 77.16983862906469938 31.09452102271787055, 77.16957612333283123 31.09440190246979085, 77.16946582680682809 31.09412836708530037, 77.16802634399942917 31.0942037642692739)))   17 34 15 3962014`;
+  setStatus("Sample loaded", true);
+});
+
+el("file").addEventListener("change", async (e)=>{
+  const f = e.target.files?.[0];
+  if(!f) return;
+  const text = await f.text();
+  el("input").value = text;
+  setStatus(`Loaded: ${f.name}`, true);
+});
+</script>
+<script src="assets/tools.js"></script><script src="assets/hub-nav.js"></script>
+</body>
+</html>

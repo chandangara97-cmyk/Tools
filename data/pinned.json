@@ -1,0 +1,15 @@
+{
+  "items": [
+    {"org":"MoSPI","title":"Advance Release Calendar 2026-27 (updated 25 May 2026)","url":"https://www.mospi.gov.in/uploads/documents/releaseCalender/1779709510470-ADVANCE%20RELEASE%20CALENDAR%202026-27%20Updated%2025.05.2026.pdf","kind":"Calendar","date":"2026-05-25","note":"Planned dates for GDP, IIP, CPI, PLFS and other releases."},
+    {"org":"MoSPI","title":"MoSPI press releases (full list)","url":"https://ipm.mospi.gov.in/Home/ShowPressRelease","kind":"Listing","date":"","note":"Official press-release archive, newest first."},
+    {"org":"MoSPI","title":"PAIMANA performance dashboard","url":"https://paimana-perf.mospi.gov.in","kind":"Dashboard","date":"2026-04-16","note":"Launched 16 April 2026 for the Jan–Mar 2026 quarter."},
+    {"org":"HP Statistics","title":"Statistical Year Book of Himachal Pradesh 2022-23","url":"https://himachalservices.nic.in/economics/pdf/YearBook2022-23.pdf","kind":"Year book","date":"","note":"Tables on area, population, agriculture, industry, power, education, health, finance and more."},
+    {"org":"HP Statistics","title":"Department of Economics & Statistics, HP — data portal","url":"https://ecostat.hp.gov.in/","kind":"Portal","date":"","note":"IIP, Village Level Directory and Employee Census services."}
+  ],
+  "upcoming": [
+    {"date":"2026-10-15","org":"MoSPI","title":"Monthly Bulletin of PLFS – September 2026"},
+    {"date":"2026-11-10","org":"MoSPI","title":"Quarterly Bulletin of PLFS – July to September 2026"},
+    {"date":"2026-11-15","org":"MoSPI","title":"Monthly Bulletin of PLFS – October 2026"}
+  ],
+  "upcoming_source": "MoSPI Advance Release Calendar 2026-27. Dates can change; check the calendar."
+}

@@ -1,0 +1,1338 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>UFS Block Finder (GPS + Manual Select + Boundary Display)</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- toGeoJSON (KML -> GeoJSON) -->
+  <script src="https://unpkg.com/@tmcw/togeojson@5.6.1/dist/togeojson.umd.js"></script>
+
+  <!-- Turf (point-in-polygon) -->
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+
+  <!-- JSZip (ZIP -> extract KMLs in browser) -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#0f172a;
+      --panel2:#0b1326;
+      --border:#22304a;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --accent:#38bdf8;
+      --ok:#22c55e;
+      --bad:#ef4444;
+      --warn:#f59e0b;
+      --radius:16px;
+      --shadow: 0 18px 70px rgba(0,0,0,.55);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 420px at 15% 10%, rgba(56,189,248,.14), transparent 60%),
+        radial-gradient(900px 420px at 85% 20%, rgba(167,139,250,.10), transparent 60%),
+        radial-gradient(700px 400px at 35% 85%, rgba(34,197,94,.10), transparent 55%),
+        var(--bg);
+    }
+    .wrap{ width:min(1100px, 100%); margin:14px auto 30px; padding:0 12px; }
+    .header{
+      background: linear-gradient(180deg, rgba(15,23,42,.92), rgba(11,19,38,.92));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px 14px 12px;
+    }
+    .title{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+    .title h1{ margin:0; font-size:18px; letter-spacing:.2px; line-height:1.25; }
+    .badge{
+      padding:6px 10px;
+      border:1px solid var(--border);
+      background: rgba(56,189,248,.10);
+      color: var(--text);
+      border-radius: 999px;
+      font-weight: 900;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .sub{ color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .nav{
+      margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;
+    }
+    .linkBtn{
+      text-decoration:none;
+      display:inline-flex; align-items:center; gap:8px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 12px;
+      font-weight: 900;
+    }
+    .grid{ display:grid; grid-template-columns:1fr; gap:12px; margin-top:12px; }
+    .card{
+      background: linear-gradient(180deg, rgba(15,23,42,.92), rgba(11,19,38,.92));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .cardHead{
+      padding: 12px 12px 10px;
+      border-bottom:1px solid rgba(34,48,74,.7);
+      display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    }
+    .cardHead .h{ font-weight: 900; font-size: 14px; display:flex; align-items:center; gap:8px; }
+    .cardBody{ padding: 12px; }
+
+    .row{ display:grid; grid-template-columns:1fr; gap:10px; }
+    .controls{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+
+    .btn{
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 900;
+      cursor:pointer;
+      transition: transform .06s ease, background .15s ease;
+      user-select:none;
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      background: linear-gradient(180deg, rgba(56,189,248,.22), rgba(56,189,248,.12));
+      border-color: rgba(56,189,248,.30);
+    }
+    .btn.ok{
+      background: linear-gradient(180deg, rgba(34,197,94,.22), rgba(34,197,94,.12));
+      border-color: rgba(34,197,94,.30);
+    }
+    .btn.bad{
+      background: linear-gradient(180deg, rgba(239,68,68,.22), rgba(239,68,68,.12));
+      border-color: rgba(239,68,68,.30);
+    }
+    .btn.warn{
+      background: linear-gradient(180deg, rgba(245,158,11,.22), rgba(245,158,11,.12));
+      border-color: rgba(245,158,11,.35);
+    }
+
+    .inp, .sel{
+      width:100%;
+      padding: 11px 12px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      outline:none;
+      font-weight: 800;
+    }
+    .inp:focus, .sel:focus{
+      border-color: rgba(56,189,248,.45);
+      box-shadow: 0 0 0 4px rgba(56,189,248,.14);
+    }
+
+    .two{ display:grid; grid-template-columns:1fr; gap:12px; }
+    @media (min-width: 920px){ .two{ grid-template-columns: 1.1fr .9fr; } }
+
+    #map{
+      width:100%;
+      height: 420px;
+      border-radius: 16px;
+      border:1px solid var(--border);
+      overflow:hidden;
+      background: #0b1220;
+    }
+
+    .kpi{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .kpi .box{
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.05);
+      border-radius: 14px;
+      padding: 10px 10px;
+      min-height: 52px;
+    }
+    .kpi .lab{ color: var(--muted); font-size: 11px; font-weight: 900; }
+    .kpi .val{ font-weight: 900; font-size: 13px; margin-top: 4px; word-break: break-word; }
+
+    .dirBox{
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.05);
+      border-radius: 14px;
+      padding: 10px 10px;
+      margin-top: 10px;
+    }
+    .dirBox .lab{ color: var(--muted); font-size: 11px; font-weight: 900; margin-bottom: 4px; }
+    .dirBox .val{ font-weight: 800; font-size: 12px; line-height: 1.35; white-space: pre-wrap; }
+
+    #activityPanel{
+      margin-top: 12px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      border-radius: 16px;
+      overflow:hidden;
+    }
+    .activity-header{
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 10px 12px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      font-weight: 900;
+    }
+    .activity-header button{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-weight: 900;
+      cursor:pointer;
+    }
+    #activityLog{
+      max-height: 220px;
+      overflow:auto;
+      padding: 10px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+    .logline{ padding: 4px 0; border-bottom:1px dashed rgba(255,255,255,.06); }
+    .logline.ok{ color: rgba(34,197,94,.95); }
+    .logline.bad{ color: rgba(239,68,68,.95); }
+    .logline.warn{ color: rgba(245,158,11,.95); }
+    .logline.info{ color: rgba(229,231,235,.95); }
+
+    .hint{ color: var(--muted); font-size: 11px; margin-top: 8px; line-height: 1.35; }
+    .fileRow{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    input[type="file"]{ display:none; }
+    .pill{
+      padding:7px 10px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      font-weight: 900;
+      font-size: 12px;
+    }
+    .chk{
+      display:flex; align-items:center; gap:8px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+      font-weight: 900;
+      color: var(--text);
+      user-select:none;
+    }
+    .chk input{ transform: scale(1.1); }
+    .selGrid{ display:grid; grid-template-columns:1fr; gap:10px; }
+    @media (min-width: 720px){ .selGrid{ grid-template-columns: 1fr 1fr; } }
+    code{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="title">
+        <h1>UFS Block Finder (GPS + Manual Select + Boundary Display)</h1>
+        <div class="badge" id="countBadge">0 boundaries</div>
+      </div>
+      <div class="sub">
+        ✅ KML name must be: <b>b{block}_w{ward}_iv{iv}_xxxx.kml</b> (example: <code>b17_w34_iv15_3962014.kml</code>)<br/>
+        ✅ Boundary descriptions load from CSV/Sheet using: <b>Town + IV + Ward + Block</b> (town auto-resolve if needed).
+      </div>
+      <div class="nav">
+        <a class="linkBtn" href="structure_logger.html">🏠 Open Structure Logger</a>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Controls -->
+      <div class="card">
+        <div class="cardHead">
+          <div class="h">⚙️ Controls</div>
+          <div class="fileRow">
+            <label class="btn primary" for="kmlInput">Upload .kml / .zip</label>
+            <input id="kmlInput" type="file" accept=".kml,.zip" multiple />
+            <label class="btn" for="boundaryInput">Upload Boundary CSV</label>
+            <input id="boundaryInput" type="file" accept=".csv,.txt" />
+          </div>
+        </div>
+
+        <div class="cardBody">
+          <div class="row">
+            <input class="inp" id="proxyUrl" placeholder="Apps Script Proxy URL (needed only for Drive ZIP)" />
+            <input class="inp" id="kmlUrl" placeholder="Drive ZIP link OR normal URL (.kml/.zip)" />
+
+            <div class="controls">
+              <button class="btn ok" id="fetchDriveBtn">Fetch ZIP from Drive</button>
+              <button class="btn primary" id="loadKmlUrlBtn">Load URL (non-Drive)</button>
+              <button class="btn" id="restoreSavedBtn">Restore Saved KML</button>
+              <button class="btn warn" id="clearSavedBtn">Clear Saved KML</button>
+              <label class="chk"><input type="checkbox" id="saveOfflineChk" checked>Save Offline</label>
+              <label class="chk"><input type="checkbox" id="autoFetchChk">Auto-fetch Drive ZIP on open</label>
+            </div>
+
+            <input class="inp" id="boundaryUrl" placeholder="Boundary CSV URL (GitHub raw / public link) OR Google Sheet link" />
+            <div class="controls">
+              <button class="btn warn" id="loadBoundaryBtn">Load Boundary (URL/Sheet)</button>
+              <button class="btn ok" id="startGpsBtn">Start GPS</button>
+              <button class="btn bad" id="stopGpsBtn">Stop</button>
+              <button class="btn primary" id="detectNowBtn">Detect Now</button>
+              <button class="btn" id="fitAllBtn">Fit All</button>
+              <button class="btn" id="clearBtn">Clear Map</button>
+            </div>
+
+            <div class="hint">
+              ✅ Block Finder page shows detection + boundary directions only. For saving structures → open Structure Logger page.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Selection Console -->
+      <div class="card">
+        <div class="cardHead">
+          <div class="h">🧾 Manual Selector (Town / IV / Ward / Block)</div>
+          <div class="pill" id="selStatus">Ready</div>
+        </div>
+        <div class="cardBody">
+          <div class="selGrid">
+            <select class="sel" id="townSel"><option value="">Town (All)</option></select>
+            <select class="sel" id="ivSel"><option value="">IV (All)</option></select>
+            <select class="sel" id="wardSel"><option value="">Ward (All)</option></select>
+            <select class="sel" id="blockSel"><option value="">Block (All)</option></select>
+          </div>
+          <div class="controls" style="margin-top:10px">
+            <button class="btn primary" id="showSelectedBtn">Show Selected</button>
+            <button class="btn" id="clearSelectionBtn">Clear Selection</button>
+          </div>
+          <div class="hint">
+            ✅ Manual selection loads North/East/South/West. Highlight on map uses KML Ward+Block match.
+          </div>
+        </div>
+      </div>
+
+      <div class="two">
+        <!-- Map -->
+        <div class="card">
+          <div class="cardHead">
+            <div class="h">🗺️ Map</div>
+            <div class="pill" id="gpsStatus">GPS: OFF</div>
+          </div>
+          <div class="cardBody">
+            <div id="map"></div>
+
+            <div id="activityPanel">
+              <div class="activity-header">
+                <span>📡 Live Activity Console</span>
+                <button id="clearLogBtn">Clear</button>
+              </div>
+              <div id="activityLog"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detected Info -->
+        <div class="card">
+          <div class="cardHead">
+            <div class="h">📍 Detected / Selected Info</div>
+            <div class="pill" id="boundaryStatus">Boundary: NOT LOADED</div>
+          </div>
+          <div class="cardBody">
+            <div class="kpi">
+              <div class="box">
+                <div class="lab">Current Location</div>
+                <div class="val" id="locVal">—</div>
+              </div>
+              <div class="box">
+                <div class="lab">Inside Boundary</div>
+                <div class="val" id="insideVal">—</div>
+              </div>
+
+              <div class="box">
+                <div class="lab">Town (Boundary)</div>
+                <div class="val" id="townVal">—</div>
+              </div>
+              <div class="box">
+                <div class="lab">IV / Ward / Block</div>
+                <div class="val" id="iwbVal">—</div>
+              </div>
+
+              <div class="box">
+                <div class="lab">KML (from filename)</div>
+                <div class="val" id="wbVal">—</div>
+              </div>
+              <div class="box">
+                <div class="lab">Boundary BBox (N/S/E/W)</div>
+                <div class="val" id="bboxVal">—</div>
+              </div>
+            </div>
+
+            <div class="dirBox"><div class="lab">North</div><div class="val" id="northVal">No entry</div></div>
+            <div class="dirBox"><div class="lab">East</div><div class="val" id="eastVal">No entry</div></div>
+            <div class="dirBox"><div class="lab">South</div><div class="val" id="southVal">No entry</div></div>
+            <div class="dirBox"><div class="lab">West</div><div class="val" id="westVal">No entry</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-town resolve modal -->
+  <div id="townResolveModal" style="
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.55); z-index:9999; padding:16px;">
+    <div style="
+      width:min(520px,100%); background:rgba(15,23,42,.96); border:1px solid #22304a;
+      border-radius:16px; box-shadow:0 18px 70px rgba(0,0,0,.55); padding:14px;">
+      <div style="font-weight:900; margin-bottom:6px;">Multiple Towns Found</div>
+      <div style="color:#94a3b8; font-size:12px; line-height:1.4; margin-bottom:10px;">
+        Same IV + Ward + Block exists in multiple towns. Select correct Town to load North/East/South/West.
+      </div>
+      <select id="townResolveSel" class="sel"></select>
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
+        <button id="townResolveCancel" class="btn">Cancel</button>
+        <button id="townResolveOk" class="btn primary">Use Town</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* =========================
+   Live Activity Console
+========================= */
+function logAct(msg, type="info"){
+  const el = document.getElementById("activityLog");
+  const t = new Date().toLocaleTimeString();
+  const div = document.createElement("div");
+  div.className = "logline " + type;
+  div.textContent = `• ${t}  ${msg}`;
+  el.prepend(div);
+}
+function clearActivity(){
+  document.getElementById("activityLog").innerHTML = "";
+  logAct("Console cleared", "warn");
+}
+
+/* =========================
+   IndexedDB (Save KML offline)
+========================= */
+const DB_NAME = "ufs_kml_viewer_db";
+const STORE = "kml_files";
+function openDB(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if(!db.objectStoreNames.contains(STORE)){
+        db.createObjectStore(STORE, { keyPath: "name" });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbPutKml(name, text){
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).put({ name, text, savedAt: Date.now() });
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbGetAllKml(){
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readonly");
+    const req = tx.objectStore(STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbClearAll(){
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).clear();
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/* =========================
+   CSV parser (handles quotes)
+========================= */
+function parseCSV(text){
+  const rows = [];
+  let row = [];
+  let cur = "";
+  let inQuotes = false;
+
+  for(let i=0;i<text.length;i++){
+    const ch = text[i];
+    const next = text[i+1];
+
+    if(ch === '"'){
+      if(inQuotes && next === '"'){ cur += '"'; i++; }
+      else{ inQuotes = !inQuotes; }
+    }else if(ch === ',' && !inQuotes){
+      row.push(cur.trim()); cur = "";
+    }else if((ch === '\n' || ch === '\r') && !inQuotes){
+      if(ch === '\r' && next === '\n') i++;
+      row.push(cur.trim()); cur = "";
+      if(row.length > 1 || (row.length===1 && row[0]!== "")){
+        rows.push(row.map(x => x.replace(/^"|"$/g,"")));
+      }
+      row = [];
+    }else{
+      cur += ch;
+    }
+  }
+  if(cur.length || row.length){
+    row.push(cur.trim());
+    if(row.length) rows.push(row.map(x => x.replace(/^"|"$/g,"")));
+  }
+  return rows.filter(r => r.some(c => String(c||"").trim()!==""));
+}
+
+const norm = s => String(s||"").trim();
+const numOnly = v => String(v||"").replace(/\D/g,"");
+
+/* =========================
+   Boundary maps (multi-town)
+========================= */
+let boundaryLoaded = false;
+let boundaryRows = [];            // list for dropdowns
+let boundaryExact = new Map();    // key: town|iv|w|b -> row
+let boundaryIndexWBIV = new Map();// key: iv|w|b -> rows[]
+
+const makeKey = (town, iv, ward, block) =>
+  `${String(town||"").trim().toLowerCase()}|iv${numOnly(iv)}|w${numOnly(ward)}|b${numOnly(block)}`;
+const makeKeyWBIV = (iv, ward, block) =>
+  `iv${numOnly(iv)}|w${numOnly(ward)}|b${numOnly(block)}`;
+
+function setBoundaryStatus(ok, label){
+  const el = document.getElementById("boundaryStatus");
+  el.textContent = label;
+  el.style.borderColor = ok ? "rgba(34,197,94,.35)" : "rgba(239,68,68,.35)";
+  el.style.background  = ok ? "rgba(34,197,94,.10)" : "rgba(239,68,68,.08)";
+}
+function findHeaderIndex(headers, wanted){
+  const low = headers.map(h => String(h||"").toLowerCase().trim());
+  for(const cand of wanted){
+    const idx = low.indexOf(String(cand).toLowerCase());
+    if(idx !== -1) return idx;
+  }
+  return -1;
+}
+
+function loadBoundaryFromCSVText(csvText){
+  const rows = parseCSV(csvText);
+  if(!rows.length){
+    logAct("❌ Boundary CSV empty", "bad");
+    setBoundaryStatus(false, "Boundary: EMPTY");
+    return;
+  }
+
+  const headers = rows[0].map(h => String(h||"").trim());
+  const idx = {
+    town: findHeaderIndex(headers, ["Town Name","Town","TOWN NAME","TOWN"]),
+    north: findHeaderIndex(headers, ["North","NORTH"]),
+    east:  findHeaderIndex(headers, ["East","EAST"]),
+    south: findHeaderIndex(headers, ["South","SOUTH"]),
+    west:  findHeaderIndex(headers, ["West","WEST"]),
+    iv:    findHeaderIndex(headers, ["IV Unit Number","IV No","IV","IV UNIT NUMBER"]),
+    ward:  findHeaderIndex(headers, ["Ward No","WARD NO","Ward"]),
+    block: findHeaderIndex(headers, ["Block Number","BLOCK NUMBER","Block"]),
+  };
+
+  const required = ["town","north","east","south","west","iv","ward","block"];
+  const missing = required.filter(k => idx[k] === -1);
+  if(missing.length){
+    logAct("❌ Boundary headers missing: " + missing.join(", ") + " | Found: " + headers.join(" | "), "bad");
+    setBoundaryStatus(false, "Boundary: WRONG HEADERS");
+    return;
+  }
+
+  boundaryExact = new Map();
+  boundaryIndexWBIV = new Map();
+  boundaryRows = [];
+
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i];
+
+    const town = norm(r[idx.town]);
+    const north = norm(r[idx.north]);
+    const east  = norm(r[idx.east]);
+    const south = norm(r[idx.south]);
+    const west  = norm(r[idx.west]);
+    const iv    = norm(r[idx.iv]);
+    const ward  = numOnly(r[idx.ward]);
+    const block = numOnly(r[idx.block]);
+
+    if(!town || !iv || !ward || !block) continue;
+
+    const item = { town, iv, ward, block, north, east, south, west };
+    boundaryExact.set(makeKey(town, iv, ward, block), item);
+
+    const keyWBIV = makeKeyWBIV(iv, ward, block);
+    if(!boundaryIndexWBIV.has(keyWBIV)) boundaryIndexWBIV.set(keyWBIV, []);
+    boundaryIndexWBIV.get(keyWBIV).push(item);
+
+    boundaryRows.push(item);
+  }
+
+  boundaryLoaded = true;
+  setBoundaryStatus(true, "Boundary: LOADED (" + boundaryExact.size + ")");
+  logAct("✅ Boundary loaded. Exact keys: " + boundaryExact.size, "ok");
+  buildSelectionOptions();
+}
+
+function sheetIdFromUrl(u){
+  const m = String(u||"").match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  return m ? m[1] : null;
+}
+async function loadBoundaryFromUrlOrSheet(){
+  const u = document.getElementById("boundaryUrl").value.trim();
+  if(!u){ logAct("❌ Boundary URL empty", "bad"); return; }
+
+  const sid = sheetIdFromUrl(u);
+  let fetchUrl = u;
+  if(sid) fetchUrl = `https://docs.google.com/spreadsheets/d/${sid}/export?format=csv&gid=0`;
+
+  logAct("📥 Loading Boundary: " + fetchUrl, "info");
+  let text = "";
+  try{
+    const res = await fetch(fetchUrl);
+    text = await res.text();
+  }catch(e){
+    logAct("❌ Boundary fetch failed: " + e.message, "bad");
+    setBoundaryStatus(false, "Boundary: LOAD FAILED");
+    return;
+  }
+  if(text.trim().startsWith("<!DOCTYPE html") || text.includes("ServiceLogin")){
+    logAct("❌ Boundary file not public / got HTML login", "bad");
+    setBoundaryStatus(false, "Boundary: NOT PUBLIC");
+    return;
+  }
+  loadBoundaryFromCSVText(text);
+}
+
+/* =========================
+   Selection Console
+========================= */
+function uniqueSorted(arr){
+  return Array.from(new Set(arr.filter(x => String(x||"").trim()!=="")))
+    .sort((a,b)=>String(a).localeCompare(String(b), undefined, {numeric:true}));
+}
+function fillSelect(sel, items, placeholder){
+  const cur = sel.value;
+  sel.innerHTML = "";
+  const opt0 = document.createElement("option");
+  opt0.value = "";
+  opt0.textContent = placeholder;
+  sel.appendChild(opt0);
+  for(const it of items){
+    const o = document.createElement("option");
+    o.value = it;
+    o.textContent = it;
+    sel.appendChild(o);
+  }
+  if(Array.from(sel.options).some(o => o.value === cur)) sel.value = cur;
+  else sel.value = "";
+}
+function setSelStatus(txt){ document.getElementById("selStatus").textContent = txt; }
+
+function filteredBoundaryRows(){
+  const town = document.getElementById("townSel").value;
+  const iv   = document.getElementById("ivSel").value;
+  const ward = document.getElementById("wardSel").value;
+  const block= document.getElementById("blockSel").value;
+
+  return boundaryRows.filter(r => {
+    if(town && r.town !== town) return false;
+    if(iv && String(r.iv) !== String(iv)) return false;
+    if(ward && String(r.ward) !== String(ward)) return false;
+    if(block && String(r.block) !== String(block)) return false;
+    return true;
+  });
+}
+function buildSelectionOptions(){
+  if(!boundaryLoaded){ setSelStatus("Load Boundary first"); return; }
+
+  fillSelect(document.getElementById("townSel"), uniqueSorted(boundaryRows.map(r=>r.town)), "Town (All)");
+
+  const town = document.getElementById("townSel").value;
+  const rowsTown = boundaryRows.filter(r => !town || r.town === town);
+  fillSelect(document.getElementById("ivSel"), uniqueSorted(rowsTown.map(r=>String(r.iv))), "IV (All)");
+
+  const iv = document.getElementById("ivSel").value;
+  const rowsTownIv = rowsTown.filter(r => !iv || String(r.iv) === String(iv));
+  fillSelect(document.getElementById("wardSel"), uniqueSorted(rowsTownIv.map(r=>String(r.ward))), "Ward (All)");
+
+  const ward = document.getElementById("wardSel").value;
+  const rowsTownIvWard = rowsTownIv.filter(r => !ward || String(r.ward) === String(ward));
+  fillSelect(document.getElementById("blockSel"), uniqueSorted(rowsTownIvWard.map(r=>String(r.block))), "Block (All)");
+
+  setSelStatus(`Filtered rows: ${filteredBoundaryRows().length}`);
+}
+
+/* =========================
+   Town resolve modal
+========================= */
+function openTownResolveModal(towns, onPick){
+  const modal = document.getElementById("townResolveModal");
+  const sel = document.getElementById("townResolveSel");
+  sel.innerHTML = "";
+  towns.forEach(t=>{
+    const o = document.createElement("option");
+    o.value = t;
+    o.textContent = t;
+    sel.appendChild(o);
+  });
+  modal.style.display = "flex";
+
+  const okBtn = document.getElementById("townResolveOk");
+  const cancelBtn = document.getElementById("townResolveCancel");
+
+  const cleanup = () => {
+    modal.style.display = "none";
+    okBtn.onclick = null;
+    cancelBtn.onclick = null;
+  };
+
+  cancelBtn.onclick = () => { cleanup(); logAct("⚠️ Town selection cancelled", "warn"); };
+  okBtn.onclick = () => { const picked = sel.value; cleanup(); onPick(picked); };
+}
+
+function resolveBoundaryRow(townSelected, iv, ward, block, onResolved){
+  if(!boundaryLoaded){ onResolved(null); return; }
+
+  if(townSelected){
+    onResolved(boundaryExact.get(makeKey(townSelected, iv, ward, block)) || null);
+    return;
+  }
+
+  const hits = boundaryIndexWBIV.get(makeKeyWBIV(iv, ward, block)) || [];
+  if(hits.length === 0){ onResolved(null); return; }
+  if(hits.length === 1){ onResolved(hits[0]); return; }
+
+  const towns = uniqueSorted(hits.map(h=>h.town));
+  openTownResolveModal(towns, (pickedTown) => {
+    onResolved(boundaryExact.get(makeKey(pickedTown, iv, ward, block)) || null);
+  });
+}
+
+/* =========================
+   Map init
+========================= */
+const map = L.map("map", { zoomControl:true }).setView([31.1048, 77.1734], 13);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 20,
+  attribution: "&copy; OpenStreetMap"
+}).addTo(map);
+
+const boundaryLayer = L.featureGroup().addTo(map); // KML polygons
+let gpsMarker = null, gpsAccuracy = null, watchId = null, lastPos = null;
+
+/* =========================
+   KML store + STRICT filename parsing
+========================= */
+const kmlItems = [];
+function updateCount(){ document.getElementById("countBadge").textContent = `${kmlItems.length} boundaries`; }
+
+function parseB_W_IV_FromName(filename){
+  const raw  = String(filename || "");
+  const base = raw.split("::").pop().split("/").pop().toLowerCase();
+  const m = base.match(/^b(\d+)_w(\d+)_iv(\d+)(?:_[^.]*)?\.kml$/i);
+  if(!m) return { block:"", ward:"", iv:"", base };
+  return { block:m[1], ward:m[2], iv:m[3], base };
+}
+function geojsonToTurfPolygons(geojson){
+  const polys = [];
+  if(!geojson || !geojson.features) return polys;
+  for(const f of geojson.features){
+    if(!f || !f.geometry) continue;
+    const g = f.geometry;
+    if(g.type === "Polygon" || g.type === "MultiPolygon") polys.push(f);
+  }
+  return polys;
+}
+function computeBBoxFromGeoJSON(geojson){
+  let N=-Infinity, S=Infinity, E=-Infinity, W=Infinity;
+  function walkCoords(coords){
+    if(typeof coords[0] === "number"){
+      const lon = coords[0], lat = coords[1];
+      if(lat > N) N = lat;
+      if(lat < S) S = lat;
+      if(lon > E) E = lon;
+      if(lon < W) W = lon;
+      return;
+    }
+    for(const c of coords) walkCoords(c);
+  }
+  if(geojson && geojson.features){
+    for(const f of geojson.features){
+      if(f.geometry && f.geometry.coordinates) walkCoords(f.geometry.coordinates);
+    }
+  }
+  if(!isFinite(N)) return null;
+  return {N,S,E,W};
+}
+
+/* =========================
+   UI setters
+========================= */
+function setText(id, v){ document.getElementById(id).textContent = v; }
+function setDirText(n,e,s,w){
+  setText("northVal", n || "No entry");
+  setText("eastVal",  e || "No entry");
+  setText("southVal", s || "No entry");
+  setText("westVal",  w || "No entry");
+}
+function setTown(town){ setText("townVal", town || "—"); }
+function setGpsStatus(on){
+  const el = document.getElementById("gpsStatus");
+  el.textContent = on ? "GPS: ON" : "GPS: OFF";
+  el.style.borderColor = on ? "rgba(34,197,94,.35)" : "rgba(239,68,68,.35)";
+  el.style.background  = on ? "rgba(34,197,94,.10)" : "rgba(239,68,68,.08)";
+}
+
+function applyBoundaryRow(row){
+  if(!row){
+    setTown("—");
+    setDirText("No entry","No entry","No entry","No entry");
+    setText("iwbVal", "—");
+    return;
+  }
+  setTown(row.town);
+  setDirText(row.north, row.east, row.south, row.west);
+  setText("iwbVal", `IV ${row.iv} / Ward ${row.ward} / Block ${row.block}`);
+}
+
+/* =========================
+   Highlight boundary by Ward+Block
+========================= */
+let highlightedLayer = null;
+function highlightByWardBlock(ward, block){
+  const w = String(ward||"");
+  const b = String(block||"");
+  const hit = kmlItems.find(it => String(it.ward||"")===w && String(it.block||"")===b);
+
+  if(highlightedLayer){
+    try{ highlightedLayer.setStyle({ weight:2, opacity:0.9, fillOpacity:0.15 }); }catch(e){}
+    highlightedLayer = null;
+  }
+  if(!hit){
+    logAct(`⚠️ No KML found for Ward=${w} Block=${b}`, "warn");
+    return null;
+  }
+  try{ hit.layer.setStyle({ weight:5, opacity:1, fillOpacity:0.25 }); }catch(e){}
+  highlightedLayer = hit.layer;
+  try{ map.fitBounds(hit.layer.getBounds().pad(0.15)); }catch(e){}
+  logAct(`🎯 Highlighted: ${hit.name} (b${b} w${w} iv${hit.iv||"?"})`, "ok");
+  return hit;
+}
+
+/* =========================
+   Detect boundary for point
+========================= */
+function detectForLatLng(lat, lng){
+  if(!kmlItems.length){
+    logAct("⚠️ No boundaries loaded", "warn");
+    return;
+  }
+
+  setText("locVal", `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+  const pt = turf.point([lng, lat]);
+
+  for(const item of kmlItems){
+    if(!item.bbox) continue;
+    if(lat > item.bbox.N || lat < item.bbox.S || lng > item.bbox.E || lng < item.bbox.W) continue;
+
+    for(const f of item.polygons){
+      try{
+        if(turf.booleanPointInPolygon(pt, f)){
+          setText("insideVal", item.name);
+          setText("wbVal", `Block b${item.block} / Ward w${item.ward} / IV ${item.iv}`);
+
+          const bb = item.bbox;
+          setText("bboxVal", `N ${bb.N.toFixed(6)} | S ${bb.S.toFixed(6)} | E ${bb.E.toFixed(6)} | W ${bb.W.toFixed(6)}`);
+
+          logAct(`✅ Inside: ${item.name} (b${item.block} w${item.ward} iv${item.iv})`, "ok");
+
+          const selectedTown = document.getElementById("townSel").value;
+          resolveBoundaryRow(selectedTown, item.iv, item.ward, item.block, (row) => {
+            if(row){
+              applyBoundaryRow(row);
+              logAct(`🧾 Boundary matched: Town=${row.town} | IV=${row.iv} W=${row.ward} B=${row.block}`, "ok");
+            }else{
+              applyBoundaryRow(null);
+              logAct(`⚠️ No boundary row found for IV=${item.iv} W=${item.ward} B=${item.block}`, "warn");
+            }
+          });
+
+          return;
+        }
+      }catch(e){
+        logAct("❌ PIP error: " + e.message, "bad");
+      }
+    }
+  }
+
+  setText("insideVal", "Not inside any boundary");
+  setText("wbVal", "—");
+  setText("bboxVal", "—");
+  applyBoundaryRow(null);
+  logAct("ℹ️ Not inside any boundary", "info");
+}
+
+/* =========================
+   GPS start/stop
+========================= */
+function startGPS(){
+  if(!navigator.geolocation){ logAct("❌ Geolocation not supported", "bad"); return; }
+  if(watchId) return;
+
+  watchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+      lastPos = { lat: latitude, lng: longitude, acc: accuracy };
+
+      if(!gpsMarker) gpsMarker = L.circleMarker([latitude, longitude], { radius: 8 }).addTo(map);
+      else gpsMarker.setLatLng([latitude, longitude]);
+
+      if(!gpsAccuracy) gpsAccuracy = L.circle([latitude, longitude], { radius: accuracy }).addTo(map);
+      else{
+        gpsAccuracy.setLatLng([latitude, longitude]);
+        gpsAccuracy.setRadius(accuracy);
+      }
+
+      setText("locVal", `${latitude.toFixed(6)}, ${longitude.toFixed(6)} (±${Math.round(accuracy)}m)`);
+      logAct(`📍 GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} ±${Math.round(accuracy)}m`, "info");
+
+      detectForLatLng(latitude, longitude);
+    },
+    (err) => {
+      logAct("❌ GPS error: " + err.message, "bad");
+      setGpsStatus(false);
+      stopGPS();
+    },
+    { enableHighAccuracy:true, maximumAge: 5000, timeout: 20000 }
+  );
+
+  setGpsStatus(true);
+  logAct("✅ GPS started", "ok");
+}
+function stopGPS(){
+  if(watchId){
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+  setGpsStatus(false);
+  logAct("🛑 GPS stopped", "warn");
+}
+
+/* =========================
+   Drive proxy helpers
+========================= */
+function extractDriveFileId(url){
+  const u = String(url||"");
+  let m = u.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if(m) return m[1];
+  m = u.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if(m) return m[1];
+  return null;
+}
+function base64ToU8(b64){
+  const bin = atob(b64);
+  const u8 = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+}
+function looksLikeZip(u8){
+  return u8 && u8.length >= 2 && u8[0] === 0x50 && u8[1] === 0x4B;
+}
+async function fetchFromDriveViaProxy(fileId){
+  const proxy = document.getElementById("proxyUrl").value.trim();
+  if(!proxy){ logAct("❌ Proxy URL missing.", "bad"); return null; }
+  const url = `${proxy}?id=${encodeURIComponent(fileId)}`;
+  logAct("🔌 Proxy fetch: " + url, "info");
+
+  const res = await fetch(url);
+  const data = await res.json();
+  if(!data.ok){
+    logAct("❌ Proxy error: " + (data.error || "unknown"), "bad");
+    return null;
+  }
+  return data;
+}
+
+/* =========================
+   Load KML from text (STRICT filename)
+========================= */
+async function addKmlFromText(name, text, saveOffline=true){
+  const parsed = parseB_W_IV_FromName(name);
+  if(!parsed.block || !parsed.ward || !parsed.iv){
+    logAct(`⚠️ Skipped (bad filename): ${parsed.base || name} | Required: b##_w##_iv##_xxxx.kml`, "warn");
+    return;
+  }
+  const ward = parsed.ward, block = parsed.block, iv = parsed.iv;
+
+  try{
+    const xml = new DOMParser().parseFromString(text, "text/xml");
+    const geojson = toGeoJSON.kml(xml);
+
+    const layer = L.geoJSON(geojson, { style: { weight: 2, opacity: 0.9, fillOpacity: 0.15 } });
+    layer.addTo(boundaryLayer);
+
+    const bbox = computeBBoxFromGeoJSON(geojson);
+    const polygons = geojsonToTurfPolygons(geojson);
+
+    kmlItems.push({ name, ward, block, iv, layer, geojson, bbox, polygons });
+    updateCount();
+
+    if(saveOffline){
+      await idbPutKml(name, text);
+      logAct(`💾 Saved offline: ${name}`, "ok");
+    }
+    logAct(`✅ Loaded KML: ${name} (b${block} w${ward} iv${iv})`, "ok");
+  }catch(e){
+    logAct(`❌ Failed to load ${name}: ${e.message}`, "bad");
+  }
+}
+
+/* =========================
+   Upload KML / ZIP (multi)
+========================= */
+async function handleKmlOrZipFiles(files){
+  if(!files || !files.length) return;
+  const saveOffline = document.getElementById("saveOfflineChk").checked;
+  logAct(`📦 Selected ${files.length} file(s)`, "info");
+
+  for(const file of files){
+    const fname = (file.name || "").toLowerCase();
+
+    if(fname.endsWith(".kml")){
+      try{
+        const text = await file.text();
+        await addKmlFromText(file.name, text, saveOffline);
+      }catch(e){
+        logAct(`❌ Failed to read ${file.name}: ${e.message}`, "bad");
+      }
+      continue;
+    }
+
+    if(fname.endsWith(".zip")){
+      try{
+        logAct(`🗜️ Unzipping: ${file.name}`, "info");
+        const zipData = await file.arrayBuffer();
+        const zip = await JSZip.loadAsync(zipData);
+
+        const entries = Object.keys(zip.files);
+        const kmlEntryNames = entries.filter(n => n.toLowerCase().endsWith(".kml") && !zip.files[n].dir);
+
+        if(!kmlEntryNames.length){
+          logAct(`⚠️ No .kml found inside ZIP: ${file.name}`, "warn");
+          continue;
+        }
+
+        logAct(`📂 Found ${kmlEntryNames.length} KML in ZIP`, "ok");
+        for(const entryName of kmlEntryNames){
+          try{
+            const kmlText = await zip.files[entryName].async("text");
+            const virtualName = `${file.name}::${entryName}`;
+            await addKmlFromText(virtualName, kmlText, saveOffline);
+          }catch(e){
+            logAct(`❌ ZIP entry failed ${entryName}: ${e.message}`, "bad");
+          }
+        }
+      }catch(e){
+        logAct(`❌ ZIP unzip failed (${file.name}): ${e.message}`, "bad");
+      }
+      continue;
+    }
+
+    logAct(`⚠️ Skipped unsupported file: ${file.name}`, "warn");
+  }
+  fitAll();
+}
+
+/* =========================
+   Fetch ZIP from Drive (proxy)
+========================= */
+async function fetchDriveZip(){
+  const link = document.getElementById("kmlUrl").value.trim();
+  const fid = extractDriveFileId(link);
+  if(!fid){ logAct("❌ Not a valid Drive file link", "bad"); return; }
+  const saveOffline = document.getElementById("saveOfflineChk").checked;
+
+  const data = await fetchFromDriveViaProxy(fid);
+  if(!data) return;
+
+  const name = data.name || `drive_${fid}.zip`;
+  const u8 = base64ToU8(data.base64 || "");
+
+  try{
+    logAct(`🗜️ ZIP received: ${name} (${u8.length} bytes)`, "ok");
+    const zip = await JSZip.loadAsync(u8);
+
+    const entries = Object.keys(zip.files);
+    const kmlEntryNames = entries.filter(n => n.toLowerCase().endsWith(".kml") && !zip.files[n].dir);
+    if(!kmlEntryNames.length){ logAct("⚠️ ZIP contains no .kml files", "warn"); return; }
+
+    logAct(`✅ Extracting ${kmlEntryNames.length} KML...`, "info");
+    for(const entryName of kmlEntryNames){
+      const kmlText = await zip.files[entryName].async("text");
+      const virtualName = `${name}::${entryName}`;
+      await addKmlFromText(virtualName, kmlText, saveOffline);
+    }
+    fitAll();
+    logAct("✅ Drive ZIP import done", "ok");
+  }catch(e){
+    logAct("❌ ZIP parse failed: " + e.message, "bad");
+  }
+}
+
+/* =========================
+   Load URL (non-drive)
+========================= */
+async function loadNonDriveUrl(){
+  const input = document.getElementById("kmlUrl").value.trim();
+  if(!input){ logAct("❌ URL is empty", "bad"); return; }
+
+  const saveOffline = document.getElementById("saveOfflineChk").checked;
+
+  try{
+    const res = await fetch(input);
+    const buf = await res.arrayBuffer();
+    const u8 = new Uint8Array(buf);
+
+    const head = new TextDecoder("utf-8").decode(u8.slice(0, 200));
+    if(head.includes("<!DOCTYPE html") || head.includes("ServiceLogin")){
+      logAct("❌ Got HTML instead of file. Check URL/CORS.", "bad");
+      return;
+    }
+
+    const name = (new URL(input)).pathname.split("/").pop() || "remote_file";
+
+    if(looksLikeZip(u8) || name.toLowerCase().endsWith(".zip")){
+      const zip = await JSZip.loadAsync(u8);
+      const entries = Object.keys(zip.files);
+      const kmlEntryNames = entries.filter(n => n.toLowerCase().endsWith(".kml") && !zip.files[n].dir);
+      if(!kmlEntryNames.length){ logAct("⚠️ ZIP contains no .kml", "warn"); return; }
+
+      for(const entryName of kmlEntryNames){
+        const kmlText = await zip.files[entryName].async("text");
+        const virtualName = `${name}::${entryName}`;
+        await addKmlFromText(virtualName, kmlText, saveOffline);
+      }
+      fitAll();
+      return;
+    }
+
+    const text = new TextDecoder("utf-8").decode(u8);
+    await addKmlFromText(name.endsWith(".kml") ? name : (name + ".kml"), text, saveOffline);
+    fitAll();
+  }catch(e){
+    logAct("❌ URL load failed: " + e.message, "bad");
+  }
+}
+
+/* =========================
+   Restore/Clear saved KML
+========================= */
+async function restoreSaved(){
+  try{
+    const saved = await idbGetAllKml();
+    if(!saved.length){ logAct("ℹ️ No saved KML found", "info"); return; }
+    logAct(`📦 Restoring ${saved.length} saved KML...`, "info");
+    for(const f of saved){
+      if(kmlItems.some(x => x.name === f.name)) continue;
+      await addKmlFromText(f.name, f.text, false);
+    }
+    fitAll();
+    logAct("✅ Restore complete", "ok");
+  }catch(e){
+    logAct("❌ Restore failed: " + e.message, "bad");
+  }
+}
+async function clearSaved(){
+  try{ await idbClearAll(); logAct("🧹 Offline saved KML cleared", "warn"); }
+  catch(e){ logAct("❌ Clear saved failed: " + e.message, "bad"); }
+}
+
+/* =========================
+   Fit/Clear map
+========================= */
+function fitAll(){
+  const layers = [];
+  boundaryLayer.getLayers().forEach(l => layers.push(l));
+  if(layers.length){
+    const fg = L.featureGroup(layers);
+    try{ map.fitBounds(fg.getBounds().pad(0.15)); }catch(e){}
+    logAct("🔎 Fit all layers", "info");
+  }else{
+    logAct("⚠️ Nothing to fit", "warn");
+  }
+}
+function clearAll(){
+  boundaryLayer.clearLayers();
+  kmlItems.length = 0;
+  updateCount();
+
+  setText("insideVal", "—");
+  setText("wbVal", "—");
+  setText("bboxVal", "—");
+  setText("iwbVal", "—");
+  setTown("—");
+  setDirText("No entry","No entry","No entry","No entry");
+
+  logAct("🧹 Cleared KML boundaries (map only)", "warn");
+}
+
+/* =========================
+   Manual selection actions
+========================= */
+function showSelected(){
+  if(!boundaryLoaded){ logAct("⚠️ Load Boundary first", "warn"); return; }
+
+  const town = document.getElementById("townSel").value;
+  const iv   = document.getElementById("ivSel").value;
+  const ward = document.getElementById("wardSel").value;
+  const block= document.getElementById("blockSel").value;
+
+  if(!iv || !ward || !block){
+    logAct("⚠️ Select IV + Ward + Block (Town optional)", "warn");
+    return;
+  }
+
+  resolveBoundaryRow(town, iv, ward, block, (row) => {
+    if(row){
+      applyBoundaryRow(row);
+      setText("insideVal", "Selected (not GPS)");
+      logAct(`🧾 Selected: Town=${row.town} | IV=${row.iv} W=${row.ward} B=${row.block}`, "ok");
+    }else{
+      applyBoundaryRow(null);
+      logAct(`⚠️ No boundary row for IV=${iv} W=${ward} B=${block}`, "warn");
+    }
+  });
+
+  highlightByWardBlock(ward, block);
+}
+function clearSelection(){
+  document.getElementById("townSel").value = "";
+  document.getElementById("ivSel").value = "";
+  document.getElementById("wardSel").value = "";
+  document.getElementById("blockSel").value = "";
+  buildSelectionOptions();
+  logAct("Selection cleared", "info");
+}
+
+/* =========================
+   Persist prefs
+========================= */
+const LS_PROXY="ufs_proxyUrl", LS_DRIVE="ufs_driveUrl", LS_AUTOFETCH="ufs_autoFetch", LS_BOUND="ufs_boundaryUrl";
+function loadPrefs(){
+  const p = localStorage.getItem(LS_PROXY); if(p) document.getElementById("proxyUrl").value = p;
+  const d = localStorage.getItem(LS_DRIVE); if(d) document.getElementById("kmlUrl").value = d;
+  const a = localStorage.getItem(LS_AUTOFETCH); if(a) document.getElementById("autoFetchChk").checked = (a==="1");
+  const b = localStorage.getItem(LS_BOUND); if(b) document.getElementById("boundaryUrl").value = b;
+}
+function savePrefs(){
+  localStorage.setItem(LS_PROXY, document.getElementById("proxyUrl").value.trim());
+  localStorage.setItem(LS_DRIVE, document.getElementById("kmlUrl").value.trim());
+  localStorage.setItem(LS_AUTOFETCH, document.getElementById("autoFetchChk").checked ? "1":"0");
+  localStorage.setItem(LS_BOUND, document.getElementById("boundaryUrl").value.trim());
+}
+
+/* =========================
+   Events
+========================= */
+document.getElementById("kmlInput").addEventListener("change", async (e) => {
+  await handleKmlOrZipFiles(e.target.files);
+  e.target.value = "";
+});
+document.getElementById("boundaryInput").addEventListener("change", async (e) => {
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  try{
+    const txt = await f.text();
+    loadBoundaryFromCSVText(txt);
+    logAct("✅ Boundary loaded from uploaded CSV", "ok");
+  }catch(err){
+    logAct("❌ Boundary file read failed: " + err.message, "bad");
+  }
+  e.target.value = "";
+});
+
+document.getElementById("fetchDriveBtn").addEventListener("click", async () => { savePrefs(); await fetchDriveZip(); });
+document.getElementById("loadKmlUrlBtn").addEventListener("click", loadNonDriveUrl);
+
+document.getElementById("restoreSavedBtn").addEventListener("click", restoreSaved);
+document.getElementById("clearSavedBtn").addEventListener("click", clearSaved);
+
+document.getElementById("loadBoundaryBtn").addEventListener("click", async () => { savePrefs(); await loadBoundaryFromUrlOrSheet(); });
+
+document.getElementById("startGpsBtn").addEventListener("click", startGPS);
+document.getElementById("stopGpsBtn").addEventListener("click", stopGPS);
+
+document.getElementById("detectNowBtn").addEventListener("click", () => {
+  if(!lastPos){ logAct("⚠️ No GPS fix yet. Start GPS first.", "warn"); return; }
+  logAct("🧭 Detect Now clicked", "info");
+  detectForLatLng(lastPos.lat, lastPos.lng);
+});
+
+document.getElementById("fitAllBtn").addEventListener("click", fitAll);
+document.getElementById("clearBtn").addEventListener("click", clearAll);
+document.getElementById("clearLogBtn").addEventListener("click", clearActivity);
+
+document.getElementById("showSelectedBtn").addEventListener("click", showSelected);
+document.getElementById("clearSelectionBtn").addEventListener("click", clearSelection);
+
+["proxyUrl","kmlUrl","autoFetchChk","boundaryUrl"].forEach(id=>{
+  document.getElementById(id).addEventListener("change", savePrefs);
+});
+["townSel","ivSel","wardSel","blockSel"].forEach(id=>{
+  document.getElementById(id).addEventListener("change", buildSelectionOptions);
+});
+
+/* =========================
+   Init
+========================= */
+function setInit(){
+  setGpsStatus(false);
+  setBoundaryStatus(false, "Boundary: NOT LOADED");
+  setSelStatus("Load Boundary first");
+  logAct("Ready. 1) Load Boundary  2) Upload/Restore KML/ZIP  3) Start GPS  4) Use manual selector if needed", "info");
+}
+setInit();
+loadPrefs();
+restoreSaved();
+
+(async () => {
+  if(document.getElementById("autoFetchChk").checked){
+    const link = document.getElementById("kmlUrl").value.trim();
+    const proxy = document.getElementById("proxyUrl").value.trim();
+    if(link && proxy){
+      logAct("🧩 Auto-fetch enabled → fetching Drive ZIP...", "info");
+      try{ await fetchDriveZip(); }catch(e){ logAct("Auto-fetch failed: "+e.message, "bad"); }
+    }else{
+      logAct("⚠️ Auto-fetch checked but Proxy/Drive link missing", "warn");
+    }
+  }
+})();
+</script>
+<script src="assets/tools.js"></script><script src="assets/hub-nav.js"></script>
+</body>
+</html>

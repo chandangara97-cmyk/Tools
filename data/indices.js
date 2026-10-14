@@ -1,0 +1,13 @@
+/* Single source of truth for the dashboard. Add values under "observations".
+   level: "central" | "state". Never invent numbers: copy from the official release and set source_url. */
+window.SURVEY_INDICES={"updated":"","surveys":[
+{"id":"plfs","name":"Periodic Labour Force Survey (PLFS)","level":"central","body":"MoSPI","frequency":"Monthly / Quarterly / Annual","indicators":[{"key":"lfpr","label":"Labour Force Participation Rate","unit":"%"},{"key":"wpr","label":"Worker Population Ratio","unit":"%"},{"key":"ur","label":"Unemployment Rate","unit":"%"}],"observations":[]},
+{"id":"cpi","name":"Consumer Price Index (CPI)","level":"central","body":"MoSPI","frequency":"Monthly","indicators":[{"key":"cpi_gen","label":"General index","unit":"index"},{"key":"cpi_inf","label":"Inflation rate (YoY)","unit":"%"}],"observations":[]},
+{"id":"iip","name":"Index of Industrial Production (IIP)","level":"central","body":"MoSPI","frequency":"Monthly","indicators":[{"key":"iip_gen","label":"General index","unit":"index"},{"key":"iip_gr","label":"Growth rate (YoY)","unit":"%"}],"observations":[]},
+{"id":"wpi","name":"Wholesale Price Index (WPI)","level":"central","body":"Office of the Economic Adviser, DPIIT","frequency":"Monthly","indicators":[{"key":"wpi_all","label":"All commodities index","unit":"index"},{"key":"wpi_inf","label":"Inflation rate (YoY)","unit":"%"}],"observations":[]},
+{"id":"gdp","name":"National Accounts (GDP)","level":"central","body":"MoSPI","frequency":"Quarterly / Annual","indicators":[{"key":"gdp_gr","label":"Real GDP growth","unit":"%"}],"observations":[]},
+{"id":"asuse","name":"Annual Survey of Unincorporated Sector Enterprises (ASUSE)","level":"central","body":"MoSPI","frequency":"Annual","indicators":[{"key":"asuse_gva","label":"GVA per establishment","unit":"INR"},{"key":"asuse_emp","label":"Workers per establishment","unit":"count"}],"observations":[]},
+{"id":"hces","name":"Household Consumption Expenditure Survey (HCES)","level":"central","body":"MoSPI","frequency":"Periodic","indicators":[{"key":"mpce_r","label":"Average MPCE, rural","unit":"INR"},{"key":"mpce_u","label":"Average MPCE, urban","unit":"INR"}],"observations":[]},
+{"id":"asi","name":"Annual Survey of Industries (ASI)","level":"central","body":"MoSPI","frequency":"Annual","indicators":[{"key":"asi_gva","label":"Gross value added","unit":"INR crore"},{"key":"asi_emp","label":"Persons engaged","unit":"count"}],"observations":[]},
+{"id":"hp-gsdp","name":"State Economic Survey / GSDP (Himachal Pradesh example)","level":"state","body":"HP Dept. of Economics & Statistics","frequency":"Annual","indicators":[{"key":"gsdp_gr","label":"GSDP growth","unit":"%"},{"key":"pcnsdp","label":"Per capita NSDP","unit":"INR"}],"observations":[]}
+]};

@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover" />
+<title>UFS | Weekly Progress Report</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#020617;
+    --panel:#0f172a;
+    --card:#111c33;
+    --border:#334155;
+    --accent:#38bdf8;
+    --green:#10b981;
+    --amber:#f59e0b;
+    --danger:#ef4444;
+    --muted:#94a3b8;
+    --text:#f8fafc;
+
+    /* ✅ Screen table theme (matches live background) */
+    --tbl-bg: rgba(2,6,23,.35);
+    --tbl-cell: rgba(15,23,42,.82);
+    --tbl-head: rgba(30,41,59,.92);
+    --tbl-subhead: rgba(17,28,51,.92);
+    --tbl-border: rgba(148,163,184,.28);
+    --tbl-border-strong: rgba(148,163,184,.40);
+    --tbl-text: #e5e7eb;
+    --tbl-head-text: #eaf2ff;
+    --tbl-muted: #a7b2c5;
+    --tbl-row-alt: rgba(15,23,42,.55);
+    --tbl-row-hover: rgba(56,189,248,.10);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:"Plus Jakarta Sans",system-ui,Arial,sans-serif;
+    background: radial-gradient(900px 420px at 20% 10%, rgba(56,189,248,.14), transparent 60%),
+                radial-gradient(800px 420px at 80% 20%, rgba(16,185,129,.10), transparent 60%),
+                linear-gradient(180deg,#000814,var(--bg));
+    color:var(--text);
+    height:100vh;height:100dvh;
+    overflow:hidden;
+  }
+
+  /* Left Rail */
+  .left-rail{
+    position:fixed; inset:0 auto 0 0;
+    width:72px;
+    background:#0f172a;
+    border-right:1px solid var(--border);
+    display:flex; flex-direction:column; align-items:center;
+    padding-top:14px; gap:18px;
+    z-index:9999;
+  }
+  .left-rail a{
+    width:56px;
+    text-align:center;
+    font-size:11px;
+    font-weight:900;
+    text-decoration:none;
+    color:#fff;
+    padding:8px 6px;
+    border-radius:12px;
+    line-height:1.2;
+  }
+  .left-rail a:hover{ background:#1e293b; transform:translateX(2px); }
+  .left-rail a.hub{ color:var(--accent); }
+  .left-rail a.weekly{ color:var(--green); }
+  .left-rail a.action{ color:var(--amber); }
+
+  .app{
+    margin-left:72px;
+    height:100vh;height:100dvh;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+
+  /* Top bar */
+  .topbar{
+    position:sticky; top:0;
+    z-index:20;
+    background: rgba(15,23,42,.92);
+    backdrop-filter: blur(14px);
+    border-bottom:1px solid var(--border);
+    padding:14px 16px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .brand{
+    display:flex; flex-direction:column; gap:2px;
+    min-width: 320px;
+  }
+  .brand .t1{
+    font-weight:900;
+    letter-spacing:.6px;
+    color:#cbeeff;
+    font-size:14px;
+  }
+  .brand .t2{
+    font-weight:900;
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  .controls{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-left:auto;
+    align-items:center;
+  }
+
+  .btn{
+    border:none;
+    cursor:pointer;
+    padding:10px 12px;
+    border-radius:12px;
+    font-weight:900;
+    font-size:12px;
+    color:#001019;
+    background:var(--accent);
+  }
+  .btn:hover{ filter:brightness(1.05); transform:translateY(-1px); }
+  .btn.secondary{
+    background: transparent;
+    color:var(--text);
+    border:1px solid rgba(255,255,255,.14);
+  }
+  .btn.green{ background:var(--green); color:#00110a; }
+  .btn.danger{ background:var(--danger); color:#140000; }
+
+  .field{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 10px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,.14);
+    background: rgba(0,0,0,.25);
+  }
+  .field label{
+    font-size:11px;
+    font-weight:900;
+    color:var(--muted);
+    white-space:nowrap;
+  }
+  .field input{
+    background:transparent;
+    border:none;
+    outline:none;
+    color:#fff;
+    font-weight:900;
+    font-size:12px;
+  }
+  .field input[type="date"]{ color-scheme:dark; }
+
+  /* Workspace */
+  .workspace{
+    flex:1;
+    overflow:auto;
+    padding:16px;
+  }
+
+  .table-wrap{
+    background: var(--tbl-bg);
+    border:1px solid rgba(51,65,85,.85);
+    border-radius:16px;
+    overflow:auto;
+    box-shadow: 0 18px 60px rgba(0,0,0,.5);
+  }
+
+  table{
+    width:100%;
+    border-collapse:separate;     /* ✅ better borders + glow look */
+    border-spacing:0;
+    min-width: 1180px;
+    table-layout:fixed;
+  }
+
+  /* ✅ live theme cells */
+  th, td{
+    border-right:1px solid var(--tbl-border);
+    border-bottom:1px solid var(--tbl-border);
+    padding:10px 8px;
+    font-size:12px;
+    text-align:center;
+    vertical-align:middle;
+    color:var(--tbl-text);
+    background: var(--tbl-cell);
+  }
+
+  /* outer borders */
+  thead tr:first-child th{ border-top:1px solid var(--tbl-border-strong); }
+  tr td:first-child, tr th:first-child{ border-left:1px solid var(--tbl-border-strong); }
+  thead tr th{ border-top:1px solid var(--tbl-border-strong); }
+  thead tr th:last-child, tbody tr td:last-child{ border-right:1px solid var(--tbl-border-strong); }
+  tbody tr:last-child td{ border-bottom:1px solid var(--tbl-border-strong); }
+
+  th{
+    background: var(--tbl-head);
+    color: var(--tbl-head-text);
+    font-weight:900;
+  }
+
+  /* row 1/2 headers in thead look more “report” */
+  thead tr:nth-child(1) th{
+    background: rgba(17,28,51,.92);
+    font-size:14px;
+    letter-spacing:.4px;
+  }
+  thead tr:nth-child(2) th{
+    background: rgba(30,41,59,.92);
+    font-size:12px;
+  }
+
+  /* sticky header rows */
+  thead th{
+    position:sticky;
+    top:0;
+    z-index:5;
+    box-shadow: 0 6px 0 rgba(0,0,0,.15);
+  }
+  /* ✅ use CSS vars so sticky offsets stay correct even if font/padding changes */
+  :root{
+    --h1: 44px;  /* header row 1 height */
+    --h2: 44px;  /* header row 2 height */
+    --h3: 48px;  /* header row 3 height */
+    --h4: 44px;  /* header row 4 height */
+    --h5: 44px;  /* header row 5 height */
+  }
+thead tr:nth-child(1) th{ top:0; z-index:10; }
+  thead tr:nth-child(2) th{ top:var(--h1); z-index:9; }
+  thead tr:nth-child(3) th{ top:calc(var(--h1) + var(--h2)); z-index:8; }
+  thead tr:nth-child(4) th{ top:calc(var(--h1) + var(--h2) + var(--h3)); z-index:7; }
+  thead tr:nth-child(5) th{ top:calc(var(--h1) + var(--h2) + var(--h3) + var(--h4)); z-index:6; }
+
+  /* zebra + hover */
+  tbody#tbody tr:nth-child(even) td{ background: var(--tbl-row-alt); }
+  tbody#tbody tr:hover td{ background: var(--tbl-row-hover); }
+
+  td .in{
+    width:100%;
+    border:none;
+    outline:none;
+    background:transparent;
+    text-align:center;
+    font-weight:800;
+    font-size:12px;
+    color:var(--tbl-text);
+  }
+  td .in::placeholder{ color: rgba(167,178,197,.55); }
+
+  td.scheme{
+    text-align:left;
+    font-weight:900;
+  }
+
+  /* total row */
+  tr.total-row td{
+    background: rgba(56,189,248,.10) !important;
+    font-weight:900;
+    color:#eaf6ff;
+    border-top:1px solid rgba(56,189,248,.35);
+  }
+
+  .note{
+    font-size:11px;
+    color:rgba(255,255,255,.75);
+    margin:10px 6px 0;
+    font-weight:700;
+  }
+
+  /* ✅ PRINT = white sheet style (keeps official output) */
+  @media print{
+    .left-rail,.topbar,.note{ display:none !important; }
+    body{ background:#fff; overflow:visible; color:#000; }
+    .app{ margin:0; height:auto; }
+    .workspace{ padding:0; overflow:visible; }
+    .table-wrap{ box-shadow:none; border:none; border-radius:0; background:#fff; }
+
+    table{ border-collapse:collapse; }
+    th, td{
+      border:2px solid #000 !important;
+      padding:6px 6px !important;
+      font-size:12px !important;
+      background:#fff !important;
+      color:#000 !important;
+    }
+    th{ background:#eaf2ff !important; }
+    tr.total-row td{ background:#f1f5ff !important; color:#000 !important; }
+    td .in{ color:#000 !important; }
+  }
+</style>
+</head>
+
+<body>
+
+<nav class="left-rail">
+  <a href="index.html" class="hub">🏠 HUB</a>
+  <a href="plfs.html">📊 PLFS</a>
+  <a href="ufs_weekly.html" class="weekly">🗓️ Weekly</a>
+  <a href="ufs_action.html" class="action">📈 Action</a>
+  <a href="ufs_monthly.html">📅 Monthly</a>
+</nav>
+
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="t1">URBAN FRAME SURVEY 2022-27</div>
+      <div class="t2" id="hdrLine">WEEKLY PROGRESS REPORT (24th January 2026 – 30th January 2026) as on 30th January 2026</div>
+    </div>
+
+    <div class="field">
+      <label>From</label>
+      <input type="date" id="fromDate" value="2026-01-24" />
+    </div>
+
+    <div class="field">
+      <label>To</label>
+      <input type="date" id="toDate" value="2026-01-30" />
+    </div>
+
+    <div class="field">
+      <label>As on</label>
+      <input type="date" id="asOnDate" value="2026-01-30" />
+    </div>
+
+    <div class="controls">
+      <button class="btn secondary" onclick="addRow()">➕ Add Row</button>
+      <button class="btn danger" onclick="clearAll()">🧹 Clear</button>
+      <button class="btn secondary" onclick="exportCSV()">📥 Export CSV</button>
+      <button class="btn green" onclick="window.print()">🖨️ Print</button>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <div class="table-wrap">
+      <table id="weeklyTable">
+        <thead>
+
+          <tr>
+            <th colspan="13" style="text-align:center;font-weight:900;font-size:14px;">URBAN FRAME SURVEY 2022-27</th>
+          </tr>
+          <tr>
+            <th colspan="13" id="hdrTop" style="text-align:center;font-weight:900;">
+              WEEKLY PROGRESS REPORT (24th January 2026 – 30th January 2026) as on 30th January 2026
+            </th>
+          </tr>
+
+          <tr>
+            <th rowspan="3">Sl.<br>No.</th>
+            <th rowspan="3">Scheme</th>
+
+            <th colspan="4">Towns in field</th>
+            <th colspan="2">Blocks formed in field</th>
+            <th colspan="2">No. of towns completed in all respect</th>
+            <th colspan="2">
+              No. of towns dispatched to Hqrs.<br>
+              <span style="font-size:10px; color: var(--tbl-muted)">(Zone/QC to FOD Hqrs)</span>
+            </th>
+
+            <th rowspan="3">Updated<br>Y/N</th>
+          </tr>
+
+          <tr>
+            <th colspan="4"></th>
+            <th colspan="2"></th>
+            <th colspan="2"></th>
+            <th colspan="2"></th>
+          </tr>
+
+          <tr>
+            <th id="h_tf_during">During 24-01-2026 to 30-01-2026</th>
+            <th>Completed Since Start</th>
+            <th>Under Survey</th>
+            <th>% Towns Completed</th>
+
+            <th id="h_bf_during">During 24-01-2026 to 30-01-2026</th>
+            <th>Since Start</th>
+
+            <th id="h_comp_during">During 24-01-2026 to 30-01-2026</th>
+            <th>Since Start</th>
+
+            <th id="h_disp_during">During 24-01-2026 to 30-01-2026</th>
+            <th>Since Start</th>
+          </tr>
+        </thead>
+
+        <tbody id="tbody"></tbody>
+
+        <tbody>
+          <tr class="total-row" id="totalRow">
+            <td></td>
+            <td style="text-align:left;font-weight:900;">TOTAL</td>
+
+            <td id="t_tf_during">0</td>
+            <td id="t_tf_since">0</td>
+            <td id="t_tf_under">0</td>
+            <td id="t_tf_pct">0</td>
+
+            <td id="t_bf_during">0</td>
+            <td id="t_bf_since">0</td>
+
+            <td id="t_comp_during">0</td>
+            <td id="t_comp_since">0</td>
+
+            <td id="t_disp_during">0</td>
+            <td id="t_disp_since">0</td>
+
+            <td></td>
+          </tr>
+        </tbody>
+
+      </table>
+    </div>
+
+    <div class="note">
+      ✅ Auto Totals + % calculation enabled • Data auto-saves in your browser • Use Print for report output
+    </div>
+  </div>
+</div>
+
+<script>
+  const KEY = "ufs_weekly_v1";
+
+  const defaultRows = [
+    {scheme:"Shimla", tf_during:25, tf_since:22, tf_under:1, bf_during:39, bf_since:922, comp_during:0, comp_since:22, disp_during:0, disp_since:22, yn:"Y"},
+    {scheme:"Hamirpur", tf_during:15, tf_since:13, tf_under:0, bf_during:0,  bf_since:239, comp_during:0, comp_since:13, disp_during:0, disp_since:13, yn:"Y"},
+    {scheme:"Dharamshala", tf_during:16, tf_since:13, tf_under:1, bf_during:2,  bf_since:432, comp_during:0, comp_since:13, disp_during:0, disp_since:13, yn:"Y"},
+    {scheme:"Mandi", tf_during:13, tf_since:11, tf_under:1, bf_during:9,  bf_since:417, comp_during:0, comp_since:10, disp_during:0, disp_since:10, yn:"Y"}
+  ];
+
+  const $ = (id)=>document.getElementById(id);
+  const toNum = (v)=> {
+    const n = parseFloat(String(v||"").replace(/,/g,""));
+    return isNaN(n) ? 0 : n;
+  };
+
+  function fmtDate(d){
+    if(!d) return "";
+    const [y,m,dd] = d.split("-");
+    return `${dd}-${m}-${y}`;
+  }
+
+  function updateHeaderDates(){
+    const from = $("fromDate").value;
+    const to = $("toDate").value;
+    const ason = $("asOnDate").value;
+
+    const title = `WEEKLY PROGRESS REPORT (${fmtDate(from)} to ${fmtDate(to)}) as on ${fmtDate(ason)}`;
+    $("hdrTop").textContent = title;
+    $("hdrLine").textContent = title;
+
+    const during = `During ${fmtDate(from)} to ${fmtDate(to)}`;
+    $("h_tf_during").textContent = during;
+    $("h_bf_during").textContent = during;
+    $("h_comp_during").textContent = during;
+    $("h_disp_during").textContent = during;
+
+    save();
+  }
+
+
+  function measureStickyHeights(){
+    const thead = document.querySelector("#weeklyTable thead");
+    if(!thead) return;
+    const rows = Array.from(thead.querySelectorAll("tr"));
+    // only first 5 header rows are sticky
+    const h = rows.slice(0,5).map(r=>Math.ceil(r.getBoundingClientRect().height || 0));
+    if(h.length<5) return;
+    const root = document.documentElement;
+    root.style.setProperty("--h1", h[0]+"px");
+    root.style.setProperty("--h2", h[1]+"px");
+    root.style.setProperty("--h3", h[2]+"px");
+    root.style.setProperty("--h4", h[3]+"px");
+    root.style.setProperty("--h5", h[4]+"px");
+  }
+
+
+  function rowPct(tf_since, tf_under){
+    const total = toNum(tf_since) + toNum(tf_under);
+    if(total <= 0) return 0;
+    return ((toNum(tf_since) / total) * 100);
+  }
+
+  function render(rows){
+    const tb = $("tbody");
+    tb.innerHTML = rows.map((r, idx) => `
+      <tr data-i="${idx}">
+        <td>${idx+1}</td>
+        <td class="scheme"><input class="in" value="${r.scheme||""}" oninput="onEdit(${idx},'scheme',this.value)"></td>
+
+        <td><input class="in" value="${r.tf_during??""}" oninput="onEdit(${idx},'tf_during',this.value)"></td>
+        <td><input class="in" value="${r.tf_since??""}" oninput="onEdit(${idx},'tf_since',this.value)"></td>
+        <td><input class="in" value="${r.tf_under??""}" oninput="onEdit(${idx},'tf_under',this.value)"></td>
+        <td><input class="in" value="${(r.tf_pct??rowPct(r.tf_since,r.tf_under)).toFixed ? (r.tf_pct??rowPct(r.tf_since,r.tf_under)).toFixed(2) : (r.tf_pct??rowPct(r.tf_since,r.tf_under))}"
+                   oninput="onEdit(${idx},'tf_pct',this.value)"></td>
+
+        <td><input class="in" value="${r.bf_during??""}" oninput="onEdit(${idx},'bf_during',this.value)"></td>
+        <td><input class="in" value="${r.bf_since??""}" oninput="onEdit(${idx},'bf_since',this.value)"></td>
+
+        <td><input class="in" value="${r.comp_during??""}" oninput="onEdit(${idx},'comp_during',this.value)"></td>
+        <td><input class="in" value="${r.comp_since??""}" oninput="onEdit(${idx},'comp_since',this.value)"></td>
+
+        <td><input class="in" value="${r.disp_during??""}" oninput="onEdit(${idx},'disp_during',this.value)"></td>
+        <td><input class="in" value="${r.disp_since??""}" oninput="onEdit(${idx},'disp_since',this.value)"></td>
+
+        <td><input class="in" value="${r.yn||""}" oninput="onEdit(${idx},'yn',this.value.toUpperCase())"></td>
+      </tr>
+    `).join("");
+
+    recalcTotals();
+  }
+
+  let rows = [];
+
+  function recalcTotals(){
+    let tf_d=0, tf_s=0, tf_u=0, bf_d=0, bf_s=0, c_d=0, c_s=0, d_d=0, d_s=0;
+
+    rows.forEach(r=>{
+      tf_d += toNum(r.tf_during);
+      tf_s += toNum(r.tf_since);
+      tf_u += toNum(r.tf_under);
+
+      bf_d += toNum(r.bf_during);
+      bf_s += toNum(r.bf_since);
+
+      c_d += toNum(r.comp_during);
+      c_s += toNum(r.comp_since);
+
+      d_d += toNum(r.disp_during);
+      d_s += toNum(r.disp_since);
+    });
+
+    $("t_tf_during").textContent = tf_d;
+    $("t_tf_since").textContent = tf_s;
+    $("t_tf_under").textContent = tf_u;
+
+    const tPct = ( (tf_s + tf_u) > 0 ) ? ((tf_s / (tf_s + tf_u)) * 100) : 0;
+    $("t_tf_pct").textContent = tPct.toFixed(2);
+
+    $("t_bf_during").textContent = bf_d;
+    $("t_bf_since").textContent = bf_s;
+
+    $("t_comp_during").textContent = c_d;
+    $("t_comp_since").textContent = c_s;
+
+    $("t_disp_during").textContent = d_d;
+    $("t_disp_since").textContent = d_s;
+
+    save();
+  }
+
+  window.onEdit = function(i, key, val){
+    if(!rows[i]) return;
+    rows[i][key] = val;
+
+    if(key === "tf_since" || key === "tf_under"){
+      const auto = rowPct(rows[i].tf_since, rows[i].tf_under);
+      if(String(rows[i].tf_pct||"").trim()===""){
+        rows[i].tf_pct = auto.toFixed(2);
+      }
+      const tr = document.querySelector(`tr[data-i="${i}"]`);
+      if(tr){
+        const pctInp = tr.querySelectorAll("input.in")[4];
+        if(pctInp && String(pctInp.value||"").trim()==="") pctInp.value = auto.toFixed(2);
+      }
+    }
+
+    recalcTotals();
+  }
+
+  function addRow(){
+    rows.push({scheme:"", tf_during:"", tf_since:"", tf_under:"", tf_pct:"", bf_during:"", bf_since:"", comp_during:"", comp_since:"", disp_during:"", disp_since:"", yn:""});
+    render(rows);
+  }
+
+  function clearAll(){
+    if(!confirm("Clear all rows?")) return;
+    rows = [];
+    render(rows);
+  }
+
+  function exportCSV(){
+    const hdr = [
+      "Sl. No.","Scheme",
+      "Towns in field (During)","Towns in field (Completed Since Start)","Towns in field (Under Survey)","% Towns Completed",
+      "Blocks formed (During)","Blocks formed (Since Start)",
+      "Towns completed (During)","Towns completed (Since Start)",
+      "Dispatched (During)","Dispatched (Since Start)",
+      "Updated Y/N"
+    ];
+
+    const lines = [hdr.join(",")];
+
+    rows.forEach((r, idx)=>{
+      const line = [
+        idx+1,
+        safe(r.scheme),
+        safe(r.tf_during), safe(r.tf_since), safe(r.tf_under), safe(r.tf_pct),
+        safe(r.bf_during), safe(r.bf_since),
+        safe(r.comp_during), safe(r.comp_since),
+        safe(r.disp_during), safe(r.disp_since),
+        safe(r.yn)
+      ].join(",");
+      lines.push(line);
+    });
+
+    lines.push([
+      "",
+      "TOTAL",
+      $("t_tf_during").textContent,
+      $("t_tf_since").textContent,
+      $("t_tf_under").textContent,
+      $("t_tf_pct").textContent,
+      $("t_bf_during").textContent,
+      $("t_bf_since").textContent,
+      $("t_comp_during").textContent,
+      $("t_comp_since").textContent,
+      $("t_disp_during").textContent,
+      $("t_disp_since").textContent,
+      ""
+    ].join(","));
+
+    const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "UFS_Weekly_Report.csv";
+    a.click();
+  }
+
+  function safe(v){
+    const s = String(v ?? "").replace(/"/g,'""');
+    return `"${s}"`;
+  }
+
+  function save(){
+    const payload = {
+      from: $("fromDate").value,
+      to: $("toDate").value,
+      ason: $("asOnDate").value,
+      rows
+    };
+    localStorage.setItem(KEY, JSON.stringify(payload));
+  }
+
+  function load(){
+    const raw = localStorage.getItem(KEY);
+    if(!raw){
+      rows = JSON.parse(JSON.stringify(defaultRows));
+      render(rows);
+      return;
+    }
+    try{
+      const obj = JSON.parse(raw);
+      $("fromDate").value = obj.from || "2026-01-24";
+      $("toDate").value = obj.to || "2026-01-30";
+      $("asOnDate").value = obj.ason || "2026-01-30";
+      rows = Array.isArray(obj.rows) ? obj.rows : JSON.parse(JSON.stringify(defaultRows));
+      render(rows);
+    }catch(e){
+      rows = JSON.parse(JSON.stringify(defaultRows));
+      render(rows);
+    }
+  }
+
+  ["fromDate","toDate","asOnDate"].forEach(id=>{
+    $(id).addEventListener("change", updateHeaderDates);
+  });
+
+  load();
+  updateHeaderDates();
+
+  window.addRow = addRow;
+  window.clearAll = clearAll;
+  window.exportCSV = exportCSV;
+</script>
+
+<script src="assets/tools.js"></script><script src="assets/hub-nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>PLFS | Command Dashboard 2026</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#020617; --sidebar:#0f172a; --card:#1e293b; --border:#334155;
+  --accent:#38bdf8; --v1:#10b981; --text:#f8fafc; --text-dim:#94a3b8;
+  --glass:rgba(15,23,42,.95); --sb-width:300px; --header-dark:#0f172a;
+  --danger:#ef4444; --warning:#f59e0b; --amber:#f59e0b;
+}
+*{ box-sizing:border-box; transition:all .2s ease; }
+
+body{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  height:100vh; height:100dvh;
+  display:flex;
+  overflow:hidden;
+  padding-left:72px;
+}
+
+/* Left Rail */
+.left-rail{
+  position:fixed; inset:0 auto 0 0;
+  width:72px;
+  background:var(--sidebar);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column; align-items:center;
+  padding-top:14px; gap:18px;
+  z-index:30000;
+}
+.left-rail a{
+  width:56px; text-align:center;
+  font-size:11px; font-weight:900;
+  text-decoration:none; color:#fff;
+  padding:8px 6px; border-radius:12px; line-height:1.2;
+}
+.left-rail a:hover{ background:#1e293b; transform:translateX(2px); }
+.left-rail a.hub{ color:var(--accent); }
+.left-rail a.weekly{ color:var(--v1); }
+.left-rail a.monthly{ color:var(--v1); }
+
+/* Sidebar */
+.sidebar{
+  width:var(--sb-width);
+  min-width:var(--sb-width);
+  background:var(--sidebar);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+  z-index:1000;
+}
+.sidebar-header{
+  padding:25px;
+  font-weight:800; font-size:18px;
+  color:var(--accent);
+  border-bottom:1px solid var(--border);
+  letter-spacing:1px;
+}
+.nav-scroll{ flex:1; overflow-y:auto; padding:15px; scrollbar-width:thin; }
+
+/* overlay */
+.overlay-mask{
+  display:none;
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.8);
+  z-index:900;
+  backdrop-filter:blur(4px);
+}
+
+/* Mobile sidebar */
+@media (max-width:1024px){
+  body{ padding-left:72px; }
+  .sidebar{
+    position:fixed;
+    left:-100%;
+    top:0; bottom:0;
+    width:280px;
+    transition:.3s cubic-bezier(.4,0,.2,1);
+    z-index:20000;
+  }
+  .sidebar.open{ left:72px; }
+  .overlay-mask.active{ display:block; }
+  .mobile-menu-btn{ display:inline-flex !important; }
+}
+
+/* Sidebar items */
+.zone-title{
+  font-size:10px; font-weight:800; color:var(--accent);
+  text-transform:uppercase;
+  margin:20px 0 10px;
+  display:flex; align-items:center; gap:8px;
+  opacity:.6;
+}
+.zone-title::after{ content:""; flex:1; height:1px; background:var(--border); }
+
+.state-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+.st-btn{
+  height:42px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:rgba(30,41,59,.3);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  text-align:center;
+  font-size:10px; font-weight:700;
+  color:var(--text-dim);
+}
+.st-btn.active{ border-color:var(--accent); background:rgba(56,189,248,.1); color:#fff; }
+.st-btn.has-data{ border-left:3px solid var(--v1); }
+
+.sub-menu-container{
+  grid-column:span 2;
+  background:rgba(0,0,0,.2);
+  border-radius:12px;
+  padding:12px;
+  margin-top:5px;
+  border:1px solid var(--border);
+}
+.pill-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:6px; }
+.pill{
+  padding:8px; font-size:9px; font-weight:700;
+  text-align:center;
+  border-radius:6px;
+  border:1px solid var(--border);
+  cursor:pointer;
+  color:var(--text-dim);
+  background:var(--sidebar);
+}
+.pill.active{
+  background:var(--v1);
+  color:#fff;
+  border-color:var(--v1);
+  box-shadow:0 0 10px rgba(16,185,129,.3);
+}
+.pill.all-btn{ grid-column:span 2; border-color:var(--accent); color:var(--accent); }
+
+.month-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px; }
+
+/* Main */
+.main{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:#020617;
+  height:100vh;
+}
+.fixed-header-group{
+  flex-shrink:0;
+  background:var(--glass);
+  backdrop-filter:blur(15px);
+  border-bottom:1px solid var(--border);
+  z-index:100;
+}
+.top-bar{
+  padding:12px 25px;
+  display:flex;
+  align-items:center;
+  gap:20px;
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+.date-picker-wrap{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:rgba(56,189,248,.1);
+  padding:6px 12px;
+  border-radius:6px;
+  border:1px solid var(--accent);
+}
+.date-picker-wrap input{
+  background:transparent;
+  border:none;
+  color:var(--accent);
+  font-weight:800;
+  font-size:11px;
+  outline:none;
+  cursor:pointer;
+  color-scheme:dark;
+}
+.search-input{
+  flex:1;
+  background:#000;
+  border:1px solid var(--border);
+  color:#fff;
+  padding:10px 15px;
+  border-radius:8px;
+  font-size:13px;
+  outline:none;
+}
+.info-panel{
+  padding:15px 25px;
+  display:grid;
+  grid-template-columns:auto 1fr auto auto;
+  gap:20px;
+  align-items:center;
+}
+.sro-box{
+  background:#1e293b;
+  border:1px solid var(--accent);
+  padding:10px 20px;
+  border-radius:10px;
+  min-width:200px;
+}
+.sro-label{ font-size:9px; font-weight:800; color:var(--accent); text-transform:uppercase; }
+.sro-name{ font-size:16px; font-weight:700; color:#fff; }
+
+/* progress tracker */
+.timeline-container{
+  background:rgba(15,23,42,.4);
+  padding:15px 20px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  min-width:350px;
+}
+.line-group{ margin-bottom:8px; }
+.line-label{
+  display:flex; justify-content:space-between;
+  font-size:9px; font-weight:800; text-transform:uppercase;
+  margin-bottom:4px;
+}
+.line-track{
+  height:4px;
+  background:rgba(255,255,255,.05);
+  border-radius:4px;
+  position:relative; overflow:hidden;
+}
+.line-fill{
+  height:100%;
+  border-radius:4px;
+  position:absolute; left:0;
+  transition:width 1s ease;
+}
+
+/* sector toggle */
+.sector-segmented{
+  display:flex;
+  background:rgba(0,0,0,.4);
+  border-radius:14px;
+  padding:4px;
+  border:1px solid var(--border);
+}
+.sec-btn{
+  flex:1;
+  display:flex; align-items:center; justify-content:center;
+  gap:6px;
+  padding:10px 14px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:800;
+  font-size:11px;
+  color:var(--text-dim);
+  background:transparent;
+  white-space:nowrap;
+}
+.sec-btn.active-rural{
+  background:var(--v1);
+  color:#000;
+  box-shadow:0 0 15px rgba(16,185,129,.4);
+}
+.sec-btn.active-urban{
+  background:var(--warning);
+  color:#000;
+  box-shadow:0 0 15px rgba(245,158,11,.4);
+}
+.sec-btn.active-all{
+  background:var(--accent);
+  color:#000;
+  box-shadow:0 0 15px rgba(56,189,248,.4);
+}
+
+/* visit toggle */
+.visit-segmented{
+  display:flex;
+  background:rgba(0,0,0,.4);
+  border-radius:14px;
+  padding:4px;
+  border:1px solid var(--border);
+  min-width:300px;
+}
+.v-btn{
+  flex:1;
+  display:flex; align-items:center; justify-content:center;
+  gap:6px;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:800;
+  font-size:10px;
+  color:var(--text-dim);
+  background:transparent;
+  white-space:nowrap;
+}
+.v-btn.active-v1{
+  background:var(--accent);
+  color:#000;
+  box-shadow:0 0 15px rgba(56,189,248,.4);
+}
+.v-btn.active-v2{
+  background:var(--v1);
+  color:#000;
+  box-shadow:0 0 15px rgba(16,185,129,.4);
+}
+
+.workspace{
+  flex:1;
+  padding:20px;
+  padding-bottom:100px;
+  overflow-y:auto;
+  scrollbar-width:thin;
+}
+.table-wrap{
+  background:var(--card);
+  border-radius:12px;
+  border:1px solid var(--border);
+  overflow-x:auto;
+  box-shadow:0 10px 30px rgba(0,0,0,.5);
+}
+table{ width:100%; border-collapse:separate; border-spacing:0; min-width:900px; }
+th{
+  background:var(--header-dark);
+  color:var(--accent);
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  padding:18px 15px;
+  text-align:left;
+  border-bottom:3px solid var(--accent);
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+td{
+  padding:12px 15px;
+  border-bottom:1px solid var(--border);
+  font-size:12px;
+  color:var(--text-dim);
+}
+
+/* badges */
+.status-badge{
+  padding:4px 10px;
+  border-radius:4px;
+  font-size:9px;
+  font-weight:800;
+  text-transform:uppercase;
+  border:1px solid transparent;
+}
+.badge-done{ background:rgba(16,185,129,.1); color:var(--v1); border-color:var(--v1); }
+.badge-pending{ background:rgba(255,255,255,.05); color:var(--text-dim); border-color:var(--border); }
+.badge-late{ background:rgba(239,68,68,.1); color:var(--danger); border-color:var(--danger); }
+.badge-rural{ background:rgba(16,185,129,.12); color:var(--v1); border-color:var(--v1); }
+.badge-urban{ background:rgba(245,158,11,.12); color:var(--warning); border-color:var(--warning); }
+
+.fsu-badge{
+  font-family:Monaco, monospace;
+  font-weight:800;
+  color:#fff;
+  background:rgba(56,189,248,.1);
+  padding:5px 8px;
+  border-radius:6px;
+  border:1px solid rgba(56,189,248,.2);
+}
+
+/* inputs */
+.input-field{
+  width:100%;
+  background:rgba(0,0,0,.35);
+  border:1px solid var(--border);
+  color:#fff;
+  padding:8px 10px;
+  border-radius:8px;
+  outline:none;
+  font-weight:700;
+  font-size:12px;
+}
+.input-field:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(56,189,248,.15);
+}
+
+/* Loader */
+#loadingOverlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(2,6,23,.9);
+  z-index:40000;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  color:var(--accent);
+}
+.spinner{
+  width:40px; height:40px;
+  border:4px solid rgba(56,189,248,.1);
+  border-left-color:var(--accent);
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin-bottom:15px;
+}
+@keyframes spin{ to{ transform:rotate(360deg); } }
+</style>
+</head>
+
+<body>
+  <nav class="left-rail">
+    <a href="index.html" class="hub">🏠 HUB</a>
+    <a href="plfs.html">📊 PLFS</a>
+    <a href="ufs_weekly.html" class="weekly">🗓️ Weekly</a>
+    <a href="ufs_action.html" class="action">📈 Action</a>
+    <a href="ufs_monthly.html" class="monthly">📅 Monthly</a>
+  </nav>
+
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+    <div id="loadingText" style="font-weight:800; letter-spacing:2px; font-size:11px;">SYNCING...</div>
+  </div>
+
+  <div class="overlay-mask" id="mask" onclick="toggleMenu()"></div>
+
+  <!-- Login Modal -->
+  <div id="loginModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index: 35000; align-items:center; justify-content:center; backdrop-filter: blur(8px);">
+    <div style="background:var(--sidebar); padding:40px; border-radius:20px; border:1px solid var(--border); text-align:center; width:320px;">
+      <h3 style="color:var(--accent); margin-bottom:20px">ADMIN ACCESS</h3>
+      <input type="password" id="passInput" class="input-field" placeholder="PASSCODE"
+             style="text-align:center; font-size:18px; letter-spacing:5px; margin-bottom:20px;">
+      <button onclick="verifyAdmin()" style="width:100%; background:var(--accent); border:none; padding:12px; border-radius:8px; font-weight:800; cursor:pointer; color:#000;">UNLOCK</button>
+      <button onclick="document.getElementById('loginModal').style.display='none'"
+              style="margin-top:15px; background:transparent; color:var(--text-dim); border:none; cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header" style="display:flex; justify-content:space-between; align-items:center;">
+      PLFS COMMAND
+      <span onclick="toggleMenu()" style="cursor:pointer; font-size:20px;" class="mobile-menu-btn">✕</span>
+    </div>
+
+    <div class="nav-scroll" id="navScroll"></div>
+
+    <div style="padding:15px; border-top:1px solid var(--border); display:grid; gap:8px;">
+      <button id="adminBtn" style="background:var(--card); color:#fff; width:100%; border:none; padding:10px; border-radius:8px; cursor:pointer; font-size:12px;"
+              onclick="document.getElementById('loginModal').style.display='flex'">🔐 Global Admin</button>
+
+      <label class="admin-locked" style="display:none; width:100%; background:var(--accent); padding:10px; color:#000; border-radius:8px; font-weight:900; cursor:pointer; text-align:center; font-size:12px;">
+        📂 Import Master
+        <input type="file" hidden onchange="handleExcel(this)">
+      </label>
+
+      <button onclick="lockSession()" style="background:var(--danger); color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; font-weight:900; font-size:11px;">
+        🔒 LOCK SESSION
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="fixed-header-group">
+      <header class="top-bar">
+        <button class="mobile-menu-btn" style="display:none; background:var(--accent); border:none; padding:8px 12px; border-radius:6px; font-weight:900; cursor:pointer;" onclick="toggleMenu()">☰</button>
+
+        <div class="date-picker-wrap">
+          <input type="date" id="sysCalendar" onchange="updateSysDate(this.value)">
+        </div>
+
+        <input type="text" class="search-input" placeholder="🔍 Search FSU, Location..." onkeyup="doSearch(this.value)">
+
+        <div style="display:flex; gap:8px;">
+          <button style="background:transparent; border:1px solid var(--v1); color:var(--v1); padding:8px 12px; border-radius:6px; cursor:pointer; font-weight:900;" onclick="exportCSV()">📥</button>
+          <button style="background:var(--accent); border:none; color:#000; padding:8px 15px; border-radius:6px; font-weight:900; cursor:pointer;" onclick="syncToCloud()">☁️ Sync</button>
+        </div>
+      </header>
+
+      <div class="info-panel" id="activeHeader" style="visibility:hidden;">
+        <div class="sro-box">
+          <div class="sro-label" id="vSt">STATE</div>
+          <div class="sro-name" id="vSro">SRO OFFICE</div>
+        </div>
+
+        <div class="timeline-container">
+          <div class="line-group">
+            <div class="line-label" style="color:var(--accent)"><span>Allotted Units</span><span id="txtAllotted">0</span></div>
+            <div class="line-track"><div id="allottedLine" class="line-fill" style="background:var(--accent); width:100%;"></div></div>
+          </div>
+
+          <div class="line-group">
+            <div class="line-label" style="color:var(--v1)"><span>Completed Tasks</span><span id="txtCompleted">0</span></div>
+            <div class="line-track"><div id="completedLine" class="line-fill" style="background:var(--v1); width:0%;"></div></div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+            <span style="font-size:9px; color:var(--text-dim); font-weight:800;">LIVE PROGRESS</span>
+            <span id="targetStatus" style="font-size:18px; font-weight:900; color:var(--text);">0%</span>
+          </div>
+        </div>
+
+        <!-- Sector Toggle -->
+        <div class="sector-segmented">
+          <button id="btnSAll" class="sec-btn" onclick="setSector('ALL')">🌍 ALL</button>
+          <button id="btnSRural" class="sec-btn" onclick="setSector('Rural')">🌾 RURAL</button>
+          <button id="btnSUrban" class="sec-btn" onclick="setSector('Urban')">🏙️ URBAN</button>
+        </div>
+
+        <!-- Visit Toggle -->
+        <div class="visit-segmented">
+          <button id="btnV1" class="v-btn" onclick="setVisit(1)"><span>🎯</span> VISIT 1</button>
+          <button id="btnV2" class="v-btn" onclick="setVisit(2)"><span>🔄</span> REVISIT 2</button>
+          <button id="btnV3" class="v-btn" onclick="setVisit(3)"><span>🔄</span> REVISIT 3</button>
+          <button id="btnV4" class="v-btn" onclick="setVisit(4)"><span>🔄</span> REVISIT 4</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="workspace">
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="tableHeader"></tr></thead>
+          <tbody id="dataBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+<script>
+/* ===================== Firebase ===================== */
+const config = {
+  apiKey: "AIzaSyB6fQ8n4qyG-TfVdAqWtDped17bMYTZSgI",
+  authDomain: "action-plan-62fae.firebaseapp.com",
+  databaseURL: "https://action-plan-62fae-default-rtdb.firebaseio.com",
+  projectId: "action-plan-62fae",
+  storageBucket: "action-plan-62fae.firebasestorage.app",
+  messagingSenderId: "595856008146",
+  appId: "1:595856008146:web:2f97b408a2e8ad43301e0b",
+  measurementId: "G-N10CXNSRLW"
+};
+firebase.initializeApp(config);
+const db = firebase.database();
+
+/* ===================== State ===================== */
+let master = [];
+let selSt = null;
+let selSro = "ALL SROs";
+let selMo = 0;       // monthIdx (0=Jan, 1=Feb, ...)
+let selVis = 1;      // 1, 2, 3, or 4
+let selSector = "ALL"; // "ALL", "Rural", "Urban"
+let query = "";
+let systemDateString = "2026-01-18";
+let globalAdmin = false;
+
+// monthIdx 0 = January 2026 (survey start)
+const SURVEY_START_YEAR = 2026;
+const SURVEY_START_MONTH = 0; // 0-based: January
+
+const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+// Returns display label for a monthIdx e.g. "Jan 2026"
+function monthLabel(idx){
+  const date = new Date(SURVEY_START_YEAR, SURVEY_START_MONTH + idx, 1);
+  return date.toLocaleString('en-IN', { month:'short', year:'numeric' });
+}
+
+// Returns a Date-string "YYYY-MM-DD" for the 1st of the given monthIdx
+function monthStart(idx){
+  const date = new Date(SURVEY_START_YEAR, SURVEY_START_MONTH + idx, 1);
+  return date.toISOString().split('T')[0];
+}
+
+/* ✅ NSRO → SRO mapping for Himachal Pradesh */
+const NSRO_MAP = {
+  "SHIMLA":      ["SHIMLA", "SOLAN", "SIRMAUR", "KINNAUR"],
+  "HAMIRPUR":    ["HAMIRPUR", "UNA", "BILASPUR"],
+  "MANDI":       ["MANDI", "KULLU", "LAHUL & SPITI"],
+  "DHARAMSHALA": ["KANGRA", "CHAMBA"]
+};
+
+// Lookup: SRO → NSRO
+const SRO_TO_NSRO = {};
+for(const [nsro, sros] of Object.entries(NSRO_MAP)){
+  sros.forEach(s => SRO_TO_NSRO[s] = nsro);
+}
+
+let selNsro = null; // currently expanded NSRO
+
+/* ===================== UI helpers ===================== */
+function toggleMenu(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('mask').classList.toggle('active');
+}
+function toggleLoader(show, text="PLEASE WAIT..."){
+  const l = document.getElementById('loadingOverlay');
+  document.getElementById('loadingText').innerText = text;
+  l.style.display = show ? 'flex' : 'none';
+}
+function updateSysDate(val){
+  systemDateString = val;
+  refresh();
+}
+function setMonth(i){
+  selMo = i;
+  renderNav();
+  refresh();
+}
+function setSector(s){
+  selSector = s;
+  refresh();
+}
+
+function getStatus(targetDate, isComplete, currentObsDate){
+  if(!targetDate || targetDate === "Awaiting V1") return '<span class="status-badge badge-pending">Pending</span>';
+  if(isComplete) return '<span class="status-badge badge-done">Done</span>';
+  if(targetDate <= currentObsDate) return '<span class="status-badge badge-late">Late</span>';
+  return '<span class="status-badge" style="background:rgba(245,158,11,.12); color:var(--warning); border:1px solid var(--warning);">Scheduled</span>';
+}
+
+/* ===================== Excel Import ===================== */
+async function handleExcel(input){
+  const file = input.files[0];
+  if(!file) return;
+  toggleLoader(true, "PROCESSING...");
+  try{
+    const stName = file.name.split('.')[0].split('_').pop().trim().toUpperCase();
+    const data = new Uint8Array(await file.arrayBuffer());
+    const wb = XLSX.read(data, { type:'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header:1, range:7 });
+
+    rows.slice(1).forEach(cols=>{
+      const fsu = cols[4];
+      const mCode = cols[5];
+      const sro = String(cols[6] || 'NSO');
+      const loc = cols[10];
+
+      if(fsu){
+        const mNum = parseInt(mCode, 10);
+        const startM = (mNum >= 13) ? (mNum - 13) : (mNum - 1);
+
+        for(let i=0;i<4;i++){
+          master.push({
+            uid: `${stName}_${fsu}_M${startM+i}_V${i+1}`,
+            fsu,
+            state: stName,
+            sro,
+            monthIdx: startM + i,
+            location: loc || "---",
+            visitNum: i+1,
+            sector: "Rural"
+          });
+        }
+      }
+    });
+
+    renderNav();
+    alert("Data Processed.");
+  } finally {
+    toggleLoader(false);
+    input.value = "";
+  }
+}
+
+/* ===================== Core rendering ===================== */
+function refresh(){
+  const body = document.getElementById('dataBody');
+
+  // Update sector buttons
+  document.getElementById('btnSAll').className  = 'sec-btn' + (selSector==='ALL'    ? ' active-all'   : '');
+  document.getElementById('btnSRural').className= 'sec-btn' + (selSector==='Rural'  ? ' active-rural' : '');
+  document.getElementById('btnSUrban').className= 'sec-btn' + (selSector==='Urban'  ? ' active-urban' : '');
+
+  // Update visit buttons
+  [1,2,3,4].forEach(v=>{
+    const btn = document.getElementById(`btnV${v}`);
+    if(btn) btn.className = 'v-btn' + (selVis===v ? (v===1?' active-v1':' active-v2') : '');
+  });
+
+  if(!selSt || (!selNsro && selSro === "ALL SROs")){
+    body.innerHTML = "<tr><td colspan='8' style='text-align:center; padding:100px; opacity:0.35;'>SELECT AN NSRO TO VIEW DATA</td></tr>";
+    document.getElementById('activeHeader').style.visibility = 'hidden';
+    return;
+  }
+
+  document.getElementById('activeHeader').style.visibility='visible';
+  document.getElementById('vSt').innerText = selSt;
+  const sroDisplay = selSro !== "ALL SROs" ? selSro
+    : selNsro ? `NSRO ${selNsro}`
+    : "ALL SROs";
+  document.getElementById('vSro').innerText = sroDisplay;
+
+  const filtered = master.filter(d=>{
+    if(d.state !== selSt) return false;
+    // NSRO filter: if an NSRO is selected and selSro is "ALL SROs", filter to that NSRO's SROs
+    if(selNsro && selSro === "ALL SROs"){
+      if(!NSRO_MAP[selNsro].includes(d.sro)) return false;
+    } else if(selSro !== "ALL SROs"){
+      if(d.sro !== selSro) return false;
+    }
+    if(d.monthIdx !== selMo) return false;
+    if(d.visitNum !== selVis) return false;
+    if(selSector !== "ALL" && d.sector !== selSector) return false;
+
+    if(query){
+      const q = String(query).toLowerCase();
+      return String(d.fsu).includes(query) || String(d.location||"").toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  const total = filtered.length;
+  const done  = filtered.filter(d => d.endDate).length;
+  const perc  = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  document.getElementById('txtAllotted').innerText = total;
+  document.getElementById('txtCompleted').innerText = done;
+  document.getElementById('targetStatus').innerText = perc + '%';
+  document.getElementById('completedLine').style.width = perc + '%';
+
+  // Table headers
+  const isV1 = (selVis === 1);
+  document.getElementById('tableHeader').innerHTML = isV1
+    ? `<th>Status</th><th>Sector</th><th>FSU</th><th>Location</th><th>ENM ID</th><th>Worker</th><th>Start</th><th>End</th>`
+    : `<th>Status</th><th>Sector</th><th>FSU</th><th>Location</th><th>ENM ID</th><th>Worker</th><th>Visit</th><th>Suggested Survey Date</th>`;
+
+  body.innerHTML = filtered.map(d=>{
+    const v1Item = master.find(x => x.fsu===d.fsu && x.state===d.state && x.sro===d.sro && x.visitNum===1) || {};
+
+    // Auto-calculate revisit suggested date from V1 endDate
+    // V2 = V1 endDate + 1 month, V3 = +2 months, V4 = +3 months
+    function calcSuggestedDate(v1EndDate, visitNum){
+      if(!v1EndDate) return null;
+      const base = new Date(v1EndDate);
+      const monthsToAdd = visitNum - 1; // V2→1, V3→2, V4→3
+      base.setMonth(base.getMonth() + monthsToAdd);
+      return base.toISOString().split('T')[0]; // YYYY-MM-DD
+    }
+    function formatSuggestedDate(dateStr){
+      if(!dateStr) return null;
+      const d2 = new Date(dateStr + 'T00:00:00');
+      return d2.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+    }
+
+    const suggestedDateStr = !isV1 ? calcSuggestedDate(v1Item.endDate, d.visitNum) : null;
+    const suggestedDateFormatted = suggestedDateStr ? formatSuggestedDate(suggestedDateStr) : null;
+
+    // Status: use calculated date for revisit deadlines
+    const displayStatus = isV1
+      ? getStatus(d.endDate, !!d.endDate, systemDateString)
+      : getStatus(
+          suggestedDateStr || (v1Item.endDate ? monthStart(d.monthIdx) : null),
+          !!d.endDate,
+          systemDateString
+        );
+
+    const sectorBadge = `<span class="status-badge ${d.sector==='Rural'?'badge-rural':'badge-urban'}">${d.sector||'—'}</span>`;
+
+    const commonInputs = `
+      <td><input class="input-field" style="width:90px" value="${(d.enmId||'').replace(/"/g,'&quot;')}" onchange="upd('${d.uid}','eid',this.value)"></td>
+      <td><input class="input-field" style="width:140px" value="${(d.enumerator||'').replace(/"/g,'&quot;')}" onchange="upd('${d.uid}','en',this.value)"></td>
+    `;
+
+    const visitCells = isV1
+      ? `
+        <td><input type="date" class="input-field" value="${d.startDate||''}" onchange="upd('${d.uid}','sd',this.value)"></td>
+        <td><input type="date" class="input-field" value="${d.endDate||''}" onchange="upd('${d.uid}','ed',this.value)"></td>
+      `
+      : `
+        <td><b style="color:var(--accent)">V${d.visitNum}</b></td>
+        <td>
+          ${suggestedDateStr
+            ? `<div style="display:flex; flex-direction:column; gap:2px;">
+                <span style="color:var(--accent); font-weight:900; font-size:12px;">📅 ${suggestedDateFormatted}</span>
+                ${suggestedDateStr <= systemDateString && !d.endDate
+                  ? `<span style="color:var(--danger); font-size:9px; font-weight:800; text-transform:uppercase;">⚠ Overdue</span>`
+                  : suggestedDateStr > systemDateString && !d.endDate
+                    ? `<span style="color:var(--warning); font-size:9px; font-weight:700;">${Math.ceil((new Date(suggestedDateStr)-new Date(systemDateString))/(1000*60*60*24))} days away</span>`
+                    : ``
+                }
+              </div>`
+            : `<span style="color:var(--text-dim); font-size:11px;">⏳ Awaiting V1 Completion</span>`
+          }
+        </td>
+      `;
+
+    return `
+      <tr>
+        <td>${displayStatus}</td>
+        <td>${sectorBadge}</td>
+        <td><span class="fsu-badge">${d.fsu}</span></td>
+        <td><div style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${d.location||"---"}</div></td>
+        ${commonInputs}
+        ${visitCells}
+      </tr>
+    `;
+  }).join('');
+}
+
+function upd(id, f, v){
+  const item = master.find(x => x.uid === id);
+  if(!item) return;
+  if(f==='eid') item.enmId = v;
+  if(f==='en')  item.enumerator = v;
+  if(f==='sd')  item.startDate = v;
+  if(f==='ed'){
+    item.endDate = v;
+    // When V1 endDate is set, revisit suggested dates are auto-calculated: V2=+1m, V3=+2m, V4=+3m
+  }
+  refresh();
+}
+
+/* ===================== Cloud Sync ===================== */
+async function syncToCloud(){
+  const STATE = "HIMACHAL PRADESH";
+  if(selSt !== STATE){
+    alert("Only HIMACHAL PRADESH is allowed on this page.");
+    return;
+  }
+  toggleLoader(true, "SYNCING HP...");
+  try{
+    const byKey = {};
+    master.filter(m => m.state === STATE).forEach(m => {
+      if(!byKey[m.sro]) byKey[m.sro] = {};
+      byKey[m.sro][m.uid] = m;
+    });
+
+    await Promise.all(
+      Object.entries(byKey).map(([sro, records]) =>
+        db.ref(`plfs_roster/${sro}`).set(records)
+      )
+    );
+    alert("Cloud Updated (HP).");
+  } finally {
+    toggleLoader(false);
+  }
+}
+
+/* ===================== Fetch from Firebase ===================== */
+async function autoFetch(){
+  const STATE = "HIMACHAL PRADESH";
+  const SRO_KEYS = ["BILASPUR","CHAMBA","HAMIRPUR","KANGRA","KINNAUR","KULLU","LAHUL & SPITI","MANDI","SHIMLA","SIRMAUR","SOLAN","UNA"];
+  toggleLoader(true, "FETCHING HP...");
+  try{
+    master = [];
+
+    const snaps = await Promise.all(
+      SRO_KEYS.map(sro => db.ref(`plfs_roster/${sro}`).once('value'))
+    );
+
+    snaps.forEach(snap => {
+      if(snap.exists()){
+        Object.values(snap.val() || {}).forEach(r => master.push(r));
+      }
+    });
+
+    selSt = STATE;
+    selSro = "ALL SROs";
+    selNsro = null;
+    selMo = 0;
+    selVis = 1;
+    selSector = "ALL";
+
+    renderNav();
+    refresh();
+  } finally {
+    toggleLoader(false);
+  }
+}
+
+/* ===================== Nav ===================== */
+function selectSroWithAuth(sroName){
+  selSro = sroName;
+  // Update SRO box label
+  document.getElementById('vSro').innerText = sroName === "ALL SROs"
+    ? (selNsro ? `${selNsro} — ALL` : "ALL SROs")
+    : sroName;
+  renderNav();
+  refresh();
+}
+
+function selectNsro(nsroName){
+  // Clicking the same NSRO again collapses it
+  if(selNsro === nsroName && selSro === "ALL SROs"){
+    selNsro = null;
+    selSro  = "ALL SROs";
+  } else {
+    selNsro = nsroName;
+    selSro  = "ALL SROs"; // show all SROs under this NSRO
+  }
+  renderNav();
+  refresh();
+}
+
+function renderNav(){
+  const container = document.getElementById('navScroll');
+  let html = "";
+
+  // ── Header: Himachal Pradesh ──
+  html += `<div class="zone-title">HIMACHAL PRADESH</div>`;
+
+  // Month strip (shown always, based on V1 months in data)
+  const allMonthIdxs = [...new Set(master.filter(x => x.visitNum === 1).map(x => x.monthIdx))].sort((a,b)=>a-b);
+  if(allMonthIdxs.length){
+    html += `<div class="month-grid" style="margin-bottom:14px;">
+      ${allMonthIdxs.map(i=>`<div class="pill ${selMo===i?'active':''}" onclick="setMonth(${i});">${monthLabel(i)}</div>`).join('')}
+    </div>`;
+  }
+
+  // ── NSRO blocks ──
+  html += `<div class="zone-title">NSROs</div>`;
+
+  for(const [nsro, sroList] of Object.entries(NSRO_MAP)){
+    const nsroActive = selNsro === nsro;
+    const nsroHasData = sroList.some(s => master.some(x => x.sro === s));
+    const sroColors = { SHIMLA:'#818cf8', HAMIRPUR:'#fb923c', MANDI:'#a78bfa', DHARAMSHALA:'#34d399' };
+    const col = sroColors[nsro] || 'var(--accent)';
+
+    // Count V1 records for this NSRO in selected month
+    const nsroCount = master.filter(x => sroList.includes(x.sro) && x.visitNum===1 && x.monthIdx===selMo).length;
+
+    html += `
+      <div style="margin-bottom:8px;">
+        <div onclick="selectNsro('${nsro}')" style="
+          padding:12px 14px;
+          border-radius:10px;
+          border:1px solid ${nsroActive ? col : 'var(--border)'};
+          background:${nsroActive ? `rgba(${hexToRgb(col)},.12)` : 'rgba(30,41,59,.3)'};
+          cursor:pointer;
+          display:flex; align-items:center; justify-content:space-between;
+        ">
+          <div>
+            <div style="font-size:10px; font-weight:900; color:${col}; text-transform:uppercase; letter-spacing:1px;">NSRO ${nsro}</div>
+            <div style="font-size:9px; color:var(--text-dim); margin-top:2px;">${sroList.join(' · ')}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${nsroHasData ? `<span style="font-size:9px; font-weight:800; color:${col}; background:rgba(${hexToRgb(col)},.15); padding:3px 8px; border-radius:4px;">${nsroCount} FSUs</span>` : ''}
+            <span style="color:${col}; font-size:14px;">${nsroActive ? '▾' : '▸'}</span>
+          </div>
+        </div>
+    `;
+
+    if(nsroActive){
+      html += `
+        <div style="background:rgba(0,0,0,.2); border-radius:0 0 10px 10px; border:1px solid var(--border); border-top:none; padding:10px;">
+          <div class="pill-grid">
+            <div class="pill all-btn ${selSro==='ALL SROs'?'active':''}" style="border-color:${col}; color:${col};"
+                 onclick="event.stopPropagation(); selectSroWithAuth('ALL SROs');">🌍 ALL</div>
+            ${sroList.map(s => {
+              const cnt = master.filter(x => x.sro===s && x.visitNum===1 && x.monthIdx===selMo).length;
+              return `<div class="pill ${selSro===s?'active':''}" onclick="event.stopPropagation(); selectSroWithAuth('${s}');">
+                ${s}<br><span style="font-size:8px; opacity:.7;">${cnt} FSUs</span>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    html += `</div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+// Helper to convert hex color to "r,g,b" for rgba()
+function hexToRgb(hex){
+  const m = hex.replace('#','').match(/.{2}/g);
+  if(!m) return '56,189,248';
+  return m.map(x=>parseInt(x,16)).join(',');
+}
+
+function selectState(st){
+  selSt = st;
+  selSro = "ALL SROs";
+  renderNav();
+  refresh();
+}
+function setVisit(v){ selVis = v; refresh(); }
+function doSearch(v){ query = v || ""; refresh(); }
+
+/* ===================== Admin ===================== */
+function verifyAdmin(){
+  if(document.getElementById('passInput').value === '123'){
+    globalAdmin = true;
+    document.querySelectorAll('.admin-locked').forEach(e => e.style.display='block');
+    document.getElementById('adminBtn').style.display='none';
+    document.getElementById('loginModal').style.display='none';
+  } else {
+    alert("Wrong passcode.");
+  }
+}
+function lockSession(){
+  globalAdmin = false;
+  selSt = null;
+  selSro = "ALL SROs";
+  document.querySelectorAll('.admin-locked').forEach(e => e.style.display='none');
+  document.getElementById('adminBtn').style.display='block';
+  renderNav();
+  refresh();
+  alert("Locked.");
+}
+
+/* ===================== Export ===================== */
+function exportCSV(){
+  const rows = Array.from(document.querySelectorAll("table tr"));
+  const csv = rows.map(r => Array.from(r.querySelectorAll("th, td")).map(c=>{
+    const i = c.querySelector('input');
+    const val = (i ? i.value : c.innerText);
+    return `"${String(val).replace(/"/g,'""')}"`;
+  }).join(",")).join("\n");
+
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = "PLFS_EXPORT.csv";
+  a.click();
+}
+
+/* ===================== Boot ===================== */
+window.onload = () => {
+  document.getElementById('sysCalendar').value = systemDateString;
+  autoFetch();
+};
+</script>
+<script src="assets/tools.js"></script><script src="assets/hub-nav.js"></script>
+</body>
+</html>

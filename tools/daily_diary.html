@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Daily Diary (Calendar Click Rules + Tours)</title>
+
+<style>
+  :root{
+    --border:#000;
+    --paper:#fff;
+    --bg:#eef2f6;
+    --fs:11px;
+    --fs2:10px;
+
+    --pageW:1123px;
+    --card:#ffffff;
+    --muted:#64748b;
+    --ring:rgba(2,132,199,.25);
+    --accent:#0ea5e9;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    padding:16px;
+    background:var(--bg);
+    font-family: Arial, Helvetica, sans-serif;
+    color:#111;
+  }
+
+  /* ===== Sticky top bar ===== */
+  .topbar{
+    position:sticky; top:0; z-index:10;
+    width:min(var(--pageW),100%);
+    margin:0 auto 10px auto;
+    background:rgba(238,242,246,.92);
+    backdrop-filter: blur(6px);
+    padding:8px 0;
+  }
+  .toolbar{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    width:min(var(--pageW),100%);
+    margin:0 auto;
+  }
+  .btn{
+    border:1px solid #c9d3df;
+    background:#fff;
+    padding:9px 12px;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:900;
+    font-size:13px;
+    white-space:nowrap;
+  }
+  .btn.primary{
+    border-color:var(--accent);
+    box-shadow:0 8px 20px rgba(2,132,199,.18);
+  }
+
+  /* ===== Panels ===== */
+  .panel{
+    width:min(var(--pageW),100%);
+    margin:0 auto 10px auto;
+    background:var(--card);
+    border:1px solid #c9d3df;
+    border-radius:14px;
+    padding:12px;
+    box-shadow:0 10px 22px rgba(0,0,0,.08);
+  }
+  .panelTitle{
+    display:flex; justify-content:space-between; align-items:center;
+    gap:10px; flex-wrap:wrap;
+    margin-bottom:8px;
+  }
+  .panelTitle b{ font-size:14px; }
+
+  /* ===== Layout: Calendar + Form ===== */
+  .layout{
+    display:grid;
+    grid-template-columns: 360px 1fr;
+    gap:12px;
+    align-items:start;
+  }
+
+  /* ===== Calendar ===== */
+  .calWrap{
+    border:1px solid #c9d3df;
+    border-radius:14px;
+    padding:10px;
+    background:#fff;
+  }
+  .calHead{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .calHead b{ font-size:14px; }
+  .calHead .nav{
+    display:flex; gap:8px; align-items:center;
+  }
+  .iconBtn{
+    width:36px; height:36px;
+    border-radius:12px;
+    border:1px solid #c9d3df;
+    background:#fff;
+    cursor:pointer;
+    font-weight:900;
+  }
+  .monthSelect{
+    border:1px solid #c9d3df;
+    border-radius:12px;
+    padding:8px 10px;
+    font-weight:900;
+    font-size:12px;
+    outline:none;
+    min-width:140px;
+    background:#fff;
+  }
+  .calGrid{
+    display:grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap:6px;
+  }
+  .dow{
+    text-align:center;
+    font-size:11px;
+    font-weight:900;
+    color:#111;
+    padding:6px 0;
+    border-bottom:1px solid #eef2f6;
+  }
+  .dayBtn{
+    border:1px solid #e5e7eb;
+    background:#fff;
+    border-radius:12px;
+    padding:10px 0;
+    cursor:pointer;
+    font-weight:900;
+    font-size:12px;
+    text-align:center;
+    user-select:none;
+    position:relative;
+  }
+  .dayBtn.muted{
+    opacity:.35;
+    cursor:default;
+  }
+  .dayBtn.selected{
+    border-color:var(--accent);
+    box-shadow:0 0 0 4px var(--ring);
+  }
+  .dayBtn.today{
+    outline:2px dashed rgba(14,165,233,.65);
+    outline-offset:-2px;
+  }
+  .hint{
+    margin-top:10px;
+    padding:10px;
+    border:1px dashed #c9d3df;
+    border-radius:12px;
+    font-size:12px;
+    line-height:1.35;
+  }
+  .hint b{ font-weight:900; }
+  .dotRow{
+    position:absolute;
+    left:0; right:0;
+    bottom:6px;
+    display:flex;
+    justify-content:center;
+    gap:4px;
+    height:6px;
+    pointer-events:none;
+  }
+  .dot{ width:6px; height:6px; border-radius:99px; background:#cbd5e1; }
+  .dot.office{ background:#60a5fa; }
+  .dot.holiday{ background:#fb923c; }
+  .dot.gazetted{ background:#f472b6; }
+  .dot.casual{ background:#34d399; }
+  .dot.journey{ background:#22c55e; }
+  .dot.field{ background:#a78bfa; }
+
+  /* ===== Form ===== */
+  .steps{
+    display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+    margin:6px 0 10px;
+  }
+  .chip{
+    border:1px solid #c9d3df;
+    background:#fff;
+    padding:6px 10px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:900;
+  }
+  .chip.on{
+    border-color:var(--accent);
+    box-shadow:0 0 0 4px var(--ring);
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: 1.1fr 1.1fr 1.3fr 1.6fr;
+    gap:10px;
+    align-items:end;
+  }
+  .grid2{
+    display:grid;
+    grid-template-columns: 1.1fr 1.1fr 1fr 1.5fr;
+    gap:10px;
+    align-items:end;
+  }
+  .grid3{
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap:10px;
+    align-items:end;
+  }
+  label{
+    display:block;
+    font-size:12px;
+    font-weight:900;
+    color:#111;
+  }
+  .help{ font-weight:700; font-size:11px; color:var(--muted); margin-top:4px; line-height:1.2; }
+
+  input, select, textarea{
+    width:100%;
+    padding:10px 10px;
+    border:1px solid #c9d3df;
+    border-radius:12px;
+    font-weight:900;
+    font-size:12px;
+    background:#fff;
+    outline:none;
+  }
+  input:focus, select:focus, textarea:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 4px var(--ring);
+  }
+  textarea{
+    min-height:42px;
+    resize:vertical;
+    white-space:pre-wrap;
+    line-height:1.25;
+    font-weight:800;
+  }
+
+  .actions{
+    display:flex; gap:10px; flex-wrap:wrap;
+    margin-top:10px;
+    align-items:center;
+  }
+  .mini{
+    font-size:12px;
+    line-height:1.35;
+    color:#111;
+  }
+  .mini b{ font-weight:900; }
+
+  /* ===== Tours ===== */
+  .tourRow{
+    display:grid;
+    grid-template-columns: 90px 1fr 1fr 140px 40px;
+    gap:8px;
+    align-items:center;
+    padding:8px;
+    border:1px dashed #c9d3df;
+    border-radius:12px;
+  }
+
+  /* ===== Sheet ===== */
+  .paper{
+    width: var(--pageW);
+    background:var(--paper);
+    margin:0 auto 18px auto;
+    border:1px solid #c9d3df;
+    box-shadow:0 12px 30px rgba(0,0,0,.10);
+    padding:10px;
+    overflow:hidden;
+  }
+  .frame{ border:1px solid var(--border); padding:8px; }
+
+  .topline{
+    display:flex; align-items:flex-end; gap:10px;
+    font-weight:800; font-size:18px;
+    margin-bottom:6px;
+    letter-spacing:.2px;
+  }
+  .dotsLong{ flex:1; border-bottom:1px dotted #000; height:14px; }
+  .dots{ display:inline-block; border-bottom:1px dotted #000; min-width:120px; height:14px; vertical-align:bottom; }
+
+  .headgrid{
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap:10px;
+    align-items:end;
+    font-size:12px;
+    margin-bottom:6px;
+  }
+  .headgrid .cell{ white-space:nowrap; }
+  .hirow{ font-size:12px; font-weight:700; }
+  .enrow{ margin-top:2px; font-size:12px; }
+  .schemeLine{ margin:6px 0 8px 0; font-size:12px; }
+
+  .tourOut{
+    margin:6px 0 8px 0;
+    padding:6px 8px;
+    border:1px solid #000;
+    font-size:12px;
+    line-height:1.25;
+  }
+  .tourOut b{ font-weight:900; }
+  .tourOut .small{ font-size:11px; }
+
+  table.diary{
+    width:100%;
+    border-collapse:collapse;
+    table-layout:fixed;
+    font-size:var(--fs);
+  }
+  th, td{
+    border:1px solid var(--border);
+    padding:2px 3px;
+    text-align:center;
+    vertical-align:top;
+    word-break:break-word;
+  }
+  thead th{ font-weight:800; vertical-align:middle; }
+  .group{ font-size:12px; letter-spacing:.2px; }
+  .sub{ font-size:var(--fs2); font-weight:800; }
+  .colno{ font-weight:800; background:#fafafa; font-size:var(--fs2); }
+
+  col.c1{ width:6.2%; }
+  col.c2{ width:6.2%; }
+  col.c3{ width:6.2%; }
+  col.c4{ width:6.2%; }
+  col.c5{ width:8.0%; }
+  col.c6{ width:7.6%; }
+  col.c7{ width:6.0%; }
+  col.c8{ width:3.0%; }
+  col.c9{ width:6.4%; }
+  col.c10{ width:9.5%; }
+  col.c11{ width:14.5%; }
+  col.c12{ width:7.5%; }
+  col.c13{ width:7.5%; }
+  col.c14{ width:4.0%; }
+  col.c15{ width:4.0%; }
+  col.c16{ width:4.4%; }
+
+  .cellView{
+    min-height:20px;
+    display:block;
+    padding:1px 2px;
+    font-size:var(--fs);
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+    line-height:1.2;
+  }
+  .leftText{ text-align:left; }
+  .rightText{ text-align:right; }
+  tbody td{ height:auto; }
+  .scrollX{ overflow:auto; }
+
+  tr.type-office td{ background:#f2f7ff; }
+  tr.type-holiday td{ background:#fff6f0; }
+  tr.type-gazetted td{ background:#fff0f6; }
+  tr.type-casual td{ background:#f0fff8; }
+  tr.type-journey td{ background:#f3fff5; }
+  tr.type-field td{ background:#f6f2ff; }
+
+  .page2-footer{
+    margin-top:10px;
+    display:grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap:14px;
+    align-items:start;
+    font-size:12px;
+  }
+  .note{ line-height:1.3; }
+  .signs{ line-height:1.7; }
+  .sigLine{
+    display:inline-block;
+    border-bottom:1px dotted #000;
+    min-width:240px;
+    height:14px;
+    vertical-align:bottom;
+  }
+
+  @media (max-width:1150px){
+    .paper{ width:100%; }
+    .layout{ grid-template-columns: 1fr; }
+    .grid, .grid2, .grid3{ grid-template-columns: 1fr; }
+    .tourRow{ grid-template-columns: 1fr; }
+  }
+
+  @media print{
+    body{ background:#fff; padding:0; }
+    .topbar, .panel{ display:none; }
+    .paper{ box-shadow:none; border:none; margin:0; page-break-after:always; }
+    tr.type-office td, tr.type-holiday td, tr.type-journey td, tr.type-field td, tr.type-gazetted td, tr.type-casual td{
+      background:transparent !important;
+    }
+    @page{ size:A4 landscape; margin:8mm; }
+  }
+</style>
+</head>
+
+<body>
+
+<!-- ===== STICKY TOPBAR ===== -->
+<div class="topbar">
+  <div class="toolbar">
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      <button class="btn primary" type="button" onclick="window.print()">Print / Save PDF</button>
+      <button class="btn" type="button" onclick="toggleTours()">Tour Ranges</button>
+      <button class="btn" type="button" onclick="scrollToSheet()">Go to Sheet</button>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      <button class="btn" type="button" onclick="saveLocal()">Save</button>
+      <button class="btn" type="button" onclick="loadLocal()">Load</button>
+      <button class="btn" type="button" onclick="clearAll()">Clear</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN PANEL: CALENDAR + FORM ===== -->
+<div class="panel" id="entryPanel">
+  <div class="panelTitle">
+    <b>Calendar Daily Entry (Click Rules)</b>
+    <div class="steps">
+      <span class="chip on" id="s1">1) Click Date</span>
+      <span class="chip" id="s2">2) Type/Details</span>
+      <span class="chip" id="s3">3) Apply</span>
+      <span class="chip" id="s4">Done</span>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- Calendar -->
+    <div class="calWrap">
+      <div class="calHead">
+        <div>
+          <b id="calTitle">Month</b>
+          <div style="font-size:12px; color:var(--muted); font-weight:800;" id="selectedLabel">Select a date</div>
+        </div>
+        <div class="nav">
+          <button class="iconBtn" type="button" title="Prev Month" onclick="prevMonth()">‹</button>
+          <select class="monthSelect" id="monthPick"></select>
+          <button class="iconBtn" type="button" title="Next Month" onclick="nextMonth()">›</button>
+        </div>
+      </div>
+
+      <div class="calGrid" id="calDOW"></div>
+      <div class="calGrid" id="calDays" style="margin-top:6px;"></div>
+
+      <div class="hint">
+        <b>Calendar Click Rules:</b><br>
+        • <b>Single click</b> = Office Present (कार्यालय उपस्थित) ✅<br>
+        • <b>Double click</b> = Holiday (अवकाश) 🟠<br>
+        • <b>Triple click</b> = Reset day (clear entry) ♻️<br>
+        <span style="color:var(--muted); font-weight:800;">(Clicking also selects the day in the form.)</span>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div>
+      <div class="grid">
+        <div>
+          <label>Selected Date</label>
+          <input id="dayISO" type="text" readonly />
+          <div class="help">Calendar click will auto-fill office/holiday/reset.</div>
+        </div>
+
+        <div>
+          <label>Type (Manual Override)</label>
+          <select id="typePick">
+            <option value="office">Office Present (कार्यालय उपस्थित)</option>
+            <option value="holiday">Holiday (अवकाश)</option>
+            <option value="gazetted">राजपत्रित अवकाश</option>
+            <option value="casual">आकस्मिक अवकाश</option>
+            <option value="journey">Journey Day</option>
+            <option value="field">Field Work</option>
+          </select>
+          <div class="help">Use only if you want Journey/Field/Other leaves.</div>
+        </div>
+
+        <div>
+          <label>Quick Buttons</label>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn" type="button" onclick="presetType('office')">Office</button>
+            <button class="btn" type="button" onclick="presetType('holiday')">Holiday</button>
+            <button class="btn" type="button" onclick="presetType('gazetted')">Rajpatrit</button>
+            <button class="btn" type="button" onclick="presetType('casual')">Aakasmik</button>
+            <button class="btn" type="button" onclick="presetType('journey')">Journey</button>
+            <button class="btn" type="button" onclick="presetType('field')">Field</button>
+          </div>
+        </div>
+
+        <div>
+          <label>Remarks (Col-16)</label>
+          <textarea id="remarksPick" placeholder="Optional remarks..."></textarea>
+          <div class="help">Tour tag auto-added if in tour.</div>
+        </div>
+      </div>
+
+      <div id="detailBox" style="margin-top:12px; display:none;">
+        <div class="mini"><b>Details</b> (only for Journey / Field)</div>
+
+        <div class="grid2" style="margin-top:8px;">
+          <div>
+            <label>From (Col-2)</label>
+            <input id="c2" type="text" placeholder="Departure from..." />
+          </div>
+          <div>
+            <label>To (Col-4)</label>
+            <input id="c4" type="text" placeholder="Arrival to..." />
+          </div>
+          <div>
+            <label>Mode (Col-5)</label>
+            <input id="c5" type="text" placeholder="Bus/Taxi..." />
+          </div>
+          <div>
+            <label>Work Description (Col-11)</label>
+            <textarea id="c11" placeholder="काम का विवरण..."></textarea>
+          </div>
+        </div>
+
+        <div class="grid3" style="margin-top:10px;">
+          <div>
+            <label>Road KM (Col-6)</label>
+            <input id="c6" type="text" inputmode="decimal" />
+          </div>
+          <div>
+            <label>Fare Rs (Col-7)</label>
+            <input id="c7" type="text" inputmode="decimal" />
+          </div>
+          <div>
+            <label>Fare P (Col-8)</label>
+            <input id="c8" type="text" inputmode="decimal" />
+          </div>
+          <div>
+            <label>Time Spent (Col-13)</label>
+            <input id="c13" type="text" placeholder="Hrs-Mts e.g. 6:00" />
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:10px;">
+          <div>
+            <label>Scheme (Col-9)</label>
+            <input id="c9" type="text" placeholder="SE/AS/ASI/UFS" />
+          </div>
+          <div>
+            <label>Sample Unit (Col-10)</label>
+            <textarea id="c10" placeholder="Sample + ID..."></textarea>
+          </div>
+          <div>
+            <label>Qty/Volume (Col-12)</label>
+            <input id="c12" type="text" />
+          </div>
+          <div>
+            <label>Days/Hrs (Col-14/15)</label>
+            <input id="c14_15" type="text" placeholder="Any text (optional)" />
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" type="button" onclick="applyDay()">✅ Apply (Manual)</button>
+        <button class="btn" type="button" onclick="loadDayToForm()">↩ Load Day</button>
+        <button class="btn" type="button" onclick="goToDay()">📌 Go to Row</button>
+        <button class="btn" type="button" onclick="quickNextDay()">Next Day ➜</button>
+      </div>
+
+      <div class="mini" style="margin-top:10px;">
+        <b>Auto Rules:</b>
+        Office → Col-11: <b>कार्यालय उपस्थित</b>, Col-13: <b>8:30</b>. Holiday → Col-11: <b>अवकाश</b>.  
+        Tour range: start/end = Journey, middle = Field (unless you override).
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOURS PANEL ===== -->
+<div class="panel" id="tourPanel" style="display:none;">
+  <div class="panelTitle">
+    <b>Tour Ranges (Multiple)</b>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn" type="button" onclick="addTour()">+ Add Range</button>
+      <button class="btn primary" type="button" onclick="applyTours(true)">Apply Auto Fill</button>
+      <button class="btn" type="button" onclick="clearTours()">Clear Tours</button>
+    </div>
+  </div>
+  <div id="tourList" style="display:grid; gap:8px;"></div>
+</div>
+
+<!-- ================= PAGE 1 ================= -->
+<section class="paper" id="sheetTop">
+  <div class="frame">
+
+    <div class="topline">
+      <span>माह</span><span class="dotsLong"></span>
+      <span>202</span><span class="dots" style="min-width:40px;"></span>
+      <span class="dotsLong"></span>
+      <span>की दैनिक/ DAILY DIARY FOR THE MONTH OF</span>
+      <span class="dotsLong"></span>
+      <span>202</span><span class="dots" style="min-width:40px;"></span>
+    </div>
+
+    <div class="headgrid">
+      <div class="cell hirow">क्षेत्र कर्मचारी का नाम <span class="dots" style="min-width:220px;"></span></div>
+      <div class="cell hirow">पदनाम <span class="dots" style="min-width:170px;"></span></div>
+      <div class="cell hirow">उ०श्रे०का/एन०श्रे०का० <span class="dots" style="min-width:170px;"></span></div>
+      <div class="cell hirow">क्षेत्रीय कार्यालय <span class="dots" style="min-width:140px;"></span></div>
+
+      <div class="cell enrow">Name of the Field Official <span class="dots" style="min-width:180px;"></span></div>
+      <div class="cell enrow">Designation <span class="dots" style="min-width:170px;"></span></div>
+      <div class="cell enrow">S.R.O./N.S.R.O. <span class="dots" style="min-width:170px;"></span></div>
+      <div class="cell enrow">R.O. <span class="dots" style="min-width:180px;"></span></div>
+    </div>
+
+    <div class="schemeLine">
+      किस स्कीम के अन्तर्गत कार्यरत (सामाजिक/कृषि/उ०श्रे०का/न०उ०श्रे०का/ अन्य)
+      <br>
+      Scheme in which working (SE/AS/ASI/UFS) <span class="dots" style="min-width:420px;"></span>
+    </div>
+
+    <div class="tourOut">
+      <b>Tour Range(s):</b>
+      <span class="small" id="tourOutText1">None</span>
+    </div>
+
+    <div class="scrollX">
+      <table class="diary">
+        <colgroup>
+          <col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5"><col class="c6"><col class="c7"><col class="c8">
+          <col class="c9"><col class="c10"><col class="c11"><col class="c12"><col class="c13"><col class="c14"><col class="c15"><col class="c16">
+        </colgroup>
+
+        <thead>
+          <tr>
+            <th class="group" colspan="8">यात्रा<br>JOURNEY</th>
+            <th class="group" rowspan="2">स्कीम<br>Scheme</th>
+            <th class="group" colspan="3">किया गया कार्य<br>WORK DONE</th>
+            <th class="group" colspan="4">विराम अवधि<br>DURATION OF HALT</th>
+          </tr>
+
+          <tr>
+            <th class="sub" colspan="2">प्रस्थान<br>Departure</th>
+            <th class="sub" colspan="2">आगमन<br>Arrival</th>
+
+            <th class="sub" rowspan="2">यात्रा का साधन अथवा यात्रा की श्रेणी<br>Mode of travel of accommodation</th>
+            <th class="sub" rowspan="2">सड़क द्वारा तय की गई दूरी कि.मी. for road mileage</th>
+
+            <th class="sub" colspan="2">अदा किया गया किराया<br>Fare Paid</th>
+
+            <th class="sub" rowspan="2">पहचान क्रम संख्या सहित प्रतिदर्श इकाई का नाम<br>Name of sample unit with identification serial number</th>
+            <th class="sub" rowspan="2">किये गये कार्य का वर्णन<br>Description of work done</th>
+            <th class="sub" rowspan="2">यात्रा की दृष्टि से किये गये कार्य की परिमाण<br>Volume of work done in quantitative terms</th>
+
+            <th class="sub" rowspan="2">व्यतीत समय (घंटे-मिनट)<br>Time spent (Hrs.-Mts.)</th>
+            <th class="sub" rowspan="2">दिन<br>Days</th>
+            <th class="sub" rowspan="2">घंटे<br>Hours</th>
+            <th class="sub" rowspan="2">अभ्युक्ति<br>Remarks</th>
+          </tr>
+
+          <tr>
+            <th class="sub">दिनांक तथा समय<br>Date</th>
+            <th class="sub">से<br>From</th>
+
+            <th class="sub">दिनांक तथा समय<br>Date</th>
+            <th class="sub">तक<br>To</th>
+
+            <th class="sub">Rs.</th>
+            <th class="sub">P.</th>
+          </tr>
+
+          <tr>
+            <th class="colno">1</th><th class="colno">2</th><th class="colno">3</th><th class="colno">4</th>
+            <th class="colno">5</th><th class="colno">6</th><th class="colno">7</th><th class="colno">8</th>
+            <th class="colno">9</th><th class="colno">10</th><th class="colno">11</th><th class="colno">12</th>
+            <th class="colno">13</th><th class="colno">14</th><th class="colno">15</th><th class="colno">16</th>
+          </tr>
+        </thead>
+
+        <tbody id="p1Rows"></tbody>
+      </table>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================= PAGE 2 ================= -->
+<section class="paper">
+  <div class="frame">
+
+    <div class="tourOut">
+      <b>Tour Range(s):</b>
+      <span class="small" id="tourOutText2">None</span>
+    </div>
+
+    <div class="scrollX">
+      <table class="diary">
+        <colgroup>
+          <col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5"><col class="c6"><col class="c7"><col class="c8">
+          <col class="c9"><col class="c10"><col class="c11"><col class="c12"><col class="c13"><col class="c14"><col class="c15"><col class="c16">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="colno">1</th><th class="colno">2</th><th class="colno">3</th><th class="colno">4</th>
+            <th class="colno">5</th><th class="colno">6</th><th class="colno">7</th><th class="colno">8</th>
+            <th class="colno">9</th><th class="colno">10</th><th class="colno">11</th><th class="colno">12</th>
+            <th class="colno">13</th><th class="colno">14</th><th class="colno">15</th><th class="colno">16</th>
+          </tr>
+        </thead>
+        <tbody id="p2Rows"></tbody>
+      </table>
+    </div>
+
+    <div class="page2-footer">
+      <div class="note">
+        <b>नोट :</b> दैनिक नियमित रूप से प्रतिदिन भरी जानी चाहिए और पूरी व ठीक-ठाक रखनी चाहिए।<br>
+        <b>Note :</b> The daily diary should be filled up everyday punctually and kept up to date.
+      </div>
+
+      <div class="signs">
+        सम्बन्धित क्षेत्र के कर्मचारी के हस्ताक्षर <span class="sigLine"></span><br>
+        Signature of the concerned Field Official <span class="sigLine"></span><br><br>
+
+        आसन्न पर्यवेक्षी अधिकारी के हस्ताक्षर <span class="sigLine"></span><br>
+        Signature of the immediate Supervisory Officer <span class="sigLine"></span><br><br>
+
+        प्रभारी अधिकारी के हस्ताक्षर <span class="sigLine"></span><br>
+        Signature of the Officer-in-Charge <span class="sigLine"></span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+/* ================== CONFIG ================== */
+const COLS = 16;
+const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+/* ================== DATA ================== */
+let monthISO = "";        // "YYYY-MM"
+let daysInMonth = 30;
+let page1Rows = 16;
+let rows = [];            // {date, type, cells}
+let tours = [];           // {id, from, to}
+let selectedDate = "";    // "YYYY-MM-DD"
+
+/* click logic */
+let clickTimer = null;
+let clickCount = 0;
+let lastClickedDate = "";
+
+/* ================== HELPERS ================== */
+function pad(n){ return String(n).padStart(2,"0"); }
+function monthDays(ym){
+  const [y,m] = ym.split("-").map(Number);
+  return new Date(y, m, 0).getDate();
+}
+function ymd(ym, d){ return `${ym}-${pad(d)}`; }
+function escapeHTML(s){
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[c]));
+}
+function findRowIndexByDate(dateISO){
+  return rows.findIndex(r => r.date === dateISO);
+}
+function monthName(ym){
+  const [y,m]=ym.split("-").map(Number);
+  return new Date(y, m-1, 1).toLocaleString(undefined, {month:"long", year:"numeric"});
+}
+
+/* ================== BUILD MONTH ================== */
+function emptyRow(dateISO){
+  const c = {};
+  for(let i=1;i<=COLS;i++) c[i] = "";
+  c[1] = dateISO;
+  return { date: dateISO, type:"", cells:c };
+}
+function buildMonth(ym){
+  monthISO = ym;
+  daysInMonth = monthDays(ym);
+  page1Rows = Math.min(16, daysInMonth);
+
+  rows = [];
+  for(let d=1; d<=daysInMonth; d++) rows.push(emptyRow(ymd(ym,d)));
+
+  buildTables();
+  renderAll();
+  applyTours(false);
+  renderCalendar();
+  setSelectedDate(`${ym}-01`);
+}
+
+/* ================== TABLE BUILD ================== */
+function cellView(val, cls=""){
+  return `<div class="cellView ${cls}">${escapeHTML(val||"")}</div>`;
+}
+function rowHTML(ri){
+  const r = rows[ri];
+  return `
+    <tr data-ri="${ri}">
+      <td>${cellView(r.cells[1])}</td>
+      <td>${cellView(r.cells[2],"leftText")}</td>
+      <td>${cellView(r.cells[3])}</td>
+      <td>${cellView(r.cells[4],"leftText")}</td>
+      <td>${cellView(r.cells[5],"leftText")}</td>
+      <td>${cellView(r.cells[6],"rightText")}</td>
+      <td>${cellView(r.cells[7],"rightText")}</td>
+      <td>${cellView(r.cells[8],"rightText")}</td>
+      <td>${cellView(r.cells[9])}</td>
+      <td>${cellView(r.cells[10],"leftText")}</td>
+      <td>${cellView(r.cells[11],"leftText")}</td>
+      <td>${cellView(r.cells[12],"rightText")}</td>
+      <td>${cellView(r.cells[13])}</td>
+      <td>${cellView(r.cells[14])}</td>
+      <td>${cellView(r.cells[15])}</td>
+      <td>${cellView(r.cells[16],"leftText")}</td>
+    </tr>
+  `;
+}
+function buildTables(){
+  const p1 = document.getElementById("p1Rows");
+  const p2 = document.getElementById("p2Rows");
+  p1.innerHTML = "";
+  p2.innerHTML = "";
+  for(let i=0;i<page1Rows;i++) p1.insertAdjacentHTML("beforeend", rowHTML(i));
+  for(let i=page1Rows;i<daysInMonth;i++) p2.insertAdjacentHTML("beforeend", rowHTML(i));
+}
+
+/* ================== RENDER ================== */
+function setRowClass(ri){
+  const tr = document.querySelector(`tr[data-ri="${ri}"]`);
+  if(!tr) return;
+  tr.classList.remove("type-office","type-holiday","type-gazetted","type-casual","type-journey","type-field");
+  const t = rows[ri].type;
+  if(t==="office") tr.classList.add("type-office");
+  if(t==="holiday") tr.classList.add("type-holiday");
+  if(t==="gazetted") tr.classList.add("type-gazetted");
+  if(t==="casual") tr.classList.add("type-casual");
+  if(t==="journey") tr.classList.add("type-journey");
+  if(t==="field") tr.classList.add("type-field");
+}
+function renderAll(){
+  buildTables();
+  for(let i=0;i<daysInMonth;i++) setRowClass(i);
+  renderTourOut();
+  renderCalendarBadges();
+}
+
+/* ================== STEP UI ================== */
+function setStep(n){
+  document.getElementById("s1").classList.toggle("on", n===1);
+  document.getElementById("s2").classList.toggle("on", n===2);
+  document.getElementById("s3").classList.toggle("on", n===3);
+  document.getElementById("s4").classList.toggle("on", n===4);
+}
+
+/* ================== DATE SELECTION ================== */
+function setSelectedDate(dateISO){
+  selectedDate = dateISO;
+  document.getElementById("dayISO").value = dateISO;
+  document.getElementById("selectedLabel").textContent = dateISO ? ("Selected: " + dateISO) : "Select a date";
+  highlightSelectedDay();
+  loadDayToForm();
+  setStep(2);
+}
+function highlightSelectedDay(){
+  document.querySelectorAll(".dayBtn").forEach(b=> b.classList.remove("selected"));
+  const btn = document.querySelector(`.dayBtn[data-date="${selectedDate}"]`);
+  if(btn) btn.classList.add("selected");
+}
+
+/* ================== DETAIL BOX VISIBILITY ================== */
+function refreshDetailBox(){
+  const t = document.getElementById("typePick").value;
+  const show = (t==="journey" || t==="field");
+  document.getElementById("detailBox").style.display = show ? "block" : "none";
+  setStep(show ? 3 : 2);
+}
+
+/* ================== TYPE RULES ================== */
+function clearExceptDateRemarks(r){
+  const keep = new Set([1,16]);
+  for(let c=1;c<=COLS;c++){
+    if(!keep.has(c)) r.cells[c] = "";
+  }
+}
+function applyFixedType(r){
+  if(r.type==="office"){
+    clearExceptDateRemarks(r);
+    r.cells[11] = "कार्यालय उपस्थित";
+    r.cells[13] = "8:30";
+  }
+  if(r.type==="holiday"){
+    clearExceptDateRemarks(r);
+    r.cells[11] = "अवकाश";
+    r.cells[13] = "";
+  }
+  if(r.type==="gazetted"){
+    clearExceptDateRemarks(r);
+    r.cells[11] = "राजपत्रित अवकाश";
+    r.cells[13] = "";
+  }
+  if(r.type==="casual"){
+    clearExceptDateRemarks(r);
+    r.cells[11] = "आकस्मिक अवकाश";
+    r.cells[13] = "";
+  }
+}
+function resetDayData(r){
+  for(let c=1;c<=COLS;c++) r.cells[c] = "";
+  r.cells[1] = r.date;
+  r.type = "";
+}
+
+/* ================== APPLY DAY ================== */
+function presetType(val){
+  document.getElementById("typePick").value = val;
+  refreshDetailBox();
+  setStep(2);
+}
+function loadDayToForm(){
+  if(!selectedDate) return;
+  const ri = findRowIndexByDate(selectedDate);
+  if(ri<0) return;
+
+  const r = rows[ri];
+  document.getElementById("typePick").value = r.type || "office";
+  document.getElementById("remarksPick").value = r.cells[16] || "";
+
+  document.getElementById("c2").value = r.cells[2] || "";
+  document.getElementById("c4").value = r.cells[4] || "";
+  document.getElementById("c5").value = r.cells[5] || "";
+  document.getElementById("c6").value = r.cells[6] || "";
+  document.getElementById("c7").value = r.cells[7] || "";
+  document.getElementById("c8").value = r.cells[8] || "";
+  document.getElementById("c9").value = r.cells[9] || "";
+  document.getElementById("c10").value = r.cells[10] || "";
+  document.getElementById("c11").value = r.cells[11] || "";
+  document.getElementById("c12").value = r.cells[12] || "";
+  document.getElementById("c13").value = r.cells[13] || "";
+  document.getElementById("c14_15").value = [r.cells[14], r.cells[15]].filter(Boolean).join(" | ");
+
+  refreshDetailBox();
+}
+function applyDay(){
+  if(!selectedDate){ alert("Select a date."); return; }
+  const ri = findRowIndexByDate(selectedDate);
+  if(ri<0){ alert("Date not in month."); return; }
+
+  const r = rows[ri];
+  r.date = selectedDate;
+  r.cells[1] = selectedDate;
+
+  r.type = document.getElementById("typePick").value;
+  r.cells[16] = (document.getElementById("remarksPick").value || "").trim();
+
+  if(r.type==="journey" || r.type==="field"){
+    r.cells[2]  = (document.getElementById("c2").value || "").trim();
+    r.cells[4]  = (document.getElementById("c4").value || "").trim();
+    r.cells[5]  = (document.getElementById("c5").value || "").trim();
+    r.cells[6]  = (document.getElementById("c6").value || "").trim();
+    r.cells[7]  = (document.getElementById("c7").value || "").trim();
+    r.cells[8]  = (document.getElementById("c8").value || "").trim();
+    r.cells[9]  = (document.getElementById("c9").value || "").trim();
+    r.cells[10] = (document.getElementById("c10").value || "").trim();
+    r.cells[11] = (document.getElementById("c11").value || "").trim();
+    r.cells[12] = (document.getElementById("c12").value || "").trim();
+    r.cells[13] = (document.getElementById("c13").value || "").trim();
+    r.cells[14] = (document.getElementById("c14_15").value || "").trim();
+    r.cells[15] = "";
+  }else{
+    applyFixedType(r);
+  }
+
+  applyTourTagOnly(r);
+
+  renderAll();
+  setStep(4);
+  goToDay(true);
+}
+
+function quickNextDay(){
+  if(!selectedDate) return;
+  const ri = findRowIndexByDate(selectedDate);
+  if(ri<0) return;
+  const next = rows[Math.min(rows.length-1, ri+1)].date;
+  setSelectedDate(next);
+}
+
+/* ================== SCROLL HELPERS ================== */
+function goToDay(flash){
+  if(!selectedDate) return;
+  const ri = findRowIndexByDate(selectedDate);
+  if(ri<0) return;
+  const tr = document.querySelector(`tr[data-ri="${ri}"]`);
+  if(!tr) return;
+  tr.scrollIntoView({behavior:"smooth", block:"center"});
+  if(flash){
+    tr.style.outline="2px solid #000";
+    setTimeout(()=> tr.style.outline="", 900);
+  }
+}
+function scrollToSheet(){
+  document.getElementById("sheetTop").scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+/* ================== CALENDAR RENDER ================== */
+function buildMonthOptions(centerYM){
+  const sel = document.getElementById("monthPick");
+  sel.innerHTML = "";
+  const [cy, cm] = centerYM.split("-").map(Number);
+  const start = new Date(cy, cm-1-24, 1);
+  for(let i=0;i<49;i++){
+    const d = new Date(start.getFullYear(), start.getMonth()+i, 1);
+    const ym = `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+    const opt = document.createElement("option");
+    opt.value = ym;
+    opt.textContent = monthName(ym);
+    sel.appendChild(opt);
+  }
+  sel.value = centerYM;
+}
+
+function renderCalendar(){
+  document.getElementById("calTitle").textContent = monthName(monthISO);
+
+  const dow = document.getElementById("calDOW");
+  dow.innerHTML = "";
+  ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d=>{
+    const div = document.createElement("div");
+    div.className = "dow";
+    div.textContent = d;
+    dow.appendChild(div);
+  });
+
+  const grid = document.getElementById("calDays");
+  grid.innerHTML = "";
+
+  const [y,m] = monthISO.split("-").map(Number);
+  const firstDow = new Date(y, m-1, 1).getDay();
+  const totalCells = Math.ceil((firstDow + daysInMonth) / 7) * 7;
+
+  const today = new Date();
+  const todayISO = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+
+  for(let i=0;i<totalCells;i++){
+    const dayNum = i - firstDow + 1;
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "dayBtn";
+
+    if(dayNum < 1 || dayNum > daysInMonth){
+      btn.classList.add("muted");
+      btn.textContent = " ";
+      btn.disabled = true;
+      grid.appendChild(btn);
+      continue;
+    }
+
+    const dateISO = ymd(monthISO, dayNum);
+    btn.textContent = dayNum;
+    btn.dataset.date = dateISO;
+
+    if(dateISO === todayISO) btn.classList.add("today");
+    if(dateISO === selectedDate) btn.classList.add("selected");
+
+    // IMPORTANT: custom click counting (1=office, 2=holiday, 3=reset)
+    btn.addEventListener("click", ()=> handleCalendarClick(dateISO));
+
+    grid.appendChild(btn);
+  }
+
+  renderCalendarBadges();
+  highlightSelectedDay();
+}
+
+function renderCalendarBadges(){
+  document.querySelectorAll(".dayBtn").forEach(btn=>{
+    if(btn.classList.contains("muted")) return;
+
+    const old = btn.querySelector(".dotRow");
+    if(old) old.remove();
+
+    const dateISO = btn.dataset.date;
+    const ri = findRowIndexByDate(dateISO);
+    if(ri<0) return;
+
+    const t = rows[ri].type;
+    if(!t) return;
+
+    const row = document.createElement("div");
+    row.className = "dotRow";
+    const dot = document.createElement("div");
+    dot.className = "dot " + t;
+    row.appendChild(dot);
+    btn.appendChild(row);
+  });
+}
+
+function prevMonth(){
+  const [y,m] = monthISO.split("-").map(Number);
+  const d = new Date(y, m-2, 1);
+  const ym = `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+  document.getElementById("monthPick").value = ym;
+  buildMonth(ym);
+}
+function nextMonth(){
+  const [y,m] = monthISO.split("-").map(Number);
+  const d = new Date(y, m, 1);
+  const ym = `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+  document.getElementById("monthPick").value = ym;
+  buildMonth(ym);
+}
+
+/* ===== Click logic: 1->office, 2->holiday, 3->reset ===== */
+function handleCalendarClick(dateISO){
+  // select day always
+  setSelectedDate(dateISO);
+
+  // if new date, reset click count
+  if(lastClickedDate !== dateISO){
+    lastClickedDate = dateISO;
+    clickCount = 0;
+  }
+
+  clickCount++;
+
+  // wait tiny window to allow multi-clicks
+  if(clickTimer) clearTimeout(clickTimer);
+
+  clickTimer = setTimeout(()=>{
+    const n = clickCount;
+    clickCount = 0;
+
+    if(n===1) quickSetType(dateISO, "office");
+    else if(n===2) quickSetType(dateISO, "holiday");
+    else {
+      // 3 or more -> reset
+      quickReset(dateISO);
+    }
+  }, 260);
+}
+
+function quickSetType(dateISO, type){
+  const ri = findRowIndexByDate(dateISO);
+  if(ri<0) return;
+  const r = rows[ri];
+
+  r.type = type;
+  r.cells[1] = dateISO;
+
+  // keep remarks but re-tag tours
+  r.cells[16] = (r.cells[16] || "").trim();
+
+  applyFixedType(r);
+  applyTourTagOnly(r);
+
+  // sync form UI
+  document.getElementById("typePick").value = type;
+  loadDayToForm();
+
+  renderAll();
+  setStep(4);
+}
+function quickReset(dateISO){
+  const ri = findRowIndexByDate(dateISO);
+  if(ri<0) return;
+  const r = rows[ri];
+
+  resetDayData(r);
+  // keep date in col 1
+  r.cells[1] = dateISO;
+  // re-tag tours (optional — you can remove this if you want blank remarks)
+  applyTourTagOnly(r);
+
+  // sync UI
+  document.getElementById("typePick").value = "office";
+  document.getElementById("remarksPick").value = "";
+  document.getElementById("c2").value = "";
+  document.getElementById("c4").value = "";
+  document.getElementById("c5").value = "";
+  document.getElementById("c6").value = "";
+  document.getElementById("c7").value = "";
+  document.getElementById("c8").value = "";
+  document.getElementById("c9").value = "";
+  document.getElementById("c10").value = "";
+  document.getElementById("c11").value = "";
+  document.getElementById("c12").value = "";
+  document.getElementById("c13").value = "";
+  document.getElementById("c14_15").value = "";
+  refreshDetailBox();
+
+  renderAll();
+  setStep(4);
+}
+
+/* ================== TOURS ================== */
+function toggleTours(){
+  const p = document.getElementById("tourPanel");
+  p.style.display = (p.style.display==="none" || !p.style.display) ? "block" : "none";
+}
+
+function addTour(){
+  const id = "t" + Math.random().toString(16).slice(2);
+  tours.push({id, from:"", to:""});
+  renderTours();
+}
+
+function clearTours(){
+  if(!confirm("Clear all tour ranges?")) return;
+  tours = [];
+  renderTours();
+  renderAll();
+}
+
+function removeTour(id){
+  tours = tours.filter(t=>t.id!==id);
+  renderTours();
+  applyTours(false);
+}
+
+function renderTours(){
+  const list = document.getElementById("tourList");
+  list.innerHTML = "";
+
+  if(tours.length===0){
+    list.innerHTML = `<div class="mini" style="padding:10px; border:1px dashed #c9d3df; border-radius:12px;">
+      No tour ranges added.
+    </div>`;
+    renderTourOut();
+    return;
+  }
+
+  tours.forEach((t, idx)=>{
+    const len = (t.from && t.to) ? (Math.round((new Date(t.to)-new Date(t.from))/(86400000))+1) : 0;
+    const div = document.createElement("div");
+    div.className = "tourRow";
+    div.innerHTML = `
+      <strong>Tour ${idx+1}</strong>
+      <div>
+        <label>From</label>
+        <input type="date" value="${t.from||""}" data-id="${t.id}" data-k="from">
+      </div>
+      <div>
+        <label>To</label>
+        <input type="date" value="${t.to||""}" data-id="${t.id}" data-k="to">
+      </div>
+      <div class="mini" style="text-align:center;">
+        <b>${len || "—"}</b><br>days
+      </div>
+      <button class="btn" type="button" style="padding:8px 10px;" onclick="removeTour('${t.id}')">✕</button>
+    `;
+    list.appendChild(div);
+  });
+
+  list.querySelectorAll("input[type='date']").forEach(inp=>{
+    inp.addEventListener("change", ()=>{
+      const id = inp.dataset.id;
+      const k = inp.dataset.k;
+      const obj = tours.find(x=>x.id===id);
+      if(obj) obj[k] = inp.value;
+      renderTourOut();
+      applyTours(false);
+    });
+  });
+
+  renderTourOut();
+}
+
+function formatTourSummary(){
+  const valid = tours.map((t, idx)=> ({...t, idx})).filter(t=>t.from && t.to);
+  if(valid.length===0) return "None";
+  return valid.map(t=>`Tour ${t.idx+1}: ${t.from} to ${t.to}`).join(" ; ");
+}
+function renderTourOut(){
+  const t = formatTourSummary();
+  document.getElementById("tourOutText1").textContent = t;
+  document.getElementById("tourOutText2").textContent = t;
+}
+
+function stripTourTags(txt){
+  return (txt||"").replace(/\bTour\s*\d+\b/ig,"").replace(/\s{2,}/g," ").replace(/\|\s*\|/g,"|").trim();
+}
+
+function applyTourTagOnly(r){
+  const iso = r.date;
+  let rem = stripTourTags(r.cells[16]);
+  rem = rem.replace(/^\|\s*/,"").replace(/\s*\|$/,"").trim();
+
+  const matches = [];
+  tours.forEach((t, idx)=>{
+    if(t.from && t.to && iso >= t.from && iso <= t.to){
+      matches.push(`Tour ${idx+1}`);
+    }
+  });
+
+  if(matches.length){
+    const tag = matches.join(",");
+    r.cells[16] = rem ? (rem + " | " + tag) : tag;
+  }else{
+    r.cells[16] = rem;
+  }
+}
+
+function applyTours(showAlert){
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    const iso = r.date;
+
+    applyTourTagOnly(r);
+
+    let match = null;
+    for(let ti=0;ti<tours.length;ti++){
+      const t = tours[ti];
+      if(!t.from || !t.to) continue;
+      if(iso >= t.from && iso <= t.to){ match = t; break; }
+    }
+    if(!match) continue;
+
+    const isStart = (iso === match.from);
+    const isEnd   = (iso === match.to);
+
+    if(!r.type || r.type==="journey" || r.type==="field"){
+      r.type = (isStart || isEnd) ? "journey" : "field";
+      r.cells[1] = iso;
+    }
+  }
+
+  renderAll();
+  if(showAlert) alert("Tour auto-fill applied.");
+}
+
+/* ================== SAVE / LOAD ================== */
+function saveLocal(){
+  const obj = { monthISO, rows, tours, selectedDate };
+  localStorage.setItem("dailyDiaryClickCalendar", JSON.stringify(obj));
+  alert("Saved.");
+}
+function loadLocal(){
+  const raw = localStorage.getItem("dailyDiaryClickCalendar");
+  if(!raw){ alert("No saved data found."); return; }
+  try{
+    const obj = JSON.parse(raw);
+    tours = Array.isArray(obj.tours) ? obj.tours : [];
+    monthISO = obj.monthISO || "";
+    rows = Array.isArray(obj.rows) ? obj.rows : [];
+    selectedDate = obj.selectedDate || "";
+
+    if(!monthISO){ alert("Saved file has no month."); return; }
+
+    const d = monthDays(monthISO);
+    if(rows.length !== d){
+      buildMonth(monthISO);
+    }else{
+      daysInMonth = d;
+      page1Rows = Math.min(16, daysInMonth);
+      rows.forEach(r=>{
+        r.cells = r.cells || {};
+        for(let c=1;c<=COLS;c++) if(r.cells[c]===undefined) r.cells[c]="";
+        r.date = r.date || r.cells[1] || "";
+      });
+      buildTables();
+      renderTours();
+      renderAll();
+      buildMonthOptions(monthISO);
+      renderCalendar();
+      applyTours(false);
+      setSelectedDate(selectedDate || rows[0].date);
+    }
+
+    alert("Loaded.");
+  }catch(e){
+    alert("Saved data corrupted.");
+  }
+}
+function clearAll(){
+  if(!confirm("Clear month data + tours?")) return;
+  tours = [];
+  renderTours();
+  if(monthISO) buildMonth(monthISO);
+}
+
+/* ================== INIT ================== */
+(function init(){
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${pad(now.getMonth()+1)}`;
+
+  buildMonthOptions(ym);
+  document.getElementById("monthPick").addEventListener("change",(e)=>{
+    const v=e.target.value; if(!v) return;
+    buildMonth(v);
+  });
+
+  document.getElementById("typePick").addEventListener("change", refreshDetailBox);
+
+  buildMonth(ym);
+
+  const todayISO = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  if(todayISO.startsWith(ym)) setSelectedDate(todayISO);
+
+  renderTours();
+  refreshDetailBox();
+  setStep(1);
+})();
+</script>
+
+<script src="assets/tools.js"></script><script src="assets/hub-nav.js"></script>
+</body>
+</html>

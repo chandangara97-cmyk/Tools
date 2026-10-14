@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover" />
+  <title>UFS | Monthly MPR (Weekly Auto + SRO Extras)</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#020617; --sb:#0f172a; --card:#0b1220; --border:#334155;
+      --accent:#38bdf8; --ok:#10b981; --text:#f8fafc; --dim:#94a3b8;
+      --warn:#f59e0b; --amber:#f59e0b; --danger:#ef4444;
+    }
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family:'Plus Jakarta Sans',sans-serif; background:var(--bg); color:var(--text); height:100vh; height:100dvh; overflow:hidden; }
+    .app{ height:100%; display:flex; overflow:hidden; }
+
+    aside{ width:420px; min-width:420px; background:var(--sb); border-right:1px solid var(--border); display:flex; flex-direction:column; }
+    .sb-head{ padding:16px; border-bottom:1px solid rgba(255,255,255,.06); display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .sb-head b{ color:var(--accent); letter-spacing:1px; }
+    .sb-head .sub{ margin-top:6px; font-size:11px; color:rgba(248,250,252,.70); font-weight:700; line-height:1.35; }
+
+    .sb-body{ padding:14px 16px 16px; overflow:auto; display:grid; gap:12px; }
+    .card{ background:rgba(30,41,59,.35); border:1px solid rgba(255,255,255,.10); border-radius:14px; padding:12px; box-shadow:0 14px 36px rgba(0,0,0,.25); }
+    .card h3{ margin:0 0 10px; font-size:12px; font-weight:1000; letter-spacing:.8px; text-transform:uppercase; color:rgba(248,250,252,.92); }
+    .muted{ font-size:11px; color:rgba(248,250,252,.65); font-weight:700; line-height:1.45; }
+
+    .input, select{
+      width:100%; background:#000; border:1px solid rgba(255,255,255,.12);
+      color:#fff; padding:10px; border-radius:10px; outline:none; font-weight:900; font-size:12px;
+    }
+    .btn{ border:none; border-radius:10px; padding:10px 12px; font-weight:1000; cursor:pointer; font-size:12px; }
+    .btn-soft{ background:rgba(255,255,255,.10); color:#fff; border:1px solid rgba(255,255,255,.12); }
+    .btn-accent{ background:var(--accent); color:#000; }
+    .btn-ok{ background:var(--ok); color:#000; }
+
+    .pill{ display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.14); background:rgba(0,0,0,.22); color:rgba(248,250,252,.85);
+      font-size:11px; font-weight:1000;
+    }
+
+    main{ flex:1; display:flex; flex-direction:column; overflow:hidden; }
+    header{ padding:12px 16px; background:rgba(15,23,42,.92); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+    header .title{ font-weight:1000; letter-spacing:1px; color:var(--accent); }
+    header .grow{ flex:1; }
+
+    .workspace{ flex:1; padding:14px 16px 18px; overflow:auto; }
+    .panel{ background:rgba(30,41,59,.25); border:1px solid rgba(255,255,255,.10); border-radius:16px; padding:12px; box-shadow:0 16px 44px rgba(0,0,0,.35); }
+    .report-title{ font-weight:1000; color:#fff; padding:10px 10px 12px; border-bottom:1px solid rgba(255,255,255,.08); }
+    .table-wrap{ margin-top:12px; background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:auto; }
+    table{ width:100%; border-collapse:separate; border-spacing:0; min-width:1500px; }
+    tbody tr:nth-child(odd){ background: rgba(255,255,255,.03); }
+tbody tr:hover{ background: rgba(56,189,248,.08); }
+
+/* ✅ sticky first 2 columns (Sl No + SRO) */
+th:first-child, td:first-child{
+  position:sticky; left:0; z-index:11;
+  background:#0b1220;
+}
+th:nth-child(2), td:nth-child(2){
+  position:sticky; left:70px; z-index:11;  /* adjust if SlNo width changes */
+  background:#0b1220;
+}
+
+/* ✅ give fixed widths for first columns */
+th:first-child, td:first-child{ width:70px; min-width:70px; }
+th:nth-child(2), td:nth-child(2){ width:140px; min-width:140px; }
+
+    th{
+  position:sticky;
+  top:0;
+  z-index:10;
+  background:#0b1220;
+  color:var(--accent);
+  font-size:11px;
+  text-transform:uppercase;
+  font-weight:1000;
+  letter-spacing:.7px;
+  padding:12px 10px;
+  border-bottom:2px solid rgba(56,189,248,.55);
+  text-align:left;
+
+  /* ✅ wrap header text */
+  white-space:normal;          /* was nowrap */
+  line-height:1.2;
+  word-break:break-word;
+  hyphens:auto;
+  max-width:160px;             /* controls wrap width */
+  vertical-align:bottom;
+}
+    td{
+  padding:10px 10px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  color:rgba(248,250,252,.85);
+  font-size:12px;
+  vertical-align:middle;
+
+  /* ✅ keep values clean */
+  white-space:nowrap;          /* keep data one line */
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:220px;
+}
+
+    .num{ text-align:right; font-variant-numeric: tabular-nums; }
+    .sro{ font-weight:1000; }
+    .total-row td{ font-weight:1000; color:#fff; background:rgba(0,0,0,.25); }
+
+    .console-grid{ display:grid; gap:10px; grid-template-columns:1fr 1fr; }
+    .field{ background:rgba(0,0,0,.20); border:1px solid rgba(255,255,255,.10); border-radius:12px; padding:10px; }
+    .field label{ display:block; font-size:10px; font-weight:1000; letter-spacing:.7px; text-transform:uppercase; color:rgba(248,250,252,.70); margin-bottom:6px; }
+    .field input{ width:100%; background:#000; border:1px solid rgba(56,189,248,.35); color:#fff; padding:10px; border-radius:10px; outline:none; font-weight:1000; font-size:12px; }
+
+    #loading{ display:none; position:fixed; inset:0; background:rgba(2,6,23,.92); z-index:9999; align-items:center; justify-content:center; flex-direction:column; color:var(--accent); }
+    .spin{ width:42px; height:42px; border:4px solid rgba(56,189,248,.16); border-left-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; margin-bottom:12px; }
+    @keyframes spin{ to{ transform:rotate(360deg); } }
+  
+    /* Left Rail (global) */
+    .left-rail{
+      position:fixed; inset:0 auto 0 0;
+      width:72px;
+      background:var(--sb);
+      border-right:1px solid var(--border);
+      display:flex; flex-direction:column; align-items:center;
+      padding-top:14px; gap:18px;
+      z-index:99999;
+    }
+    .left-rail a{
+      width:56px;
+      text-align:center;
+      font-size:11px;
+      font-weight:1000;
+      text-decoration:none;
+      color:#fff;
+      padding:8px 6px;
+      border-radius:12px;
+      line-height:1.2;
+    }
+    .left-rail a:hover{ background:rgba(255,255,255,.08); transform:translateX(2px); }
+    .left-rail a.hub{ color:var(--accent); }
+    .left-rail a.weekly{ color:var(--ok); }
+    .left-rail a.monthly{ color:var(--ok); }
+
+    .app{ margin-left:72px; }
+
+</style>
+</head>
+<body>
+
+<nav class="left-rail">
+  <a href="index.html" class="hub">🏠 HUB</a>
+  <a href="plfs.html">📊 PLFS</a>
+  <a href="ufs_weekly.html" class="weekly">🗓️ Weekly</a>
+  <a href="ufs_action.html" class="action">📈 Action</a>
+  <a href="ufs_monthly.html" class="monthly">📅 Monthly</a>
+</nav>
+
+
+<div id="loading">
+  <div class="spin"></div>
+  <div id="loadingText" style="font-weight:1000; letter-spacing:2px; font-size:12px;">LOADING...</div>
+</div>
+
+<div class="app">
+  <aside>
+    <div class="sb-head">
+      <div>
+        <b>UFS MONTHLY MPR</b>
+        <div class="sub">Monthly = Weekly Auto SUM + SRO editable “weekly-missing” fields</div>
+      </div>
+      <button class="btn btn-soft" onclick="reloadMonthly()">↻</button>
+    </div>
+
+    <div class="sb-body">
+      <div class="card">
+        <h3>Month + SRO</h3>
+        <div class="muted">Select Month</div>
+        <input id="monthPick" class="input" type="month" />
+        <div style="height:10px"></div>
+        <div class="muted">Select SRO (no password)</div>
+        <select id="sroSelect" class="input" onchange="selectSro(this.value)">
+          <option value="">-- Select SRO --</option>
+          <option value="Shimla">Shimla</option>
+          <option value="Hamirpur">Hamirpur</option>
+          <option value="Dharamshala">Dharamshala</option>
+          <option value="Mandi">Mandi</option>
+        </select>
+        <div style="height:8px"></div>
+        <div class="pill" id="pill">SRO: Not selected</div>
+      </div>
+
+      <div class="card" id="extrasCard" style="display:none;">
+        <h3>Monthly Extras (Editable)</h3>
+        <div class="muted">
+          ये fields weekly me नहीं आते, इसलिए monthly me SRO खुद fill करेगा।
+        </div>
+        <div style="height:10px"></div>
+        <div class="console-grid" id="extrasGrid"></div>
+        <div style="height:10px"></div>
+        <button class="btn btn-ok" onclick="saveMonthlyExtras()">💾 Save Extras (Firebase)</button>
+      </div>
+
+      <div class="card">
+        <h3>Actions</h3>
+        <button class="btn btn-accent" style="width:100%;" onclick="reloadMonthly()">Reload Monthly</button>
+        <button class="btn btn-soft" style="width:100%; margin-top:8px;" onclick="clearSro()">Clear SRO</button>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <header>
+      <div class="title">Monthly MPR</div>
+      <div class="grow"></div>
+      <button class="btn btn-soft" onclick="clearSro()">Clear SRO</button>
+    </header>
+
+    <div class="workspace">
+      <div class="panel">
+        <div class="report-title" id="reportTitle">UFS MONTHLY MPR</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr id="thead"></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* =======================
+   FIREBASE
+======================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyB6fQ8n4qyG-TfVdAqWtDped17bMYTZSgI",
+  authDomain: "action-plan-62fae.firebaseapp.com",
+  databaseURL: "https://action-plan-62fae-default-rtdb.firebaseio.com",
+  projectId: "action-plan-62fae"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* =======================
+   MANUAL BASE (same SRO list)
+======================= */
+const STATE_NAME = "HIMACHAL PRADESH";
+const SROS = ["Shimla","Hamirpur","Dharamshala","Mandi"];
+
+/* Weekly “During” keys saved in weekly page */
+const WEEKLY_KEYS = ["townsDuring","blocksDuring","townsAllRespectDuring","dispatchDuring"];
+
+/* Monthly extras (weekly-missing) — editable */
+const MONTHLY_EXTRA_KEYS = [
+  { key:"blocksQgisDuring", label:"Blocks finalised on QGIS (During Month)" },
+  { key:"blocksQgisSince",  label:"Blocks finalised on QGIS (Since Start)" },
+  { key:"wardsFieldDuring", label:"Wards covered in field (During Month)" },
+  { key:"wardsFieldSince",  label:"Wards covered in field (Since Start)" },
+  { key:"wardsQgisDuring",  label:"Wards finalised on QGIS (During Month)" },
+  { key:"wardsQgisSince",   label:"Wards finalised on QGIS (Since Start)" },
+  { key:"ivFieldDuring",    label:"IV Units formed in field (During Month)" },
+  { key:"ivFieldSince",     label:"IV Units formed in field (Since Start)" },
+  { key:"ivQgisDuring",     label:"IV Units finalised on QGIS (During Month)" },
+  { key:"ivQgisSince",      label:"IV Units finalised on QGIS (Since Start)" },
+  { key:"blocksInsDuring",  label:"Blocks inspected (During Month)" },
+  { key:"blocksInsSince",   label:"Blocks inspected (Since Start)" }
+];
+
+/* Minimal manual base for Monthly table (allotted + completedSince + underSurvey + pct + blocksSince etc.)
+   You can extend/align with your official monthly template anytime.
+*/
+const MANUAL_BASE = {
+  Shimla: { allotted:25, completedSince:22, underSurvey:1, pct:88 },
+  Hamirpur:{ allotted:15, completedSince:13, underSurvey:0, pct:87 },
+  Dharamshala:{ allotted:16, completedSince:13, underSurvey:1, pct:81 },
+  Mandi:{ allotted:13, completedSince:11, underSurvey:0, pct:85 }
+};
+
+let selectedSro = "";
+let monthlyAuto = {};    // auto sums from weekly
+let monthlyExtras = {};  // firebase extras
+
+function toggleLoader(show, text="PLEASE WAIT..."){
+  const el = document.getElementById("loading");
+  document.getElementById("loadingText").innerText = text;
+  el.style.display = show ? "flex" : "none";
+}
+function n(x){
+  const t = (x ?? "").toString().replace(/[%\s,]/g,"").trim();
+  if(!t) return 0;
+  const v = Number(t);
+  return Number.isFinite(v) ? v : 0;
+}
+
+function monthKey(){
+  // yyyy-mm
+  return (document.getElementById("monthPick").value || "").trim();
+}
+function monthLabel(){
+  const mk = monthKey();
+  if(!mk) return "Select month";
+  const [y,m] = mk.split("-");
+  const d = new Date(Number(y), Number(m)-1, 1);
+  return d.toLocaleString("en",{month:"long", year:"numeric"});
+}
+function inSameMonth(isoDate, mk){
+  // isoDate is like 2026-01-29
+  if(!isoDate || !mk) return false;
+  return isoDate.slice(0,7) === mk;
+}
+
+/* =======================
+   Load weekly edits for ALL weeks and sum for selected month
+   weekly path: ufs_weekly_console_edits/HIMACHAL PRADESH/{weekKey}/{SRO}
+   weekKey format is "YYYY-MM-DD_to_YYYY-MM-DD"
+   We'll decide month by weekEnd part of the key.
+======================= */
+async function loadMonthlyAutoFromWeekly(){
+  monthlyAuto = {};
+  for(const s of SROS){
+    monthlyAuto[s] = { townsDuring:0, blocksDuring:0, townsAllRespectDuring:0, dispatchDuring:0 };
+  }
+
+  const mk = monthKey();
+  if(!mk) return;
+
+  toggleLoader(true, "SUMMING WEEKLY INTO MONTHLY...");
+  try{
+    const snap = await db.ref(`ufs_weekly_console_edits/${STATE_NAME}`).once("value");
+    if(!snap.exists()) return;
+
+    snap.forEach(weekNode=>{
+      const wk = weekNode.key || "";
+      const parts = wk.split("_to_");
+      const weekEnd = parts[1] || ""; // weekEnd date
+      if(!inSameMonth(weekEnd, mk)) return;
+
+      const weekVal = weekNode.val() || {};
+      for(const s of SROS){
+        const row = weekVal[s] || {};
+        monthlyAuto[s].townsDuring += n(row.townsDuring);
+        monthlyAuto[s].blocksDuring += n(row.blocksDuring);
+        monthlyAuto[s].townsAllRespectDuring += n(row.townsAllRespectDuring);
+        monthlyAuto[s].dispatchDuring += n(row.dispatchDuring);
+      }
+    });
+  } finally {
+    toggleLoader(false);
+  }
+}
+
+/* =======================
+   Monthly Extras (Firebase)
+   path: ufs_monthly_extras/HIMACHAL PRADESH/{yyyy-mm}/{SRO}
+======================= */
+async function loadMonthlyExtras(){
+  monthlyExtras = {};
+  const mk = monthKey();
+  if(!mk) return;
+
+  toggleLoader(true, "LOADING MONTHLY EXTRAS...");
+  try{
+    const snap = await db.ref(`ufs_monthly_extras/${STATE_NAME}/${mk}`).once("value");
+    if(!snap.exists()) return;
+    snap.forEach(sroNode=>{
+      monthlyExtras[sroNode.key] = sroNode.val() || {};
+    });
+  } finally {
+    toggleLoader(false);
+  }
+}
+
+function selectSro(val){
+  selectedSro = (val || "").trim();
+  document.getElementById("pill").innerText = selectedSro ? `SRO: ${selectedSro}` : "SRO: Not selected";
+  document.getElementById("extrasCard").style.display = selectedSro ? "block" : "none";
+  renderExtrasConsole();
+  renderTable();
+}
+function clearSro(){
+  selectedSro = "";
+  document.getElementById("sroSelect").value = "";
+  selectSro("");
+}
+
+function renderExtrasConsole(){
+  const grid = document.getElementById("extrasGrid");
+  if(!selectedSro){ grid.innerHTML = ""; return; }
+
+  const mk = monthKey();
+  if(!mk){ grid.innerHTML = `<div class="muted">Select month first.</div>`; return; }
+
+  const data = monthlyExtras[selectedSro] || {};
+  grid.innerHTML = MONTHLY_EXTRA_KEYS.map(f=>{
+    const v = (f.key in data) ? data[f.key] : 0;
+    return `
+      <div class="field">
+        <label>${f.label}</label>
+        <input type="number" min="0" step="1" id="ex_${f.key}" value="${n(v)}">
+      </div>
+    `;
+  }).join("");
+}
+
+async function saveMonthlyExtras(){
+  if(!selectedSro) return alert("Select SRO first.");
+  const mk = monthKey();
+  if(!mk) return alert("Select month first.");
+
+  const payload = { updatedAt: Date.now() };
+  for(const f of MONTHLY_EXTRA_KEYS){
+    payload[f.key] = n(document.getElementById(`ex_${f.key}`).value);
+  }
+
+  toggleLoader(true, "SAVING EXTRAS...");
+  try{
+    await db.ref(`ufs_monthly_extras/${STATE_NAME}/${mk}/${selectedSro}`).set(payload);
+    monthlyExtras[selectedSro] = payload;
+    renderTable();
+    alert("Monthly extras saved.");
+  } finally {
+    toggleLoader(false);
+  }
+}
+
+function mergedMonthlyRow(sro){
+  const base = MANUAL_BASE[sro] || {};
+  const auto = monthlyAuto[sro] || {};
+  const ex = monthlyExtras[sro] || {};
+
+  // You can expand this mapping anytime as per official template.
+  return {
+    sro,
+    allotted: n(base.allotted),
+    completedSince: n(base.completedSince),
+    underSurvey: n(base.underSurvey),
+    pct: n(base.pct),
+
+    // Auto from weekly SUM
+    townsFieldDuring: n(auto.townsDuring),
+    blocksFormedDuring: n(auto.blocksDuring),
+    townsAllRespectDuring: n(auto.townsAllRespectDuring),
+    dispatchedDuring: n(auto.dispatchDuring),
+
+    // Extras editable
+    ...MONTHLY_EXTRA_KEYS.reduce((acc,f)=>{ acc[f.key]=n(ex[f.key]); return acc; }, {})
+  };
+}
+
+function renderTable(){
+  const mk = monthKey();
+  document.getElementById("reportTitle").innerText =
+    mk ? `UFS MONTHLY MPR (${monthLabel()}) — Weekly Auto + SRO Extras` : "UFS MONTHLY MPR (Select month)";
+
+  const cols = [
+    "Sl. No.","SRO","Alloted towns",
+    "Towns in field (Monthly auto from weekly)",
+    "Blocks formed in field (Monthly auto from weekly)",
+    "Towns completed in all respect (Monthly auto from weekly)",
+    "Towns dispatched to HQ (Monthly auto from weekly)",
+    "Completed Since Start (base)",
+    "Under Survey (base)",
+    "% Towns Completed (base)",
+    "Blocks finalised on QGIS (During)",
+    "Blocks finalised on QGIS (Since)",
+    "Wards covered in field (During)",
+    "Wards covered in field (Since)",
+    "Wards finalised on QGIS (During)",
+    "Wards finalised on QGIS (Since)",
+    "IV Units formed in field (During)",
+    "IV Units formed in field (Since)",
+    "IV Units finalised on QGIS (During)",
+    "IV Units finalised on QGIS (Since)",
+    "Blocks inspected (During)",
+    "Blocks inspected (Since)"
+  ];
+  document.getElementById("thead").innerHTML = cols.map(c=>`<th>${c}</th>`).join("");
+
+  const rows = SROS.map((sro,i)=>{
+    const r = mergedMonthlyRow(sro);
+    return `
+      <tr>
+        <td class="num">${i+1}</td>
+        <td class="sro">${sro}</td>
+        <td class="num">${r.allotted}</td>
+
+        <td class="num">${r.townsFieldDuring}</td>
+        <td class="num">${r.blocksFormedDuring}</td>
+        <td class="num">${r.townsAllRespectDuring}</td>
+        <td class="num">${r.dispatchedDuring}</td>
+
+        <td class="num">${r.completedSince}</td>
+        <td class="num">${r.underSurvey}</td>
+        <td class="num">${r.pct}</td>
+
+        <td class="num">${r.blocksQgisDuring || 0}</td>
+        <td class="num">${r.blocksQgisSince || 0}</td>
+        <td class="num">${r.wardsFieldDuring || 0}</td>
+        <td class="num">${r.wardsFieldSince || 0}</td>
+        <td class="num">${r.wardsQgisDuring || 0}</td>
+        <td class="num">${r.wardsQgisSince || 0}</td>
+        <td class="num">${r.ivFieldDuring || 0}</td>
+        <td class="num">${r.ivFieldSince || 0}</td>
+        <td class="num">${r.ivQgisDuring || 0}</td>
+        <td class="num">${r.ivQgisSince || 0}</td>
+        <td class="num">${r.blocksInsDuring || 0}</td>
+        <td class="num">${r.blocksInsSince || 0}</td>
+      </tr>
+    `;
+  });
+
+  document.getElementById("tbody").innerHTML = rows.join("");
+}
+
+async function reloadMonthly(){
+  await loadMonthlyAutoFromWeekly();
+  await loadMonthlyExtras();
+  renderExtrasConsole();
+  renderTable();
+}
+
+/* Boot */
+window.onload = async () => {
+  // default month = current month
+  const now = new Date();
+  const mk = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  document.getElementById("monthPick").value = mk;
+
+  document.getElementById("monthPick").addEventListener("change", reloadMonthly);
+
+  await reloadMonthly();
+};
+</script>
+</body>
+</html>
+</div>
+
+<script src="assets/tools.js"></script><script src="assets/hub-nav.js"></script>
+</body>
+</html>

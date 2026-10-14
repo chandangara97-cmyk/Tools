@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Exact PDF Printable Layout (A4 Landscape)</title>
+
+<!-- PDF.js (CDN) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<style>
+  :root{
+    --bg:#0b1220;
+    --card:#0f172a;
+    --border:#22304a;
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+    --accent:#38bdf8;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: radial-gradient(900px 420px at 20% 10%, rgba(56,189,248,.14), transparent 60%),
+                radial-gradient(900px 420px at 85% 20%, rgba(167,139,250,.12), transparent 60%),
+                var(--bg);
+    color:var(--text);
+  }
+
+  .topbar{
+    position: sticky;
+    top:0;
+    z-index:10;
+    background: rgba(11,18,32,.82);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+
+  .topbar-inner{
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 12px 14px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+
+  .title{
+    font-weight: 800;
+    letter-spacing:.2px;
+    margin-right:auto;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .badge{
+    font-size:12px;
+    padding:4px 10px;
+    border:1px solid rgba(56,189,248,.35);
+    color:var(--accent);
+    border-radius:999px;
+    background: rgba(56,189,248,.08);
+  }
+
+  .btn, .file{
+    border:1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor:pointer;
+    transition: .15s ease;
+  }
+  .btn:hover{
+    border-color: rgba(56,189,248,.45);
+    box-shadow: 0 0 0 4px rgba(56,189,248,.12);
+  }
+  .btn.primary{
+    background: rgba(56,189,248,.14);
+    border-color: rgba(56,189,248,.35);
+    color: #dff6ff;
+  }
+
+  input[type="file"]{
+    display:none;
+  }
+  label.file{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .hint{
+    max-width:1200px;
+    margin: 14px auto 0;
+    padding: 0 14px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .wrap{
+    max-width: 1200px;
+    margin: 14px auto 40px;
+    padding: 0 14px;
+  }
+
+  /* SCREEN PREVIEW "PAPER" */
+  .paper{
+    width: 100%;
+    display:flex;
+    flex-direction:column;
+    gap: 18px;
+  }
+
+  .page{
+    background:#fff;
+    border-radius: 14px;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow: 0 18px 70px rgba(0,0,0,.45);
+    position: relative;
+
+    /* keep correct paper ratio for A4 landscape preview */
+    aspect-ratio: 297 / 210;
+  }
+
+  .page .label{
+    position:absolute;
+    top:10px; left:10px;
+    z-index:2;
+    font-size:12px;
+    color:#0b1220;
+    background: rgba(255,255,255,.85);
+    border:1px solid rgba(0,0,0,.12);
+    padding:4px 10px;
+    border-radius: 999px;
+    font-weight: 800;
+  }
+
+  canvas{
+    width: 100%;
+    height: 100%;
+    display:block;
+    background:#fff;
+  }
+
+  .status{
+    margin-left:auto;
+    font-size:12px;
+    color: var(--muted);
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .dot{
+    width:9px;height:9px;border-radius:50%;
+    background: rgba(148,163,184,.6);
+  }
+  .dot.ok{ background: rgba(16,185,129,.9); }
+  .dot.warn{ background: rgba(245,158,11,.95); }
+
+  /* PRINT: exact A4 landscape, no margins, one page per sheet */
+  @media print{
+    body{ background:#fff; }
+    .topbar, .hint{ display:none !important; }
+    .wrap{ max-width:none; margin:0; padding:0; }
+
+    .paper{ gap:0; }
+
+    .page{
+      width: 297mm !important;
+      height: 210mm !important;
+      border-radius:0 !important;
+      border:none !important;
+      box-shadow:none !important;
+      page-break-after: always;
+      break-after: page;
+    }
+    .page:last-child{ page-break-after: auto; }
+    .page .label{ display:none; }
+
+    canvas{
+      width: 297mm !important;
+      height: 210mm !important;
+    }
+
+    @page{
+      size: A4 landscape;
+      margin: 0;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="title">
+      Exact PDF Printable Layout
+      <span class="badge">A4 Landscape</span>
+    </div>
+
+    <input id="pdfFile" type="file" accept="application/pdf" />
+    <label class="file" for="pdfFile">📄 Choose PDF</label>
+
+    <button class="btn primary" id="btnPrint" disabled>🖨️ Print (A4 Landscape)</button>
+
+    <div class="status" id="status">
+      <span class="dot warn" id="dot"></span>
+      <span id="statusText">Load a PDF to preview</span>
+    </div>
+  </div>
+</div>
+
+<div class="hint">
+  Tip: This prints the PDF as an <b>image-perfect</b> render (same scan look). If your PDF looks rotated, this code auto-renders it in <b>landscape</b> while keeping the exact content.
+</div>
+
+<div class="wrap">
+  <div class="paper" id="paper"></div>
+</div>
+
+<script>
+  // PDF.js setup
+  const pdfjsLib = window["pdfjs-dist/build/pdf"];
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+  const fileInput = document.getElementById("pdfFile");
+  const paper = document.getElementById("paper");
+  const btnPrint = document.getElementById("btnPrint");
+  const statusText = document.getElementById("statusText");
+  const dot = document.getElementById("dot");
+
+  let loaded = false;
+
+  function setStatus(text, type){
+    statusText.textContent = text;
+    dot.classList.remove("ok","warn");
+    dot.classList.add(type);
+  }
+
+  function clearPages(){
+    paper.innerHTML = "";
+    loaded = false;
+    btnPrint.disabled = true;
+  }
+
+  async function renderPdf(arrayBuffer){
+    clearPages();
+    setStatus("Loading PDF…", "warn");
+
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const numPages = pdf.numPages;
+
+    // Create page containers first (stable layout)
+    for(let p=1; p<=numPages; p++){
+      const pageDiv = document.createElement("div");
+      pageDiv.className = "page";
+
+      const tag = document.createElement("div");
+      tag.className = "label";
+      tag.textContent = "Page " + p;
+
+      const canvas = document.createElement("canvas");
+      canvas.id = "cv_" + p;
+
+      pageDiv.appendChild(tag);
+      pageDiv.appendChild(canvas);
+      paper.appendChild(pageDiv);
+    }
+
+    // Render each page to exactly fit A4 landscape
+    // We render with rotation=90 so portrait-scanned-rotated pages become landscape in output.
+    for(let p=1; p<=numPages; p++){
+      const page = await pdf.getPage(p);
+
+      // Start with a viewport (rotation 90) and choose a scale that gives good print clarity.
+      // We'll render high-res and then CSS will size it to mm for printing.
+      const rotation = 90;
+
+      // base viewport at scale 1
+      const base = page.getViewport({ scale: 1, rotation });
+
+      // We want a high-res canvas. Target about ~2200px width for A4 landscape for crisp print.
+      const targetWidthPx = 2200; 
+      const scale = targetWidthPx / base.width;
+
+      const viewport = page.getViewport({ scale, rotation });
+
+      const canvas = document.getElementById("cv_" + p);
+      const ctx = canvas.getContext("2d", { alpha: false });
+
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+
+      // White background to avoid transparency issues in print
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      await page.render({ canvasContext: ctx, viewport }).promise;
+    }
+
+    loaded = true;
+    btnPrint.disabled = false;
+    setStatus(`Ready: ${numPages} page(s) rendered`, "ok");
+  }
+
+  fileInput.addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+
+    if(file.type !== "application/pdf"){
+      setStatus("Please select a PDF file.", "warn");
+      return;
+    }
+
+    try{
+      const buf = await file.arrayBuffer();
+      await renderPdf(buf);
+    }catch(err){
+      console.error(err);
+      setStatus("Failed to load PDF. Try another file.", "warn");
+    }
+  });
+
+  btnPrint.addEventListener("click", () => {
+    if(!loaded) return;
+    // Open print dialog
+    window.print();
+  });
+</script>
+<script src="assets/tools.js"></script><script src="assets/hub-nav.js"></script>
+</body>
+</html>
