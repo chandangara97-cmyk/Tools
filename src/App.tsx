@@ -2,15 +2,10 @@ import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { HeroTerrain } from './components/HeroTerrain';
 import { GisPropertySurvey } from './components/GisPropertySurvey';
-import { OfficeBillsMaster } from './components/OfficeBillsMaster';
 import { ToolsDirectory } from './components/ToolsDirectory';
 import { SurveyIndices } from './components/SurveyIndices';
 import { ReleasesSection } from './components/ReleasesSection';
 import { WktKmlConverter } from './components/WktKmlConverter';
-import { PlfsWorkspace } from './components/PlfsWorkspace';
-import { UfsOperationsWorkspace } from './components/UfsOperationsWorkspace';
-import { UfsBlockLocator } from './components/UfsBlockLocator';
-import { BlockBoundaryRecorder } from './components/BlockBoundaryRecorder';
 import { AndroidAppModal } from './components/AndroidAppModal';
 import { TOOLS, CATEGORIES } from './data/toolsData';
 import {
@@ -36,16 +31,6 @@ export function App() {
   const handleToolSelect = (toolId: string) => {
     if (toolId === 'gis_property_survey') {
       setActiveView('gis-survey');
-    } else if (['office_master', 'ta_da', 'daily_diary', 'tentative_program'].includes(toolId)) {
-      setActiveView('office-master');
-    } else if (['plfs', 'plfs_gateway', 'plfs_live'].includes(toolId)) {
-      setActiveView('plfs');
-    } else if (['ufs_weekly', 'ufs_monthly', 'ufs_action'].includes(toolId)) {
-      setActiveView('ufs-ops');
-    } else if (['ufs_block_locator', 'ufs_boundary_register', 'ufs_scrutiny', 'ufs_manual'].includes(toolId)) {
-      setActiveView('ufs-locator');
-    } else if (toolId === 'block_recorder') {
-      setActiveView('block-recorder');
     } else if (['lat_long_kml', 'project_to_kml'].includes(toolId)) {
       setActiveView('wkt-kml');
     } else {
@@ -94,34 +79,6 @@ export function App() {
         <GisPropertySurvey />
       )}
 
-      {activeView === 'office-master' && (
-        <OfficeBillsMaster />
-      )}
-
-      {activeView === 'plfs' && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <PlfsWorkspace />
-        </div>
-      )}
-
-      {activeView === 'ufs-ops' && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <UfsOperationsWorkspace />
-        </div>
-      )}
-
-      {activeView === 'ufs-locator' && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <UfsBlockLocator />
-        </div>
-      )}
-
-      {activeView === 'block-recorder' && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <BlockBoundaryRecorder />
-        </div>
-      )}
-
       {activeView === 'wkt-kml' && (
         <WktKmlConverter />
       )}
@@ -164,7 +121,7 @@ export function App() {
                   </h1>
 
                   <p className="text-sm sm:text-base text-[#c5d8df] leading-relaxed max-w-xl">
-                    Locate blocks, check listings, log weekly progress, prepare tour bills and survey urban properties. Made for field operations in Himachal Pradesh with offline browser storage, AMRUT-grade GIS ward boundary digitizing, and Shapefile exports.
+                    Survey urban properties, digitize ward boundaries and convert KML / Shapefiles for QGIS. Made for field operations in Himachal Pradesh with offline browser storage, AMRUT-grade GIS ward boundary digitizing, and Shapefile exports.
                   </p>
 
                   {/* Hero CTAs */}
@@ -184,7 +141,7 @@ export function App() {
                       onClick={() => setActiveView('tools-directory')}
                       className="bg-[#142831] hover:bg-[#1b3642] text-white text-xs sm:text-sm font-semibold px-4 py-3 rounded-xl border border-[#23534d] flex items-center gap-2 transition-colors"
                     >
-                      Explore All 14 Field Tools
+                      Explore All {TOOLS.length} Tools
                       <ArrowRight className="w-3.5 h-3.5 text-[#9fc7c1]" />
                     </button>
                   </div>
@@ -279,7 +236,7 @@ export function App() {
                       onClick={() => setActiveView('tools-directory')}
                       className="text-xs text-[#9fc7c1] hover:text-white underline font-semibold"
                     >
-                      See All 14 Field Tools
+                      See All {TOOLS.length} Tools
                     </button>
                   </div>
                 </div>

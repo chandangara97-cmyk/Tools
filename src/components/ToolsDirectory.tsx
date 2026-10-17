@@ -50,7 +50,7 @@ export const ToolsDirectory: React.FC<ToolsDirectoryProps> = ({ onSelectTool }) 
             </span>
           </h2>
           <p className="text-xs sm:text-sm text-[#9fc7c1] mt-1">
-            Organized by operational area: PLFS tracking, Urban Frame Survey, Office &amp; TA/DA bills, and GIS property survey.
+            GIS property survey and KML / Shapefile converters for QGIS.
           </p>
         </div>
       </div>

@@ -16,15 +16,13 @@ An unofficial, independent React & TypeScript application built for field survey
 - **Property Parcel Enumeration & Geo-Tagging**: Mobile-ready field form for recording owner, house no., land/plinth areas, occupancy, use, and GPS geo-tags with automatic point-in-polygon ward determination.
 - **Municipal Tax Assessment**: Form-A (Assessment Roll) and Form-E (Rateable Value Factors F1 to F5) CSV generators.
 
-### 2. Office & Bills Master
-- **TA/DA Calculation Sheet**: Full tour claim preparation with designation rates (ENUM / SUP / SSO), multiple tour ranges, 100%/70%/30% slabs, hotel toggle, and single-page A4 landscape print layout.
-- **Daily Tour Diary**: Activity and journey tracking in sync with monthly tour bills.
-- **Tentative Tour Programme**: Annexure-III replica for advance tour scheduling.
+### 2. Field Tools & Converters
+- GIS property survey, Bulk WKT to KML and Shapefile to town-wise KML converters (standalone copies are in the `tools/` folder).
+- Survey indices dashboard and advance release calendar.
 
-### 3. Field Tools Directory & Survey Indices
-- Directory of 14 field utilities covering PLFS monitoring, Urban Frame Survey (UFS) progress, block locator, boundary register, and scrutiny validators.
-- Real-time survey indices dashboard for Central (MoSPI) and HP State (DES) indicators (PLFS, CPI, IIP, WPI, GDP, ASUSE, HCES, ASI, HP GSDP).
-- Advance Release Calendar and official publication tracker.
+### 3. Property Tax
+- Assessment, demand, collection, receipts and reports with Firebase sync and role-based users (see `FINAL_SETUP.md`).
+- Admin page for creating user IDs: `admin_users.html` (Admin button on the landing page).
 
 ## Development
 

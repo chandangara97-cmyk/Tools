@@ -6,7 +6,7 @@ export const WktKmlConverter: React.FC = () => {
   const [wktText, setWktText] = useState<string>(
     `MULTIPOLYGON (((76.12038 31.69682, 76.1222 31.69858, 76.12434 31.7003, 76.12692 31.70216, 76.12038 31.69682)))`
   );
-  const [polygonName, setPolygonName] = useState('UFS_Block_Boundary_01');
+  const [polygonName, setPolygonName] = useState('Block_Boundary_01');
   const [statusMsg, setStatusMsg] = useState('');
 
   const handleConvertAndDownload = () => {

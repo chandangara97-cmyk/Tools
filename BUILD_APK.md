@@ -13,7 +13,7 @@ Notes
 - This is a debug-signed APK: fine for installing on your own / office phones,
   not for the Play Store.
 - File exports (CSV, KML, Shapefile parts) open the Android Save/Share sheet.
-- The Print buttons (TA/DA, GIS report) use window.print(), which Android
+- The Print buttons (GIS report) use window.print(), which Android
   WebView does not support. Use the share/export options instead.
 - Google Fonts and the map/library CDNs inside tools/*.html need internet;
   the React hub itself works offline.

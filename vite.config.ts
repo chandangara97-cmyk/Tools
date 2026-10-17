@@ -3,38 +3,41 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
+const base = process.env.VITE_BASE || '/';
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg'],
       manifest: {
-        id: '/',
+        id: base,
         name: 'Scheme Hub 2026',
         short_name: 'SchemeHub',
-        description: 'Field survey tools for Himachal Pradesh: PLFS tracking, Urban Frame Survey blocks and boundaries, office bills and TA/DA, KML converters, survey indices and GIS property survey.',
+        description: 'Field survey and property tax tools for Himachal Pradesh: GIS property survey, assessment, collection, KML and Shapefile converters, and survey indices.',
         theme_color: '#0e2827',
         background_color: '#07161d',
         display: 'standalone',
         orientation: 'any',
-        start_url: '/',
-        scope: '/',
+        start_url: base,
+        scope: base,
         icons: [
           {
-            src: '/pwa-192x192.png',
+            src: 'pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: '/pwa-512x512.png',
+            src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: '/pwa-maskable-512x512.png',
+            src: 'pwa-maskable-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Compass, Briefcase, FileText, CheckCircle2, Layers, Smartphone, Download } from 'lucide-react';
+import { MapPin, Layers, Smartphone, Lock } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 
 interface NavbarProps {
@@ -103,17 +103,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView, onOpe
               </span>
             </button>
 
-            <button
-              onClick={() => setActiveView('office-master')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                activeView === 'office-master'
-                  ? 'bg-white/15 text-white shadow-sm'
-                  : 'text-[#c5d8df] hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <Briefcase className="w-3.5 h-3.5 text-[#d6a34b]" />
-              Office &amp; TA/DA Master
-            </button>
 
             <button
               onClick={() => setActiveView('tools-directory')}
@@ -124,12 +113,22 @@ export const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView, onOpe
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              All Tools (14)
+              All Tools (3)
             </button>
           </nav>
 
           {/* Action CTAs: Android App button + Clock */}
           <div className="flex items-center gap-2.5">
+            {/* Admin: create user IDs and roles */}
+            <a
+              href="admin_users.html"
+              className="bg-[#d6a34b]/20 hover:bg-[#d6a34b]/30 border border-[#d6a34b]/50 text-[#f7dfae] text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-colors"
+              title="Create user IDs and assign roles"
+            >
+              <Lock className="w-4 h-4" />
+              <span>Admin</span>
+            </a>
+
             {/* Prominent Android App Button */}
             <button
               onClick={onOpenAndroidModal}
@@ -177,17 +176,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView, onOpe
             GIS Property &amp; AMRUT
           </button>
           <button
-            onClick={() => setActiveView('office-master')}
-            className={`px-2.5 py-1 rounded whitespace-nowrap ${activeView === 'office-master' ? 'bg-white/20 text-white font-bold' : 'text-[#9fc7c1]'}`}
-          >
-            Office &amp; TA/DA
-          </button>
-          <button
             onClick={() => setActiveView('tools-directory')}
             className={`px-2.5 py-1 rounded whitespace-nowrap ${activeView === 'tools-directory' ? 'bg-white/20 text-white font-bold' : 'text-[#9fc7c1]'}`}
           >
-            All Tools (14)
+            All Tools (3)
           </button>
+          <a
+            href="admin_users.html"
+            className="px-2.5 py-1 rounded whitespace-nowrap font-bold text-[#f7dfae] bg-[#d6a34b]/20 flex items-center gap-1"
+          >
+            <Lock className="w-3.5 h-3.5" />
+            Admin
+          </a>
           <button
             onClick={onOpenAndroidModal}
             className="px-2.5 py-1 rounded whitespace-nowrap font-bold text-[#10b981] bg-[#10b981]/20 flex items-center gap-1"
