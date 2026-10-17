@@ -83,6 +83,16 @@
       <div id="ulbList" style="font-size:14px;color:var(--mute)">Loading...</div>
     </div>
 
+    <!-- Platform owner only: all towns at once -->
+    <div class="card hidden" id="allCard">
+      <b>1A. Create IDs for ALL towns (one click)</b>
+      <div style="font-size:13px;color:var(--mute);margin-top:4px">For every town: 1 ULB admin (<code>_ADMIN</code>), 1 supervisor per ticked bill head (<code>_SUP_xx</code>), data collectors under each supervisor (<code>_xx_C01</code>), 1 data approver (<code>_APR</code>), 1 ledger ID (<code>_LDG</code>) and 1 cashier (<code>_CASH</code>). Existing IDs are skipped, so it is safe to run again if it stops. Uses the bill heads ticked in step 1.</div>
+      <label>Data collectors per supervisor</label>
+      <input id="aCount" type="number" min="0" max="20" value="2">
+      <button id="btnAll">Create IDs for all towns</button>
+      <div id="allMsg" class="msg"></div>
+    </div>
+
     <div class="card hidden" id="credCard">
       <b>Passwords (shown only now)</b>
       <div style="font-size:13px;color:var(--mute);margin-top:4px">Passwords are not stored anywhere. Download or copy them before leaving this page.</div>
@@ -202,7 +212,7 @@ let unsubUsers = null, unsubUlbs = null;
 onAuthStateChanged(auth, async (user) => {
   if (unsubUsers) { unsubUsers(); unsubUsers = null; }
   if (unsubUlbs) { unsubUlbs(); unsubUlbs = null; }
-  show("loginCard", !user); show("denyCard", false); show("adminArea", false); show("ulbCard", false); show("credCard", false);
+  show("loginCard", !user); show("denyCard", false); show("adminArea", false); show("ulbCard", false); show("allCard", false); show("credCard", false);
   if (!user) return;
   let role = null; myUlb = null;
   try {
@@ -221,7 +231,7 @@ onAuthStateChanged(auth, async (user) => {
   $("meEmail").textContent = user.email.split("@")[0];
   $("meScope").textContent = isSuper() ? "Platform owner: all ULBs" : "ULB admin: " + (ulbNames[myUlb] || myUlb);
   show("adminArea", true);
-  show("ulbCard", isSuper());
+  show("ulbCard", isSuper()); show("allCard", isSuper());
 
   if (isSuper()) {
     unsubUlbs = onValue(ref(db, "ulbs"), (snap) => { ulbs = snap.val() || {}; renderUlbs(); fillSelects(); });
@@ -339,6 +349,46 @@ $("btnSetup").onclick = async () => {
     msg("ulbMsg", "ok", `${t.name}: ${rows.length} ID(s) created.` + (notes.length ? " " + notes.join(" | ") : ""));
   } catch (e) { msg("ulbMsg", "err", e.code || e.message); }
   $("btnSetup").disabled = false;
+};
+
+// ---- 1A. all towns at once ----
+$("btnAll").onclick = async () => {
+  const heads = [...$("headChecks").querySelectorAll("input:checked")].map(c => c.value);
+  const nCol = Math.max(0, Math.min(20, parseInt($("aCount").value, 10) || 0));
+  if (!heads.length) return msg("allMsg", "err", "Tick at least one bill head in step 1.");
+  if (!confirm(`Create IDs for ${allTowns.length} towns? About ${4 + heads.length * (1 + nCol)} IDs per town.`)) return;
+  $("btnAll").disabled = true;
+  const rows = []; let made = 0, skipped = 0, stop = "";
+  const byEmail = (id) => Object.entries(usersCache).find(([k, u]) => u.email === toEmail(id));
+  const mk = async (slug, t, id, name, role, head, supervisor) => {
+    const pw = genPass();
+    const r = await createLogin({ userId: id, password: pw, name, role, ulb: slug, head, supervisor });
+    if (r.ok) { made++; rows.push({ ulbName: t.name, roleLabel: ROLE_LABEL[role] + (head ? " (" + HEADS[head][0] + ")" : "") + (id.endsWith("_APR") ? " - data approver" : id.endsWith("_LDG") ? " - ledger" : ""), userId: id, password: pw }); return r.uid; }
+    if (r.code === "auth/email-already-in-use") { skipped++; const e = byEmail(id); return e && e[0]; }
+    stop = `${id}: ${r.code}`; return null;
+  };
+  for (let i = 0; i < allTowns.length && !stop; i++) {
+    const t = allTowns[i], slug = t.slug, p = prefixFor(slug);
+    msg("allMsg", "ok", `Working... ${i + 1}/${allTowns.length} ${t.name}`);
+    try {
+      const headMap = Object.fromEntries(heads.map(k => [k, HEADS[k][0]]));
+      if (!ulbs[slug]) { await set(ref(db, `ulbs/${slug}`), { name: t.name, code: t.code || "", active: true, heads: headMap, createdAt: Date.now() }); ulbs[slug] = { name: t.name, heads: headMap }; }
+      await mk(slug, t, `${p}_ADMIN`, `${t.name} Admin`, "admin");
+      for (const k of heads) {
+        const sup = await mk(slug, t, `${p}_SUP_${HEADS[k][1]}`, `${t.name} ${HEADS[k][0]} Supervisor`, "supervisor", k);
+        if (!sup) break;
+        for (let c = 1; c <= nCol && !stop; c++)
+          await mk(slug, t, `${p}_${HEADS[k][1]}_C${String(c).padStart(2, "0")}`, `${t.name} ${HEADS[k][0]} Collector ${String(c).padStart(2, "0")}`, "surveyor", k, sup);
+      }
+      await mk(slug, t, `${p}_APR`, `${t.name} Data Approver`, "supervisor");
+      await mk(slug, t, `${p}_LDG`, `${t.name} Ledger`, "supervisor");
+      if (!Object.values(usersCache).some(u => u.ulb === slug && u.role === "cashier")) await mk(slug, t, `${p}_CASH`, `${t.name} Cashier`, "cashier");
+    } catch (e) { stop = `${t.name}: ${e.code || e.message}`; }
+    await new Promise(r => setTimeout(r, 200));
+  }
+  showCreds(rows);
+  msg("allMsg", stop ? "err" : "ok", `${made} ID(s) created, ${skipped} already existed.` + (stop ? ` Stopped at ${stop}. Download the CSV, wait a few minutes and run again.` : ""));
+  $("btnAll").disabled = false;
 };
 
 function renderUlbs() {

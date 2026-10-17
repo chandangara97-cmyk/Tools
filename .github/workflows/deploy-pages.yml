@@ -26,12 +26,12 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_BASE: /${{ github.event.repository.name }}/
-      - name: Include standalone GIS / KML tools
-        run: cp -r tools dist/tools
+          VITE_BASE: /${{ github.event.repository.name }}/app/
+      - name: Assemble site (town login at root, app in /app/)
+        run: npm run build:site
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: site
   deploy:
     needs: build
     runs-on: ubuntu-latest
