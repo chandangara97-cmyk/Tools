@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Property Tax - User Admin</title>
+<style>
+  :root { --bg:#0a161e; --card:#0f2230; --line:#1d3a4a; --text:#e6f1f0; --mute:#8fb0ad; --accent:#0e8a7d; --bad:#d9534f; --ok:#2fb67c; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 8px 0 4px; }
+  .sub { color: var(--mute); font-size: 13px; margin-bottom: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  label { display:block; font-size: 13px; color: var(--mute); margin: 10px 0 4px; }
+  input, select { width:100%; padding: 11px; border-radius: 8px; border:1px solid var(--line); background:#081219; color:var(--text); font-size: 15px; }
+  button { padding: 11px 16px; border:0; border-radius: 8px; background: var(--accent); color:#fff; font-size: 15px; font-weight: 600; cursor:pointer; margin-top: 14px; }
+  button.ghost { background: transparent; border:1px solid var(--line); color: var(--mute); }
+  button.small { padding: 6px 10px; font-size: 13px; margin: 0; }
+  .msg { margin-top: 12px; padding: 10px; border-radius: 8px; font-size: 14px; display:none; word-break: break-word; }
+  .msg.ok { display:block; background: rgba(47,182,124,.15); color: var(--ok); }
+  .msg.err { display:block; background: rgba(217,83,79,.15); color: #ff8d89; }
+  .row { display:flex; gap: 10px; align-items:center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .row:first-child { border-top: 0; }
+  .who { min-width: 0; flex: 1; }
+  .who b { display:block; font-size: 15px; }
+  .who span { font-size: 12px; color: var(--mute); word-break: break-all; }
+  .row select { width: auto; padding: 7px; font-size: 14px; }
+  .hidden { display:none; }
+  code { background:#081219; padding: 2px 6px; border-radius: 4px; font-size: 12px; word-break: break-all; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>User Admin</h1>
+  <div class="sub">Property Tax project: create staff logins and assign roles.</div>
+
+  <!-- Sign in -->
+  <div id="loginCard" class="card">
+    <b>Admin sign-in</b>
+    <label>User ID or email</label>
+    <input id="aEmail" type="text" autocomplete="username" autocapitalize="none">
+    <label>Password</label>
+    <input id="aPass" type="password" autocomplete="current-password">
+    <button id="btnLogin">Sign in</button>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+
+  <!-- Not admin -->
+  <div id="denyCard" class="card hidden">
+    <b>No admin access</b>
+    <p style="font-size:14px;color:var(--mute)">
+      Signed in as <span id="denyEmail"></span>, but this account is not an admin.
+      In Firebase Console open Realtime Database, then add <code>users / <span id="denyUid"></span> / role = admin</code>
+      (one time), then sign out and sign in again.
+    </p>
+    <button class="ghost" id="btnOut1">Sign out</button>
+  </div>
+
+  <!-- Admin area -->
+  <div id="adminArea" class="hidden">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <span style="font-size:13px;color:var(--mute)">Signed in: <b id="meEmail" style="color:var(--text)"></b></span>
+        <button class="ghost small" id="btnOut2">Sign out</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <b>Create user ID, password and role</b>
+      <label>Full name</label>
+      <input id="nName" type="text">
+      <label>User ID (letters and numbers, e.g. RAJESH01)</label>
+      <input id="nEmail" type="text" autocapitalize="none" autocomplete="off">
+      <label>Password (at least 8 characters)</label>
+      <div style="display:flex;gap:8px">
+        <input id="nPass" type="text" autocomplete="off">
+        <button class="ghost small" id="btnGen" type="button" style="white-space:nowrap">Generate</button>
+      </div>
+      <label>Role</label>
+      <select id="nRole">
+        <option value="surveyor">Surveyor</option>
+        <option value="supervisor">Supervisor</option>
+        <option value="assessor">Assessor</option>
+        <option value="cashier">Cashier</option>
+        <option value="admin">Admin</option>
+      </select>
+      <button id="btnAdd">Create user</button>
+      <div id="addMsg" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <b>Users</b>
+      <div id="userList" style="margin-top:8px;font-size:14px;color:var(--mute)">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { getDatabase, ref, get, set, update, onValue }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+
+const cfg = {
+  apiKey: "AIzaSyBJw_9j0wP1dY42wfYYDk_3kIMNKZqHujQ",
+  authDomain: "propertytax-1b855.firebaseapp.com",
+  databaseURL: "https://propertytax-1b855-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "propertytax-1b855",
+  appId: "1:1062167049262:web:1270c8199c81addce11bbf"
+};
+
+const app = initializeApp(cfg);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+// Second app instance: creating a user signs that user in, so we do it here
+// to keep the admin signed in on the main instance.
+const app2 = initializeApp(cfg, "creator");
+const auth2 = getAuth(app2);
+
+const $ = id => document.getElementById(id);
+const show = (id, on) => $(id).classList.toggle("hidden", !on);
+function msg(id, type, text) { const e = $(id); e.className = "msg " + type; e.textContent = text; }
+const DOMAIN = "propertytax.app";
+function toEmail(v) { v = v.trim().toLowerCase(); return v.includes("@") ? v : v + "@" + DOMAIN; }
+function genPass() {
+  const c = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#";
+  const a = new Uint32Array(10); crypto.getRandomValues(a);
+  return Array.from(a, n => c[n % c.length]).join("");
+}
+$("btnGen").onclick = () => { $("nPass").value = genPass(); };
+const ROLES = ["surveyor","supervisor","assessor","cashier","admin"];
+
+$("btnLogin").onclick = async () => {
+  try {
+    await signInWithEmailAndPassword(auth, toEmail($("aEmail").value), $("aPass").value);
+  } catch (e) { msg("loginMsg", "err", e.code || e.message); }
+};
+const doOut = () => signOut(auth);
+$("btnOut1").onclick = doOut; $("btnOut2").onclick = doOut;
+
+let unsubUsers = null;
+onAuthStateChanged(auth, async (user) => {
+  if (unsubUsers) { unsubUsers(); unsubUsers = null; }
+  show("loginCard", !user); show("denyCard", false); show("adminArea", false);
+  if (!user) return;
+  let role = null;
+  try { role = (await get(ref(db, `users/${user.uid}/role`))).val(); } catch (e) {}
+  if (role !== "admin") {
+    $("denyEmail").textContent = user.email; $("denyUid").textContent = user.uid;
+    show("denyCard", true); return;
+  }
+  $("meEmail").textContent = user.email;
+  show("adminArea", true);
+  unsubUsers = onValue(ref(db, "users"), renderUsers);
+});
+
+$("btnAdd").onclick = async () => {
+  const name = $("nName").value.trim();
+  const uid0 = $("nEmail").value.trim();
+  if (!/^[A-Za-z0-9._-]{3,30}$/.test(uid0)) return msg("addMsg", "err", "User ID: 3-30 letters, numbers, dot, dash or underscore.");
+  const email = toEmail(uid0);
+  const pass = $("nPass").value;
+  const role = $("nRole").value;
+  if (!name || !email) return msg("addMsg", "err", "Enter name and email.");
+  if (pass.length < 8) return msg("addMsg", "err", "Password must be at least 8 characters.");
+  $("btnAdd").disabled = true;
+  try {
+    const cred = await createUserWithEmailAndPassword(auth2, email, pass);
+    await set(ref(db, `users/${cred.user.uid}`), {
+      name, email, role, createdAt: Date.now(), createdBy: auth.currentUser.email
+    });
+    await signOut(auth2);
+    msg("addMsg", "ok", `Created. User ID: ${uid0}  |  Login email: ${email}  |  Password: ${pass}  |  Role: ${role}. Note these down and give them to the user.`);
+    $("nName").value = ""; $("nEmail").value = ""; $("nPass").value = "";
+  } catch (e) {
+    msg("addMsg", "err", e.code === "auth/email-already-in-use"
+      ? "That User ID is already taken. Choose another."
+      : (e.code || e.message));
+  }
+  $("btnAdd").disabled = false;
+};
+
+function renderUsers(snap) {
+  const val = snap.val() || {};
+  const box = $("userList");
+  const uids = Object.keys(val);
+  if (!uids.length) { box.textContent = "No users yet."; return; }
+  box.innerHTML = "";
+  uids.sort((a, b) => (val[a].name || "").localeCompare(val[b].name || ""));
+  for (const uid of uids) {
+    const u = val[uid];
+    const row = document.createElement("div"); row.className = "row";
+    const who = document.createElement("div"); who.className = "who";
+    const b = document.createElement("b"); b.textContent = u.name || "(no name)";
+    const s = document.createElement("span"); s.textContent = u.email || uid;
+    who.append(b, s);
+    const sel = document.createElement("select");
+    for (const r of ROLES) { const o = document.createElement("option"); o.value = r; o.textContent = r; if (u.role === r) o.selected = true; sel.append(o); }
+    sel.onchange = async () => {
+      if (uid === auth.currentUser.uid && sel.value !== "admin" &&
+          !confirm("You are removing your own admin access. Continue?")) { sel.value = "admin"; return; }
+      try { await update(ref(db, `users/${uid}`), { role: sel.value }); } catch (e) { alert(e.code || e.message); }
+    };
+    const off = document.createElement("button"); off.className = "ghost small"; off.textContent = u.role === "disabled" ? "Disabled" : "Disable";
+    off.onclick = async () => {
+      if (uid === auth.currentUser.uid) return alert("You cannot disable yourself.");
+      if (!confirm(`Disable ${u.email || uid}? They will be left with no role.`)) return;
+      try { await update(ref(db, `users/${uid}`), { role: "disabled" }); } catch (e) { alert(e.code || e.message); }
+    };
+    row.append(who, sel, off);
+    box.append(row);
+  }
+}
+</script>
+</body>
+</html>
