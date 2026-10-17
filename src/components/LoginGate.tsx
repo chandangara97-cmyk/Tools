@@ -25,9 +25,9 @@ export const LoginGate: React.FC<{ children: React.ReactNode }> = ({ children })
     return (
       <div className="max-w-sm mx-auto mt-16 bg-[#0f242d] border border-[#1d434c] rounded-xl p-6 shadow-lg">
         <h2 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider mb-4 flex items-center gap-2">
-          <Lock className="w-4 h-4" /> Property Survey Sign-in
+          <Lock className="w-4 h-4" /> Town Sign-in
         </h2>
-        <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">User ID</label>
+        <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Town ID</label>
         <input type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} value={userId} onChange={(e) => setUserId(e.target.value)}
           className="w-full bg-[#091a1f] border border-[#23534d] text-white text-sm rounded-lg p-2.5 mb-3" />
         <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Password</label>

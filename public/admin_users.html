@@ -85,11 +85,14 @@
 
     <!-- Platform owner only: all towns at once -->
     <div class="card hidden" id="allCard">
-      <b>1A. Create IDs for ALL towns (one click)</b>
+      <b>1A. Bulk ID maker, town wise (one click)</b>
       <div style="font-size:13px;color:var(--mute);margin-top:4px">For every town: 1 ULB admin (<code>_ADMIN</code>), 1 supervisor per ticked bill head (<code>_SUP_xx</code>), data collectors under each supervisor (<code>_xx_C01</code>), 1 data approver (<code>_APR</code>), 1 ledger ID (<code>_LDG</code>) and 1 cashier (<code>_CASH</code>). Existing IDs are skipped, so it is safe to run again if it stops. Uses the bill heads ticked in step 1.</div>
+      <label>Towns (tick the ones to create)</label>
+      <div style="display:flex;gap:8px;margin:6px 0"><button type="button" class="ghost small" id="tAll">Select all</button><button type="button" class="ghost small" id="tNone">Clear</button><span id="tCnt" style="font-size:13px;color:var(--mute);align-self:center"></span></div>
+      <div id="townChecks" style="max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px"></div>
       <label>Data collectors per supervisor</label>
       <input id="aCount" type="number" min="0" max="20" value="2">
-      <button id="btnAll">Create IDs for all towns</button>
+      <button id="btnAll">Create IDs for selected towns</button>
       <div id="allMsg" class="msg"></div>
     </div>
 
@@ -226,7 +229,7 @@ onAuthStateChanged(auth, async (user) => {
     show("denyCard", true); return;
   }
   try { allTowns = await (await fetch("ulb_list.json")).json(); } catch (e) { allTowns = []; }
-  for (const t of allTowns) ulbNames[t.slug] = t.name;
+  for (const t of allTowns) ulbNames[t.slug] = t.name; fillTownChecks();
 
   $("meEmail").textContent = user.email.split("@")[0];
   $("meScope").textContent = isSuper() ? "Platform owner: all ULBs" : "ULB admin: " + (ulbNames[myUlb] || myUlb);
@@ -351,12 +354,28 @@ $("btnSetup").onclick = async () => {
   $("btnSetup").disabled = false;
 };
 
+function fillTownChecks() {
+  const box = $("townChecks"); box.textContent = "";
+  for (const t of allTowns) {
+    const l = document.createElement("label"); l.style.cssText = "display:flex;gap:8px;align-items:center;padding:4px 0;margin:0";
+    const c = document.createElement("input"); c.type = "checkbox"; c.value = t.slug; c.checked = true; c.style.width = "auto"; c.onchange = countTowns;
+    l.append(c, document.createTextNode(t.name + (ulbs[t.slug] ? " (set up)" : ""))); box.append(l);
+  }
+  countTowns();
+}
+function countTowns() { $("tCnt").textContent = $("townChecks").querySelectorAll("input:checked").length + " of " + allTowns.length + " selected"; }
+$("tAll").onclick = () => { $("townChecks").querySelectorAll("input").forEach(c => c.checked = true); countTowns(); };
+$("tNone").onclick = () => { $("townChecks").querySelectorAll("input").forEach(c => c.checked = false); countTowns(); };
+
 // ---- 1A. all towns at once ----
 $("btnAll").onclick = async () => {
   const heads = [...$("headChecks").querySelectorAll("input:checked")].map(c => c.value);
   const nCol = Math.max(0, Math.min(20, parseInt($("aCount").value, 10) || 0));
+  const picked = new Set([...$("townChecks").querySelectorAll("input:checked")].map(c => c.value));
+  const towns = allTowns.filter(t => picked.has(t.slug));
+  if (!towns.length) return msg("allMsg", "err", "Tick at least one town.");
   if (!heads.length) return msg("allMsg", "err", "Tick at least one bill head in step 1.");
-  if (!confirm(`Create IDs for ${allTowns.length} towns? About ${4 + heads.length * (1 + nCol)} IDs per town.`)) return;
+  if (!confirm(`Create IDs for ${towns.length} town(s)? About ${4 + heads.length * (1 + nCol)} IDs per town.`)) return;
   $("btnAll").disabled = true;
   const rows = []; let made = 0, skipped = 0, stop = "";
   const byEmail = (id) => Object.entries(usersCache).find(([k, u]) => u.email === toEmail(id));
@@ -367,9 +386,9 @@ $("btnAll").onclick = async () => {
     if (r.code === "auth/email-already-in-use") { skipped++; const e = byEmail(id); return e && e[0]; }
     stop = `${id}: ${r.code}`; return null;
   };
-  for (let i = 0; i < allTowns.length && !stop; i++) {
-    const t = allTowns[i], slug = t.slug, p = prefixFor(slug);
-    msg("allMsg", "ok", `Working... ${i + 1}/${allTowns.length} ${t.name}`);
+  for (let i = 0; i < towns.length && !stop; i++) {
+    const t = towns[i], slug = t.slug, p = prefixFor(slug);
+    msg("allMsg", "ok", `Working... ${i + 1}/${towns.length} ${t.name}`);
     try {
       const headMap = Object.fromEntries(heads.map(k => [k, HEADS[k][0]]));
       if (!ulbs[slug]) { await set(ref(db, `ulbs/${slug}`), { name: t.name, code: t.code || "", active: true, heads: headMap, createdAt: Date.now() }); ulbs[slug] = { name: t.name, heads: headMap }; }

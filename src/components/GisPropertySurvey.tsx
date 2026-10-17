@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import townsJson from '../data/townsData.json';
 import { cloudWatchProperties, cloudFetchPhotos } from '../firebase';
-import { AuthProvider, useAuth, canWriteSurvey, canDeleteSurvey } from '../services/auth';
+import { useAuth, canWriteSurvey, canDeleteSurvey } from '../services/auth';
 import { allocatePropertyId, prefetchIdBlock, hnoDupKey, upnDupKey } from '../services/ids';
 import { startSync, queueSave, queueDelete, mergeCloud, useSyncState } from '../services/syncQueue';
-import { LoginGate } from './LoginGate';
 import { SyncBar } from './SyncBar';
 import { PhotoCapture, PhotoItem } from './PhotoCapture';
 import { AssessmentPanel } from './AssessmentPanel';
@@ -1999,10 +1998,5 @@ const GisPropertySurveyInner: React.FC = () => {
   );
 };
 
-export const GisPropertySurvey: React.FC = () => (
-  <AuthProvider>
-    <LoginGate>
-      <GisPropertySurveyInner />
-    </LoginGate>
-  </AuthProvider>
-);
+// Sign-in is handled once for the whole app in main.tsx.
+export const GisPropertySurvey: React.FC = () => <GisPropertySurveyInner />;
