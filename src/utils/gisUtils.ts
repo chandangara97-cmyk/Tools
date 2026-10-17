@@ -47,6 +47,12 @@ export interface PropertyRecord {
   acc: string;
   rem: string;
   date: string;
+  // Phase 1 (central database) fields
+  photoIds?: string[];
+  createdBy?: string;
+  createdAt?: number;
+  updatedBy?: string;
+  updatedAt?: number;
 }
 
 // ==========================================

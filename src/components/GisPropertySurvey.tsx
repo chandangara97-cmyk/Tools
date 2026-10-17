@@ -1,5 +1,19 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import townsJson from '../data/townsData.json';
+import { cloudWatchProperties, cloudFetchPhotos } from '../firebase';
+import { AuthProvider, useAuth, canWriteSurvey, canDeleteSurvey } from '../services/auth';
+import { allocatePropertyId, prefetchIdBlock, hnoDupKey, upnDupKey } from '../services/ids';
+import { startSync, queueSave, queueDelete, mergeCloud, useSyncState } from '../services/syncQueue';
+import { LoginGate } from './LoginGate';
+import { SyncBar } from './SyncBar';
+import { PhotoCapture, PhotoItem } from './PhotoCapture';
+import { AssessmentPanel } from './AssessmentPanel';
+import { CollectionPanel } from './CollectionPanel';
+import { ReportsPanel } from './ReportsPanel';
+import { rekeyTowns, townSlug } from '../services/townPath';
+import { useRateTable } from '../services/assessmentStore';
+import { useCollectionSettings } from '../services/collectionStore';
+import { calcAssessment } from '../services/assessment';
 import {
   TownData,
   WardFeature,
@@ -37,25 +51,34 @@ import {
   Database,
   Building2,
   FileCheck,
-  Info
+  Info,
+  Landmark,
 } from 'lucide-react';
 
-const TOWNS_MAP: Record<string, TownData> = townsJson as unknown as Record<string, TownData>;
+// Towns are keyed by NAME ("Bhota"), so cloud data is saved under the town name.
+const TOWNS_MAP: Record<string, TownData> = rekeyTowns(townsJson as unknown as Record<string, TownData>);
 
-export const GisPropertySurvey: React.FC = () => {
+const GisPropertySurveyInner: React.FC = () => {
   // Active Survey Sub-Tab
-  const [activeTab, setActiveTab] = useState<'survey' | 'map-editor' | 'records' | 'assessment' | 'exports'>('survey');
+  const [activeTab, setActiveTab] = useState<'survey' | 'map-editor' | 'records' | 'assessment' | 'collection' | 'reports' | 'exports'>('survey');
 
   // Town & Surveyor Config
-  const [selectedTownKey, setSelectedTownKey] = useState<string>('bhota-0206001');
+  const [selectedTownKey, setSelectedTownKey] = useState<string>(townSlug('Bhota'));
   const [wardNo, setWardNo] = useState<string>('1');
-  const [surveyorName, setSurveyorName] = useState<string>('Field Surveyor 01');
+  const { role, displayName } = useAuth();
+  const writable = canWriteSurvey(role);
+  const deletable = canDeleteSurvey(role);
+  const sync = useSyncState();
+  const { table: rateTable, saved: rateSaved } = useRateTable(selectedTownKey);
+  const { settings: collectionSettings, saved: collectionSaved } = useCollectionSettings(selectedTownKey);
+  const [surveyorName, setSurveyorName] = useState<string>(displayName || 'Field Surveyor 01');
+  useEffect(() => { if (displayName) setSurveyorName(displayName); }, [displayName]);
 
   // Editable Town Boundaries (allows in-memory / local editing & adding new wards!)
   const [editableTowns, setEditableTowns] = useState<Record<string, TownData>>(() => {
     try {
       const saved = localStorage.getItem('gis_survey_custom_towns');
-      if (saved) return JSON.parse(saved);
+      if (saved) return rekeyTowns(JSON.parse(saved));
     } catch (e) {}
     return TOWNS_MAP;
   });
@@ -134,7 +157,7 @@ export const GisPropertySurvey: React.FC = () => {
   const [floorAreas, setFloorAreas] = useState<number[]>([100]);
   const [landArea, setLandArea] = useState<number>(120);
   const [zone, setZone] = useState('A');
-  const [ncls, setNcls] = useState('E');
+  const [ncls, setNcls] = useState('');
   const [act, setAct] = useState('');
   const [tenant, setTenant] = useState('');
   const [upn, setUpn] = useState('');
@@ -142,6 +165,7 @@ export const GisPropertySurvey: React.FC = () => {
   const [lng, setLng] = useState('76.5638');
   const [acc, setAcc] = useState('4.0');
   const [rem, setRem] = useState('');
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [formMsg, setFormMsg] = useState<{ type: 'ok' | 'err' | 'warn'; text: string } | null>(null);
 
   // Search in records
@@ -164,6 +188,25 @@ export const GisPropertySurvey: React.FC = () => {
   const currentTown = useMemo<TownData>(() => {
     return editableTowns[selectedTownKey] || TOWNS_MAP[selectedTownKey] || { n: 'Unknown', w: [] };
   }, [editableTowns, selectedTownKey]);
+
+  // Live sync with Firebase: cloud is the source of truth, but unsent local changes are kept
+  const [localOnly, setLocalOnly] = useState<PropertyRecord[]>([]);
+  const recordsRef = useRef<PropertyRecord[]>(records);
+  useEffect(() => { recordsRef.current = records; }, [records]);
+  useEffect(() => { startSync(); }, []);
+  useEffect(() => {
+    const townName = (editableTowns[selectedTownKey] || TOWNS_MAP[selectedTownKey])?.n;
+    if (!townName) return;
+    return cloudWatchProperties(selectedTownKey, (list) => {
+      const { merged, localOnly: lo } = mergeCloud(selectedTownKey, townName, recordsRef.current, list);
+      setRecords(merged);
+      setLocalOnly(lo);
+    });
+  }, [selectedTownKey]);
+  // keep a reserve of permanent IDs on this device so surveying works offline
+  useEffect(() => {
+    if (writable && sync.online) void prefetchIdBlock(selectedTownKey, wardNo);
+  }, [selectedTownKey, wardNo, sync.online, writable]);
 
   // Save records and towns to localStorage
   useEffect(() => {
@@ -194,17 +237,8 @@ export const GisPropertySurvey: React.FC = () => {
     }
   }, [selectedWardForEdit, currentTown]);
 
-  // Next Property ID calculation
-  const nextPropertyId = useMemo(() => {
-    const w = (wardNo || '1').trim();
-    const existing = records.filter(r => String(r.ward) === w);
-    const maxNum = existing.reduce((max, r) => {
-      const parts = r.id.split('-');
-      const num = parseInt(parts[parts.length - 1], 10);
-      return !isNaN(num) && num > max ? num : max;
-    }, 0);
-    return `${w}-${String(maxNum + 1).padStart(4, '0')}`;
-  }, [wardNo, records]);
+  // Permanent IDs (ULB-WARD-NNNN) are issued by the central counter at save time
+  const nextPropertyId = 'assigned on save';
 
   // GPS Capture
   const handleCaptureGps = () => {
@@ -275,23 +309,51 @@ export const GisPropertySurvey: React.FC = () => {
     setTenant('');
     setUpn('');
     setRem('');
+    setPhotos([]);
     setFormMsg(null);
   };
 
   // Save Property
-  const handleSaveProperty = () => {
+  const handleSaveProperty = async () => {
+    if (!writable) {
+      setFormMsg({ type: 'err', text: 'Your role cannot create or edit survey records.' });
+      return;
+    }
     if (!owner.trim() || !hno.trim() || !wardNo) {
       setFormMsg({ type: 'err', text: 'Please fill Owner name, House/Plot No, and Ward No.' });
       return;
     }
 
-    const targetId = editId || nextPropertyId;
+    // Duplicate guard (also enforced centrally when the record uploads)
+    const dup = records.find(r =>
+      r.town === currentTown.n && r.id !== editId &&
+      (hnoDupKey(r.ward, r.hno) === hnoDupKey(wardNo, hno) ||
+        (upn.trim() && r.upn && upnDupKey(r.upn) === upnDupKey(upn)))
+    );
+    if (dup) {
+      setFormMsg({ type: 'err', text: `Duplicate: ward ${dup.ward}, house ${dup.hno} / UPN is already registered as ${dup.id} (${dup.owner}). Edit that record instead.` });
+      return;
+    }
+
+    const previous = editId ? records.find(r => r.id === editId) : undefined;
+    let targetId = editId;
+    if (!targetId) {
+      try {
+        targetId = await allocatePropertyId(selectedTownKey, wardNo);
+      } catch {
+        setFormMsg({ type: 'err', text: 'No property IDs left on this device for this ward. Connect to the internet once to reserve more.' });
+        return;
+      }
+    }
+
+    const newPhotos = photos.filter(p => p.isNew);
+    const photoIds = [...(previous?.photoIds || []), ...newPhotos.map(p => p.id)];
 
     const newRecord: PropertyRecord = {
       id: targetId,
       town: currentTown.n,
       ward: wardNo,
-      sur: surveyorName,
+      sur: previous?.sur || surveyorName,
       owner: owner.trim(),
       hno: hno.trim(),
       addr: addr.trim(),
@@ -304,25 +366,36 @@ export const GisPropertySurvey: React.FC = () => {
       land: Number(landArea) || 0,
       act: act.trim(),
       zone,
-      ncls,
+      ncls: ncls.trim(),
       tenant: tenant.trim(),
       upn: upn.trim(),
       lat,
       lng,
       acc,
       rem: rem.trim(),
-      date: new Date().toISOString().slice(0, 10),
+      date: previous?.date || new Date().toISOString().slice(0, 10),
+      photoIds,
+      createdBy: previous?.createdBy,
+      createdAt: previous?.createdAt,
     };
 
+    const saved = queueSave(
+      selectedTownKey,
+      newRecord,
+      newPhotos.map(({ id, data }) => ({ id, data })),
+      previous,
+    );
+    let okText: string;
     if (editId) {
-      setRecords(records.map(r => r.id === editId ? newRecord : r));
-      setFormMsg({ type: 'ok', text: `Updated record ${targetId} successfully!` });
+      setRecords(prev => prev.map(r => r.id === editId ? saved : r));
+      okText = `Updated record ${targetId}.`;
     } else {
-      setRecords([...records, newRecord]);
-      setFormMsg({ type: 'ok', text: `Saved new property record ${targetId}!` });
+      setRecords(prev => [...prev, saved]);
+      okText = `Saved new property ${targetId}. ${sync.online ? 'Uploading…' : 'Will upload when you are back online.'}`;
     }
 
     resetForm();
+    setFormMsg({ type: 'ok', text: okText });
   };
 
   // Edit record
@@ -339,7 +412,7 @@ export const GisPropertySurvey: React.FC = () => {
     setFloorAreas(r.floors && r.floors.length ? r.floors : [r.bu]);
     setLandArea(r.land || 0);
     setZone(r.zone || 'A');
-    setNcls(r.ncls || 'E');
+    setNcls(r.ncls || '');
     setAct(r.act || '');
     setTenant(r.tenant || '');
     setUpn(r.upn || '');
@@ -348,13 +421,23 @@ export const GisPropertySurvey: React.FC = () => {
     setAcc(r.acc || '');
     setRem(r.rem || '');
     setActiveTab('survey');
+    setPhotos([]);
+    if (r.photoIds && r.photoIds.length) {
+      cloudFetchPhotos(selectedTownKey, r.id)
+        .then(list => setPhotos(list.map(p => ({ id: p.id, data: p.data, isNew: false }))))
+        .catch(() => {});
+    }
     setFormMsg({ type: 'warn', text: `Editing property record ${r.id}` });
   };
 
-  // Delete record
+  // Delete record (supervisor/admin only; removes the record and frees its house number)
   const handleDeleteRecord = (id: string) => {
-    if (window.confirm(`Delete property record ${id}?`)) {
-      setRecords(records.filter(r => r.id !== id));
+    if (!deletable) return;
+    const rec = records.find(r => r.id === id);
+    if (!rec) return;
+    if (window.confirm(`Delete property record ${id}? This also removes it from the cloud.`)) {
+      queueDelete(selectedTownKey, rec);
+      setRecords(prev => prev.filter(r => r.id !== id));
     }
   };
 
@@ -707,9 +790,10 @@ export const GisPropertySurvey: React.FC = () => {
     const totalLandSqM = records.reduce((acc, r) => acc + (r.land || 0), 0);
 
     // Rough estimated general property tax (Himachal Pradesh MC Shimla Bye-laws baseline)
+    const yearNow = new Date().getFullYear();
     const estTaxAnnual = records.reduce((acc, r) => {
-      const rate = r.use === 'Commercial' ? 24 : r.use === 'Mixed use' ? 18 : 10;
-      return acc + (r.bu || 0) * rate;
+      const c = calcAssessment(r, rateTable, yearNow);
+      return acc + (c.tax ?? 0);
     }, 0);
 
     return {
@@ -719,7 +803,7 @@ export const GisPropertySurvey: React.FC = () => {
       totalLandSqM,
       estTaxAnnual,
     };
-  }, [records]);
+  }, [records, rateTable]);
 
   // Form-A & Form-E CSV export string generator
   const getFormACsv = () => {
@@ -753,7 +837,7 @@ export const GisPropertySurvey: React.FC = () => {
       r.bu,
       r.land,
       r.zone,
-      (r.bu * (r.use === 'Commercial' ? 24 : 10)).toFixed(2),
+      (calcAssessment(r, rateTable, new Date().getFullYear()).tax ?? ''),
       r.date
     ]);
 
@@ -778,31 +862,14 @@ export const GisPropertySurvey: React.FC = () => {
       'Net Taxable Value (Rs)'
     ];
 
+    const year = new Date().getFullYear();
     const rows = records.map((r, i) => {
-      const f1 = 5;
-      const f2 = r.str === 'RCC' ? 3 : 2;
-      const f3 = 4;
-      const f4 = r.occ === 'Let out' ? 2.5 : 2.0;
-      const f5 = r.use === 'Commercial' ? 2.5 : 1.5;
-      const gross = r.bu * f1 * f2 * f3 * f4 * f5;
-      const rebate = gross * 0.1;
-      const net = gross - rebate;
-
+      const c = calcAssessment(r, rateTable, year);
+      const f = (k: string) => c.lines.find(l => l.factor.startsWith(k))?.value ?? '';
       return [
-        i + 1,
-        r.id,
-        r.ward,
-        r.zone,
-        r.use,
-        r.bu,
-        f1,
-        f2,
-        f3,
-        f4,
-        f5,
-        gross.toFixed(2),
-        rebate.toFixed(2),
-        net.toFixed(2)
+        i + 1, r.id, r.ward, r.zone, r.use, r.bu,
+        f('F1'), f('F2'), f('F3'), f('F4'), f('F5'),
+        c.rateableValue.toFixed(2), c.rebate.toFixed(2), c.netTaxableValue.toFixed(2),
       ];
     });
 
@@ -874,7 +941,7 @@ export const GisPropertySurvey: React.FC = () => {
               }}
               className="bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg px-3 py-2 font-medium focus:outline-none focus:border-[#20b5a6]"
             >
-              {Object.entries(editableTowns).map(([key, t]) => (
+              {Object.entries(editableTowns).sort((a, b) => a[1].n.localeCompare(b[1].n)).map(([key, t]) => (
                 <option key={key} value={key}>
                   {t.n} ({t.w?.length || 0} wards)
                 </option>
@@ -922,13 +989,31 @@ export const GisPropertySurvey: React.FC = () => {
             4. Assessment &amp; Form A/E
           </button>
           <button
+            onClick={() => setActiveTab('collection')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'collection' ? 'bg-[#0e8a7d] text-white shadow-md' : 'text-[#9fc7c1] hover:bg-white/5'
+            }`}
+          >
+            <Landmark className="w-3.5 h-3.5" />
+            5. Demand &amp; Collection
+          </button>
+          <button
+            onClick={() => setActiveTab('reports')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'reports' ? 'bg-[#0e8a7d] text-white shadow-md' : 'text-[#9fc7c1] hover:bg-white/5'
+            }`}
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            6. Reports &amp; Notices
+          </button>
+          <button
             onClick={() => setActiveTab('exports')}
             className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'exports' ? 'bg-[#0e8a7d] text-white shadow-md' : 'text-[#9fc7c1] hover:bg-white/5'
             }`}
           >
             <Download className="w-3.5 h-3.5 text-[#38bdf8]" />
-            5. GIS Deliverables &amp; Exports (SHP/KML)
+            7. GIS Deliverables &amp; Exports (SHP/KML)
           </button>
         </div>
       </div>
@@ -938,6 +1023,16 @@ export const GisPropertySurvey: React.FC = () => {
         {/* ==================================================== */}
         {/* TAB 1: PROPERTY SURVEY FORM */}
         {/* ==================================================== */}
+        <SyncBar
+          localOnlyCount={localOnly.length}
+          canMigrate={deletable}
+          onMigrate={() => {
+            if (!window.confirm(`Upload ${localOnly.length} device-only record(s) to the cloud? Do not do this for demo/sample data.`)) return;
+            localOnly.forEach(r => queueSave(selectedTownKey, r, []));
+            setLocalOnly([]);
+          }}
+          onOpenConflict={(id) => { const r = records.find(x => x.id === id); if (r) handleEditRecord(r); }}
+        />
         {activeTab === 'survey' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Left Column: Form */}
@@ -1096,6 +1191,16 @@ export const GisPropertySurvey: React.FC = () => {
                     </select>
                   </div>
                   <div>
+                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Class (if the bylaws use one)</label>
+                    <input
+                      type="text"
+                      placeholder="leave blank if not used"
+                      value={ncls}
+                      onChange={(e) => setNcls(e.target.value)}
+                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#20b5a6]"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">UPN / GIS Unique ID</label>
                     <input
                       type="text"
@@ -1234,6 +1339,11 @@ export const GisPropertySurvey: React.FC = () => {
                 )}
               </div>
 
+              {/* Building Photos */}
+              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-5 shadow-lg">
+                <PhotoCapture photos={photos} onChange={setPhotos} disabled={!writable} />
+              </div>
+
               {/* Status Message */}
               {formMsg && (
                 <div
@@ -1254,8 +1364,9 @@ export const GisPropertySurvey: React.FC = () => {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={handleSaveProperty}
-                  className="flex-1 bg-[#0e8a7d] hover:bg-[#11a394] text-white text-sm font-bold py-3 rounded-xl shadow-lg transition-transform active:scale-[0.98]"
+                  onClick={() => void handleSaveProperty()}
+                  disabled={!writable}
+                  className="flex-1 bg-[#0e8a7d] hover:bg-[#11a394] disabled:opacity-40 text-white text-sm font-bold py-3 rounded-xl shadow-lg transition-transform active:scale-[0.98]"
                 >
                   {editId ? 'Update Property Record' : 'Save Property Record'}
                 </button>
@@ -1608,12 +1719,14 @@ export const GisPropertySurvey: React.FC = () => {
                       >
                         Edit
                       </button>
-                      <button
-                        onClick={() => handleDeleteRecord(r.id)}
-                        className="bg-red-950/40 hover:bg-red-900/50 text-red-300 text-xs font-bold px-3 py-1.5 rounded-lg border border-red-800/40"
-                      >
-                        Delete
-                      </button>
+                      {deletable && (
+                        <button
+                          onClick={() => handleDeleteRecord(r.id)}
+                          className="bg-red-950/40 hover:bg-red-900/50 text-red-300 text-xs font-bold px-3 py-1.5 rounded-lg border border-red-800/40"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1621,11 +1734,38 @@ export const GisPropertySurvey: React.FC = () => {
           </div>
         )}
 
+        {activeTab === 'reports' && (
+          <ReportsPanel
+            townKey={selectedTownKey}
+            townName={currentTown.n}
+            records={records}
+            settings={collectionSettings}
+            wards={currentTown.w}
+          />
+        )}
+
+        {activeTab === 'collection' && (
+          <CollectionPanel
+            townKey={selectedTownKey}
+            townName={currentTown.n}
+            records={records}
+            settings={collectionSettings}
+            settingsSaved={collectionSaved}
+          />
+        )}
+
         {/* ==================================================== */}
         {/* TAB 4: ASSESSMENT & FORM A / FORM E */}
         {/* ==================================================== */}
         {activeTab === 'assessment' && (
           <div className="space-y-6">
+            <AssessmentPanel
+              townKey={selectedTownKey}
+              townName={currentTown.n}
+              records={records}
+              rateTable={rateTable}
+              rateSaved={rateSaved}
+            />
             {/* Summary Highlights */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-4 shadow-lg">
@@ -1649,7 +1789,7 @@ export const GisPropertySurvey: React.FC = () => {
               <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-4 shadow-lg">
                 <span className="text-xs text-[#9fc7c1] font-semibold block">Est. General Tax</span>
                 <b className="text-2xl font-bold text-white font-mono mt-1 block">
-                  ₹{Math.round(summaryMetrics.estTaxAnnual).toLocaleString()}/yr
+                  {rateTable.taxRatePct === null ? 'Rate not set' : `₹${Math.round(summaryMetrics.estTaxAnnual).toLocaleString()}/yr`}
                 </b>
               </div>
             </div>
@@ -1703,7 +1843,7 @@ export const GisPropertySurvey: React.FC = () => {
                         <td className="p-2.5 font-mono">{r.bu} sq m</td>
                         <td className="p-2.5 font-bold">{r.zone}</td>
                         <td className="p-2.5 font-mono text-[#20b5a6]">
-                          ₹{(r.bu * (r.use === 'Commercial' ? 24 : 10)).toLocaleString()}
+                          {(() => { const t = calcAssessment(r, rateTable, new Date().getFullYear()).tax; return t === null ? '-' : `₹${Math.round(t).toLocaleString()}`; })()}
                         </td>
                       </tr>
                     ))}
@@ -1845,3 +1985,11 @@ export const GisPropertySurvey: React.FC = () => {
     </div>
   );
 };
+
+export const GisPropertySurvey: React.FC = () => (
+  <AuthProvider>
+    <LoginGate>
+      <GisPropertySurveyInner />
+    </LoginGate>
+  </AuthProvider>
+);
