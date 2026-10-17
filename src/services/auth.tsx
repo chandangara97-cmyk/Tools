@@ -3,8 +3,9 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signOut as fbSignOut, U
 import { ref, get } from 'firebase/database';
 import { auth, db } from '../firebase';
 
-export type Role = 'surveyor' | 'supervisor' | 'assessor' | 'cashier' | 'admin';
-const ROLES: Role[] = ['surveyor', 'supervisor', 'assessor', 'cashier', 'admin'];
+/** surveyor = data collector, monitor = read-only view of the whole ULB. */
+export type Role = 'surveyor' | 'supervisor' | 'assessor' | 'cashier' | 'admin' | 'monitor';
+const ROLES: Role[] = ['surveyor', 'supervisor', 'assessor', 'cashier', 'admin', 'monitor'];
 
 /** Every login belongs to ONE ULB (its town slug, e.g. "Bhota"). "*" = platform owner, sees all ULBs. */
 export const ALL_ULBS = '*';
@@ -29,7 +30,7 @@ export const canCollect = (r: Role | null) => r === 'cashier' || r === 'admin';
 /** Who may generate demands, post adjustments and reverse ledger entries (kept apart from taking cash). */
 export const canManageLedger = (r: Role | null) => r === 'supervisor' || r === 'admin';
 /** Who may read the audit log. */
-export const canSeeAudit = (r: Role | null) => r === 'supervisor' || r === 'admin';
+export const canSeeAudit = (r: Role | null) => r === 'supervisor' || r === 'admin' || r === 'monitor';
 /** Who may delete survey records (and release their duplicate keys). */
 export const canDeleteSurvey = (r: Role | null) => r === 'supervisor' || r === 'admin';
 

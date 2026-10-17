@@ -100,7 +100,7 @@
           ".write": "auth != null && (root.child('users').child(auth.uid).child('ulb').val() === '*' || (root.child('users').child(auth.uid).child('ulb').val() === $town && root.child('ulbs').child($town).child('active').val() === true)) && !data.exists() && newData.exists() && (root.child('users').child(auth.uid).child('role').val() === 'cashier' || root.child('users').child(auth.uid).child('role').val() === 'supervisor' || root.child('users').child(auth.uid).child('role').val() === 'admin')",
           ".validate": "newData.hasChildren(['at','by','action','detail']) && newData.child('by').val() === auth.uid && newData.child('detail').isString()"
         },
-        ".read": "auth != null && (root.child('users').child(auth.uid).child('ulb').val() === '*' || (root.child('users').child(auth.uid).child('ulb').val() === $town && root.child('ulbs').child($town).child('active').val() === true)) && (root.child('users').child(auth.uid).child('role').val() === 'supervisor' || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('ulb').val() === '*' || (root.child('users').child(auth.uid).child('ulb').val() === $town && root.child('ulbs').child($town).child('active').val() === true)) && (root.child('users').child(auth.uid).child('role').val() === 'supervisor' || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'monitor')"
       }
     },
     "ulbs": {

@@ -30,6 +30,13 @@
   .hidden { display:none; }
   .grp { margin: 14px 0 2px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
   .tag { display:inline-block; font-size: 11px; padding: 2px 7px; border-radius: 999px; border:1px solid var(--line); color: var(--mute); margin-left: 6px; }
+  table { width:100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th, td { text-align:left; padding: 6px 4px; border-top: 1px solid var(--line); word-break: break-all; }
+  th { color: var(--mute); font-weight: 600; }
+  .chk { display:flex; flex-wrap:wrap; gap:12px; margin-top:6px; font-size:14px; }
+  .chk label { display:flex; align-items:center; gap:6px; margin:0; color: var(--text); }
+  .chk input { width:auto; }
+  .ind { padding-left: 22px; }
   code { background:#081219; padding: 2px 6px; border-radius: 4px; font-size: 12px; word-break: break-all; }
 </style>
 </head>
@@ -62,19 +69,42 @@
       </div>
     </div>
 
-    <!-- Platform owner only -->
+    <!-- Platform owner only: one-click ULB setup -->
     <div class="card hidden" id="ulbCard">
-      <b>Add a ULB</b>
-      <label>Choose the urban body</label>
+      <b>1. Set up a ULB (one click)</b>
+      <div style="font-size:13px;color:var(--mute);margin-top:4px">Creates the ULB in Firebase with: 1 monitor ID (sees all bill heads), 1 cashier ID, and 1 supervisor ID for each bill head ticked below. Run it again to add a missing ID; existing IDs are never overwritten.</div>
+      <label>Urban body</label>
       <select id="uPick"></select>
-      <button id="btnAddUlb">Add ULB</button>
+      <label>Bill heads to monitor</label>
+      <div class="chk" id="headChecks"></div>
+      <button id="btnSetup">Create ULB and IDs</button>
       <div id="ulbMsg" class="msg"></div>
       <div class="grp">ULBs</div>
       <div id="ulbList" style="font-size:14px;color:var(--mute)">Loading...</div>
     </div>
 
+    <div class="card hidden" id="credCard">
+      <b>Passwords (shown only now)</b>
+      <div style="font-size:13px;color:var(--mute);margin-top:4px">Passwords are not stored anywhere. Download or copy them before leaving this page.</div>
+      <div style="overflow-x:auto"><table id="credTable"></table></div>
+      <button id="btnCsv" class="small">Download CSV</button>
+      <button id="btnCopy" class="ghost small" style="margin-left:8px">Copy</button>
+    </div>
+
     <div class="card">
-      <b>Create user ID and password</b>
+      <b>2. Add data collectors under a supervisor</b>
+      <label>ULB</label>
+      <select id="cUlb"></select>
+      <label>Supervisor</label>
+      <select id="cSup"></select>
+      <label>How many collectors</label>
+      <input id="cCount" type="number" min="1" max="50" value="1">
+      <button id="btnCollectors">Create collectors</button>
+      <div id="colMsg" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <b>Create a single user ID (other roles)</b>
       <label>Full name</label>
       <input id="nName" type="text">
       <label>ULB</label>
@@ -88,8 +118,9 @@
       </div>
       <label>Role</label>
       <select id="nRole">
-        <option value="surveyor">Surveyor</option>
+        <option value="monitor">Monitor (read only)</option>
         <option value="supervisor">Supervisor</option>
+        <option value="surveyor">Data collector</option>
         <option value="assessor">Assessor</option>
         <option value="cashier">Cashier</option>
         <option value="admin">ULB admin</option>
@@ -139,13 +170,26 @@ function genPass() {
   return Array.from(a, n => c[n % c.length]).join("");
 }
 $("btnGen").onclick = () => { $("nPass").value = genPass(); };
-const ROLES = ["surveyor","supervisor","assessor","cashier","admin","disabled"];
+
+const ROLES = ["monitor","supervisor","surveyor","assessor","cashier","admin","disabled"];
+const ROLE_LABEL = { monitor: "Monitor", supervisor: "Supervisor", surveyor: "Data collector", assessor: "Assessor", cashier: "Cashier", admin: "ULB admin", disabled: "Disabled" };
+const ROLE_ORDER = { admin: 0, monitor: 1, cashier: 2, supervisor: 3, assessor: 4, surveyor: 5, disabled: 6 };
+// bill heads: key -> [label, short code used in User IDs]
+const HEADS = { property_tax: ["Property tax", "PT"], water: ["Water", "WTR"], garbage: ["Garbage", "GAR"], sewerage: ["Sewerage", "SWR"], other: ["Other utilities", "OTH"] };
+const DEFAULT_HEADS = ["property_tax", "water", "garbage"];
+for (const [k, [label]] of Object.entries(HEADS)) {
+  const l = document.createElement("label"); const c = document.createElement("input");
+  c.type = "checkbox"; c.value = k; c.checked = DEFAULT_HEADS.includes(k);
+  l.append(c, document.createTextNode(label)); $("headChecks").append(l);
+}
 
 let myUlb = null;          // "*" = platform owner, else the ULB slug
-let ulbs = {};             // registry (platform owner only)
+let ulbs = {};             // registry
 let ulbNames = {};         // slug -> display name
 let allTowns = [];         // from ulb_list.json
+let usersCache = {};       // uid -> user
 const isSuper = () => myUlb === "*";
+const prefixFor = slug => slug.replace(/_/g, "").toUpperCase().slice(0, 10);
 
 $("btnLogin").onclick = async () => {
   try { await signInWithEmailAndPassword(auth, toEmail($("aEmail").value), $("aPass").value); }
@@ -158,7 +202,7 @@ let unsubUsers = null, unsubUlbs = null;
 onAuthStateChanged(auth, async (user) => {
   if (unsubUsers) { unsubUsers(); unsubUsers = null; }
   if (unsubUlbs) { unsubUlbs(); unsubUlbs = null; }
-  show("loginCard", !user); show("denyCard", false); show("adminArea", false); show("ulbCard", false);
+  show("loginCard", !user); show("denyCard", false); show("adminArea", false); show("ulbCard", false); show("credCard", false);
   if (!user) return;
   let role = null; myUlb = null;
   try {
@@ -180,43 +224,121 @@ onAuthStateChanged(auth, async (user) => {
   show("ulbCard", isSuper());
 
   if (isSuper()) {
-    unsubUlbs = onValue(ref(db, "ulbs"), (snap) => { ulbs = snap.val() || {}; renderUlbs(); fillUlbSelects(); });
+    unsubUlbs = onValue(ref(db, "ulbs"), (snap) => { ulbs = snap.val() || {}; renderUlbs(); fillSelects(); });
     unsubUsers = onValue(ref(db, "users"), renderUsers);
   } else {
     ulbs = { [myUlb]: { name: ulbNames[myUlb] || myUlb, active: true } };
-    fillUlbSelects();
+    fillSelects();
     unsubUsers = onValue(query(ref(db, "users"), orderByChild("ulb"), equalTo(myUlb)), renderUsers);
   }
 });
 
-function fillUlbSelects() {
-  // ULB picker for the owner: towns not registered yet
-  const pick = $("uPick"); pick.innerHTML = "";
+function fillSelects() {
+  const pick = $("uPick"); const keepP = pick.value; pick.innerHTML = "";
   for (const t of allTowns) {
-    if (ulbs[t.slug]) continue;
-    const o = document.createElement("option"); o.value = t.slug; o.textContent = t.name + (t.code ? " (" + t.code + ")" : ""); pick.append(o);
+    const o = document.createElement("option"); o.value = t.slug;
+    o.textContent = (ulbs[t.slug] ? "\u2713 " : "") + t.name + (t.code ? " (" + t.code + ")" : ""); pick.append(o);
   }
-  // ULB for new user
-  const sel = $("nUlb"); const keep = sel.value; sel.innerHTML = "";
+  if (keepP) pick.value = keepP;
   const keys = isSuper() ? Object.keys(ulbs).sort((a, b) => (ulbs[a].name || a).localeCompare(ulbs[b].name || b)) : [myUlb];
-  for (const k of keys) {
-    const o = document.createElement("option"); o.value = k; o.textContent = (ulbs[k]?.name || ulbNames[k] || k) + (ulbs[k]?.active === false ? " (inactive)" : ""); sel.append(o);
+  for (const id of ["nUlb", "cUlb"]) {
+    const sel = $(id); const keep = sel.value; sel.innerHTML = "";
+    for (const k of keys) {
+      const o = document.createElement("option"); o.value = k;
+      o.textContent = (ulbs[k]?.name || ulbNames[k] || k) + (ulbs[k]?.active === false ? " (switched off)" : ""); sel.append(o);
+    }
+    if (id === "nUlb" && isSuper()) { const o = document.createElement("option"); o.value = "*"; o.textContent = "ALL ULBs (platform owner)"; sel.append(o); }
+    if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+    sel.disabled = !isSuper();
   }
-  if (isSuper()) {
-    const o = document.createElement("option"); o.value = "*"; o.textContent = "ALL ULBs (platform owner)"; sel.append(o);
+  fillSupervisors();
+}
+$("cUlb").onchange = fillSupervisors;
+
+function supervisorsOf(ulb) {
+  return Object.entries(usersCache).filter(([, u]) => u.ulb === ulb && u.role === "supervisor")
+    .sort((a, b) => (a[1].name || "").localeCompare(b[1].name || ""));
+}
+function fillSupervisors() {
+  const sel = $("cSup"); const keep = sel.value; sel.innerHTML = "";
+  for (const [uid, u] of supervisorsOf($("cUlb").value || myUlb)) {
+    const o = document.createElement("option"); o.value = uid; o.textContent = u.name || u.email; sel.append(o);
   }
+  if (!sel.options.length) { const o = document.createElement("option"); o.value = ""; o.textContent = "No supervisor yet. Run step 1 first."; sel.append(o); }
   if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
-  sel.disabled = !isSuper();
 }
 
-$("btnAddUlb").onclick = async () => {
-  const slug = $("uPick").value;
-  if (!slug) return msg("ulbMsg", "err", "Every ULB is already added.");
-  const t = allTowns.find(x => x.slug === slug);
+// ---- creating one login (skips, never overwrites, an existing ID) ----
+async function createLogin({ userId, password, name, role, ulb, head, supervisor }) {
   try {
-    await set(ref(db, `ulbs/${slug}`), { name: t.name, code: t.code || "", active: true, createdAt: Date.now() });
-    msg("ulbMsg", "ok", `${t.name} added. Now create its logins below.`);
+    const cred = await createUserWithEmailAndPassword(auth2, toEmail(userId), password);
+    const rec = { name, email: toEmail(userId), role, ulb, createdAt: Date.now(), createdBy: auth.currentUser.email };
+    if (head) rec.head = head;
+    if (supervisor) rec.supervisor = supervisor;
+    await set(ref(db, `users/${cred.user.uid}`), rec);
+    await signOut(auth2);
+    usersCache[cred.user.uid] = rec;
+    return { ok: true, uid: cred.user.uid };
+  } catch (e) {
+    try { await signOut(auth2); } catch (x) {}
+    return { ok: false, code: e.code || e.message };
+  }
+}
+
+let lastCreds = [];
+function showCreds(rows) {
+  lastCreds = rows;
+  const t = $("credTable"); t.innerHTML = "";
+  const head = document.createElement("tr");
+  for (const c of ["ULB", "Role", "User ID", "Password"]) { const th = document.createElement("th"); th.textContent = c; head.append(th); }
+  t.append(head);
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    for (const c of [r.ulbName, r.roleLabel, r.userId, r.password]) { const td = document.createElement("td"); td.textContent = c; tr.append(td); }
+    t.append(tr);
+  }
+  show("credCard", rows.length > 0);
+  if (rows.length) $("credCard").scrollIntoView({ behavior: "smooth" });
+}
+$("btnCsv").onclick = () => {
+  const lines = [["ULB", "Role", "User ID", "Password"], ...lastCreds.map(r => [r.ulbName, r.roleLabel, r.userId, r.password])]
+    .map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(","));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+  a.download = "ulb_logins.csv"; a.click();
+};
+$("btnCopy").onclick = async () => {
+  const txt = lastCreds.map(r => `${r.ulbName} | ${r.roleLabel} | ${r.userId} | ${r.password}`).join("\n");
+  try { await navigator.clipboard.writeText(txt); alert("Copied."); } catch (e) { alert("Copy failed. Use Download CSV."); }
+};
+
+// ---- 1. one-click ULB setup ----
+$("btnSetup").onclick = async () => {
+  const slug = $("uPick").value;
+  const t = allTowns.find(x => x.slug === slug);
+  const heads = [...$("headChecks").querySelectorAll("input:checked")].map(c => c.value);
+  if (!t) return msg("ulbMsg", "err", "Choose a ULB.");
+  if (!heads.length) return msg("ulbMsg", "err", "Tick at least one bill head.");
+  $("btnSetup").disabled = true; msg("ulbMsg", "ok", "Working...");
+  const p = prefixFor(slug), rows = [], notes = [];
+  try {
+    const headMap = Object.fromEntries(heads.map(k => [k, HEADS[k][0]]));
+    if (!ulbs[slug]) await set(ref(db, `ulbs/${slug}`), { name: t.name, code: t.code || "", active: true, heads: headMap, createdAt: Date.now() });
+    else await update(ref(db, `ulbs/${slug}`), { heads: { ...(ulbs[slug].heads || {}), ...headMap } });
+
+    const plan = [{ id: `${p}_MON`, name: `${t.name} Monitor`, role: "monitor" }, { id: `${p}_CASH`, name: `${t.name} Cashier`, role: "cashier" }];
+    for (const k of heads) plan.push({ id: `${p}_SUP_${HEADS[k][1]}`, name: `${t.name} ${HEADS[k][0]} Supervisor`, role: "supervisor", head: k });
+    for (const x of plan) {
+      if (x.role === "cashier" && Object.values(usersCache).some(u => u.ulb === slug && u.role === "cashier")) { notes.push(`${x.id}: skipped, this ULB already has a cashier.`); continue; }
+      const pw = genPass();
+      const r = await createLogin({ userId: x.id, password: pw, name: x.name, role: x.role, ulb: slug, head: x.head });
+      if (r.ok) rows.push({ ulbName: t.name, roleLabel: ROLE_LABEL[x.role] + (x.head ? " (" + HEADS[x.head][0] + ")" : ""), userId: x.id, password: pw });
+      else notes.push(`${x.id}: ${r.code === "auth/email-already-in-use" ? "already exists, left as it is" : r.code}`);
+    }
+    showCreds(rows);
+    msg("ulbMsg", "ok", `${t.name}: ${rows.length} ID(s) created.` + (notes.length ? " " + notes.join(" | ") : ""));
   } catch (e) { msg("ulbMsg", "err", e.code || e.message); }
+  $("btnSetup").disabled = false;
 };
 
 function renderUlbs() {
@@ -229,7 +351,9 @@ function renderUlbs() {
     const row = document.createElement("div"); row.className = "row";
     const who = document.createElement("div"); who.className = "who";
     const b = document.createElement("b"); b.textContent = u.name || k;
-    const s = document.createElement("span"); s.textContent = (u.code ? "Code " + u.code + " | " : "") + (u.active ? "Active" : "Switched off: no login of this ULB can read or write");
+    const s = document.createElement("span");
+    s.textContent = (u.code ? "Code " + u.code + " | " : "") + (u.active ? "Active" : "Switched off: no login of this ULB can read or write")
+      + (u.heads ? " | " + Object.values(u.heads).join(", ") : "");
     who.append(b, s);
     const btn = document.createElement("button"); btn.className = "ghost small"; btn.textContent = u.active ? "Switch off" : "Switch on";
     btn.onclick = async () => {
@@ -240,46 +364,67 @@ function renderUlbs() {
   }
 }
 
+// ---- 2. data collectors under a supervisor ----
+$("btnCollectors").onclick = async () => {
+  const ulb = isSuper() ? $("cUlb").value : myUlb;
+  const supUid = $("cSup").value;
+  const n = Math.max(1, Math.min(50, parseInt($("cCount").value, 10) || 1));
+  const sup = usersCache[supUid];
+  if (!ulb || !sup) return msg("colMsg", "err", "Choose a ULB and a supervisor. Run step 1 first if none is listed.");
+  const code = HEADS[sup.head]?.[1] || "GEN";
+  const p = prefixFor(ulb);
+  $("btnCollectors").disabled = true; msg("colMsg", "ok", "Working...");
+  const rows = []; let made = 0, i = Object.values(usersCache).filter(u => u.supervisor === supUid).length;
+  for (let tries = 0; made < n && tries < n + 40; tries++) {
+    i++;
+    const userId = `${p}_${code}_C${String(i).padStart(2, "0")}`, pw = genPass();
+    const r = await createLogin({ userId, password: pw, name: `${ulbNames[ulb] || ulb} ${sup.head ? HEADS[sup.head][0] + " " : ""}Collector ${String(i).padStart(2, "0")}`, role: "surveyor", ulb, head: sup.head, supervisor: supUid });
+    if (r.ok) { made++; rows.push({ ulbName: ulbNames[ulb] || ulb, roleLabel: "Data collector under " + (sup.name || "supervisor"), userId, password: pw }); }
+    else if (r.code !== "auth/email-already-in-use") { msg("colMsg", "err", `${userId}: ${r.code}`); break; }
+  }
+  showCreds(rows);
+  if (made) msg("colMsg", "ok", `${made} collector ID(s) created.`);
+  $("btnCollectors").disabled = false;
+};
+
+// ---- single user ----
 $("btnAdd").onclick = async () => {
   const name = $("nName").value.trim();
   const uid0 = $("nEmail").value.trim();
   const ulb = isSuper() ? $("nUlb").value : myUlb;
-  if (!ulb) return msg("addMsg", "err", "Choose a ULB. Add the ULB first.");
-  if (!/^[A-Za-z0-9._-]{3,30}$/.test(uid0)) return msg("addMsg", "err", "User ID: 3-30 letters, numbers, dot, dash or underscore.");
-  const email = toEmail(uid0);
   const pass = $("nPass").value;
   const role = $("nRole").value;
+  if (!ulb) return msg("addMsg", "err", "Choose a ULB. Run step 1 first.");
+  if (!/^[A-Za-z0-9._-]{3,30}$/.test(uid0)) return msg("addMsg", "err", "User ID: 3-30 letters, numbers, dot, dash or underscore.");
   if (!name) return msg("addMsg", "err", "Enter the full name.");
   if (pass.length < 8) return msg("addMsg", "err", "Password must be at least 8 characters.");
   if (ulb === "*" && role !== "admin") return msg("addMsg", "err", "A platform-owner login must have the admin role.");
+  if (role === "cashier" && Object.values(usersCache).some(u => u.ulb === ulb && u.role === "cashier"))
+    return msg("addMsg", "err", "This ULB already has its one cashier ID.");
   $("btnAdd").disabled = true;
-  try {
-    const cred = await createUserWithEmailAndPassword(auth2, email, pass);
-    await set(ref(db, `users/${cred.user.uid}`), {
-      name, email, role, ulb, createdAt: Date.now(), createdBy: auth.currentUser.email
-    });
-    await signOut(auth2);
-    msg("addMsg", "ok", `Created. ULB: ${ulb === "*" ? "ALL" : (ulbNames[ulb] || ulb)}  |  User ID: ${uid0}  |  Password: ${pass}  |  Role: ${role}. Note these down and give them to the user.`);
+  const r = await createLogin({ userId: uid0, password: pass, name, role, ulb });
+  if (r.ok) {
+    msg("addMsg", "ok", `Created. ULB: ${ulb === "*" ? "ALL" : (ulbNames[ulb] || ulb)}  |  User ID: ${uid0}  |  Password: ${pass}  |  Role: ${ROLE_LABEL[role]}. Note these down and give them to the user.`);
     $("nName").value = ""; $("nEmail").value = ""; $("nPass").value = "";
-  } catch (e) {
-    msg("addMsg", "err", e.code === "auth/email-already-in-use"
-      ? "That User ID is already taken. Choose another."
-      : (e.code || e.message));
-  }
+  } else msg("addMsg", "err", r.code === "auth/email-already-in-use" ? "That User ID is already taken. Choose another." : r.code);
   $("btnAdd").disabled = false;
 };
 
-function userRow(uid, u) {
-  const row = document.createElement("div"); row.className = "row";
+// ---- users list: monitor, cashier, supervisors with their collectors under them ----
+function userRow(uid, u, indent) {
+  const row = document.createElement("div"); row.className = "row" + (indent ? " ind" : "");
   const who = document.createElement("div"); who.className = "who";
   const b = document.createElement("b"); b.textContent = u.name || "(no name)";
-  const s = document.createElement("span"); s.textContent = (u.email || uid).replace("@" + DOMAIN, "");
+  const s = document.createElement("span"); s.textContent = (u.email || uid).replace("@" + DOMAIN, "") + (u.head && HEADS[u.head] ? " | " + HEADS[u.head][0] : "");
   who.append(b, s);
   const sel = document.createElement("select");
-  for (const r of ROLES) { const o = document.createElement("option"); o.value = r; o.textContent = r; if (u.role === r) o.selected = true; sel.append(o); }
+  for (const r of ROLES) { const o = document.createElement("option"); o.value = r; o.textContent = ROLE_LABEL[r]; if (u.role === r) o.selected = true; sel.append(o); }
   sel.onchange = async () => {
     if (uid === auth.currentUser.uid && sel.value !== "admin" &&
         !confirm("You are removing your own admin access. Continue?")) { sel.value = "admin"; return; }
+    if (sel.value === "cashier" && Object.entries(usersCache).some(([k, x]) => k !== uid && x.ulb === u.ulb && x.role === "cashier")) {
+      alert("This ULB already has its one cashier ID."); sel.value = u.role; return;
+    }
     try { await update(ref(db, `users/${uid}`), { role: sel.value }); } catch (e) { alert(e.code || e.message); }
   };
   row.append(who, sel);
@@ -287,9 +432,9 @@ function userRow(uid, u) {
 }
 
 function renderUsers(snap) {
-  const val = snap.val() || {};
-  const box = $("userList");
-  const uids = Object.keys(val);
+  usersCache = snap.val() || {};
+  fillSupervisors();
+  const val = usersCache, box = $("userList"), uids = Object.keys(val);
   if (!uids.length) { box.textContent = "No users yet."; return; }
   box.innerHTML = "";
   const groups = {};
@@ -299,8 +444,15 @@ function renderUsers(snap) {
     const h = document.createElement("div"); h.className = "grp";
     h.textContent = g === "*" ? "Platform owner (all ULBs)" : (ulbNames[g] || g);
     box.append(h);
-    groups[g].sort((a, b) => (val[a].name || "").localeCompare(val[b].name || ""));
-    for (const uid of groups[g]) box.append(userRow(uid, val[uid]));
+    const list = groups[g];
+    const isCollector = uid => val[uid].role === "surveyor" && val[uid].supervisor && val[val[uid].supervisor];
+    const top = list.filter(uid => !isCollector(uid)).sort((a, b) =>
+      (ROLE_ORDER[val[a].role] ?? 9) - (ROLE_ORDER[val[b].role] ?? 9) || (val[a].name || "").localeCompare(val[b].name || ""));
+    for (const uid of top) {
+      box.append(userRow(uid, val[uid], false));
+      list.filter(c => isCollector(c) && val[c].supervisor === uid).sort((a, b) => (val[a].name || "").localeCompare(val[b].name || ""))
+        .forEach(c => box.append(userRow(c, val[c], true)));
+    }
   }
 }
 </script>
