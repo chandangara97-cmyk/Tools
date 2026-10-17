@@ -63,9 +63,10 @@ const GisPropertySurveyInner: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'survey' | 'map-editor' | 'records' | 'assessment' | 'collection' | 'reports' | 'exports'>('survey');
 
   // Town & Surveyor Config
-  const [selectedTownKey, setSelectedTownKey] = useState<string>(townSlug('Bhota'));
+  const { role, displayName, ulb, isSuper } = useAuth();
+  // A ULB login is locked to its own town; only the platform owner ("*") can pick any ULB.
+  const [selectedTownKey, setSelectedTownKey] = useState<string>(isSuper || !ulb ? townSlug('Bhota') : ulb);
   const [wardNo, setWardNo] = useState<string>('1');
-  const { role, displayName } = useAuth();
   const writable = canWriteSurvey(role);
   const deletable = canDeleteSurvey(role);
   const sync = useSyncState();
@@ -82,6 +83,12 @@ const GisPropertySurveyInner: React.FC = () => {
     } catch (e) {}
     return TOWNS_MAP;
   });
+
+  // ULBs this login may see: all for the platform owner, just its own otherwise.
+  const visibleTowns = useMemo(
+    () => (isSuper ? editableTowns : Object.fromEntries(Object.entries(editableTowns).filter(([k]) => k === ulb))),
+    [editableTowns, isSuper, ulb],
+  );
 
   // Property Records
   const [records, setRecords] = useState<PropertyRecord[]>(() => {
@@ -931,7 +938,12 @@ const GisPropertySurveyInner: React.FC = () => {
 
           {/* Quick Town Selector */}
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-[#9fc7c1] whitespace-nowrap">Selected ULB:</label>
+            <label className="text-xs font-semibold text-[#9fc7c1] whitespace-nowrap">{isSuper ? 'Selected ULB:' : 'Your ULB:'}</label>
+            {!isSuper ? (
+              <span className="bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg px-3 py-2 font-bold">
+                {currentTown.n} ({currentTown.w?.length || 0} wards)
+              </span>
+            ) : (
             <select
               value={selectedTownKey}
               onChange={(e) => {
@@ -941,12 +953,13 @@ const GisPropertySurveyInner: React.FC = () => {
               }}
               className="bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg px-3 py-2 font-medium focus:outline-none focus:border-[#20b5a6]"
             >
-              {Object.entries(editableTowns).sort((a, b) => a[1].n.localeCompare(b[1].n)).map(([key, t]) => (
+              {Object.entries(visibleTowns).sort((a, b) => a[1].n.localeCompare(b[1].n)).map(([key, t]) => (
                 <option key={key} value={key}>
                   {t.n} ({t.w?.length || 0} wards)
                 </option>
               ))}
             </select>
+            )}
           </div>
         </div>
 

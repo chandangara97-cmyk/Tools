@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Property Tax - User Admin</title>
+<title>Property Tax - ULB &amp; User Admin</title>
 <style>
   :root { --bg:#0a161e; --card:#0f2230; --line:#1d3a4a; --text:#e6f1f0; --mute:#8fb0ad; --accent:#0e8a7d; --bad:#d9534f; --ok:#2fb67c; }
   * { box-sizing: border-box; }
@@ -15,6 +15,7 @@
   label { display:block; font-size: 13px; color: var(--mute); margin: 10px 0 4px; }
   input, select { width:100%; padding: 11px; border-radius: 8px; border:1px solid var(--line); background:#081219; color:var(--text); font-size: 15px; }
   button { padding: 11px 16px; border:0; border-radius: 8px; background: var(--accent); color:#fff; font-size: 15px; font-weight: 600; cursor:pointer; margin-top: 14px; }
+  button:disabled { opacity:.5; }
   button.ghost { background: transparent; border:1px solid var(--line); color: var(--mute); }
   button.small { padding: 6px 10px; font-size: 13px; margin: 0; }
   .msg { margin-top: 12px; padding: 10px; border-radius: 8px; font-size: 14px; display:none; word-break: break-word; }
@@ -27,15 +28,16 @@
   .who span { font-size: 12px; color: var(--mute); word-break: break-all; }
   .row select { width: auto; padding: 7px; font-size: 14px; }
   .hidden { display:none; }
+  .grp { margin: 14px 0 2px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  .tag { display:inline-block; font-size: 11px; padding: 2px 7px; border-radius: 999px; border:1px solid var(--line); color: var(--mute); margin-left: 6px; }
   code { background:#081219; padding: 2px 6px; border-radius: 4px; font-size: 12px; word-break: break-all; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>User Admin</h1>
-  <div class="sub">Property Tax project: create staff logins and assign roles.</div>
+  <h1>ULB &amp; User Admin</h1>
+  <div class="sub">Each ULB gets its own logins. A login sees only its own ULB.</div>
 
-  <!-- Sign in -->
   <div id="loginCard" class="card">
     <b>Admin sign-in</b>
     <label>User ID or email</label>
@@ -46,31 +48,38 @@
     <div id="loginMsg" class="msg"></div>
   </div>
 
-  <!-- Not admin -->
   <div id="denyCard" class="card hidden">
     <b>No admin access</b>
-    <p style="font-size:14px;color:var(--mute)">
-      Signed in as <span id="denyEmail"></span>, but this account is not an admin.
-      In Firebase Console open Realtime Database, then add <code>users / <span id="denyUid"></span> / role = admin</code>
-      (one time), then sign out and sign in again.
-    </p>
+    <p id="denyText" style="font-size:14px;color:var(--mute)"></p>
     <button class="ghost" id="btnOut1">Sign out</button>
   </div>
 
-  <!-- Admin area -->
   <div id="adminArea" class="hidden">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <span style="font-size:13px;color:var(--mute)">Signed in: <b id="meEmail" style="color:var(--text)"></b></span>
+        <span style="font-size:13px;color:var(--mute)">Signed in: <b id="meEmail" style="color:var(--text)"></b> <span class="tag" id="meScope"></span></span>
         <button class="ghost small" id="btnOut2">Sign out</button>
       </div>
     </div>
 
+    <!-- Platform owner only -->
+    <div class="card hidden" id="ulbCard">
+      <b>Add a ULB</b>
+      <label>Choose the urban body</label>
+      <select id="uPick"></select>
+      <button id="btnAddUlb">Add ULB</button>
+      <div id="ulbMsg" class="msg"></div>
+      <div class="grp">ULBs</div>
+      <div id="ulbList" style="font-size:14px;color:var(--mute)">Loading...</div>
+    </div>
+
     <div class="card">
-      <b>Create user ID, password and role</b>
+      <b>Create user ID and password</b>
       <label>Full name</label>
       <input id="nName" type="text">
-      <label>User ID (letters and numbers, e.g. RAJESH01)</label>
+      <label>ULB</label>
+      <select id="nUlb"></select>
+      <label>User ID (letters and numbers, e.g. BHOTA_CASH1)</label>
       <input id="nEmail" type="text" autocapitalize="none" autocomplete="off">
       <label>Password (at least 8 characters)</label>
       <div style="display:flex;gap:8px">
@@ -83,7 +92,7 @@
         <option value="supervisor">Supervisor</option>
         <option value="assessor">Assessor</option>
         <option value="cashier">Cashier</option>
-        <option value="admin">Admin</option>
+        <option value="admin">ULB admin</option>
       </select>
       <button id="btnAdd">Create user</button>
       <div id="addMsg" class="msg"></div>
@@ -100,7 +109,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-import { getDatabase, ref, get, set, update, onValue }
+import { getDatabase, ref, get, set, update, onValue, query, orderByChild, equalTo }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 
 const cfg = {
@@ -114,7 +123,6 @@ const cfg = {
 const app = initializeApp(cfg);
 const auth = getAuth(app);
 const db = getDatabase(app);
-
 // Second app instance: creating a user signs that user in, so we do it here
 // to keep the admin signed in on the main instance.
 const app2 = initializeApp(cfg, "creator");
@@ -131,49 +139,127 @@ function genPass() {
   return Array.from(a, n => c[n % c.length]).join("");
 }
 $("btnGen").onclick = () => { $("nPass").value = genPass(); };
-const ROLES = ["surveyor","supervisor","assessor","cashier","admin"];
+const ROLES = ["surveyor","supervisor","assessor","cashier","admin","disabled"];
+
+let myUlb = null;          // "*" = platform owner, else the ULB slug
+let ulbs = {};             // registry (platform owner only)
+let ulbNames = {};         // slug -> display name
+let allTowns = [];         // from ulb_list.json
+const isSuper = () => myUlb === "*";
 
 $("btnLogin").onclick = async () => {
-  try {
-    await signInWithEmailAndPassword(auth, toEmail($("aEmail").value), $("aPass").value);
-  } catch (e) { msg("loginMsg", "err", e.code || e.message); }
+  try { await signInWithEmailAndPassword(auth, toEmail($("aEmail").value), $("aPass").value); }
+  catch (e) { msg("loginMsg", "err", e.code || e.message); }
 };
 const doOut = () => signOut(auth);
 $("btnOut1").onclick = doOut; $("btnOut2").onclick = doOut;
 
-let unsubUsers = null;
+let unsubUsers = null, unsubUlbs = null;
 onAuthStateChanged(auth, async (user) => {
   if (unsubUsers) { unsubUsers(); unsubUsers = null; }
-  show("loginCard", !user); show("denyCard", false); show("adminArea", false);
+  if (unsubUlbs) { unsubUlbs(); unsubUlbs = null; }
+  show("loginCard", !user); show("denyCard", false); show("adminArea", false); show("ulbCard", false);
   if (!user) return;
-  let role = null;
-  try { role = (await get(ref(db, `users/${user.uid}/role`))).val(); } catch (e) {}
-  if (role !== "admin") {
-    $("denyEmail").textContent = user.email; $("denyUid").textContent = user.uid;
+  let role = null; myUlb = null;
+  try {
+    const me = (await get(ref(db, `users/${user.uid}`))).val() || {};
+    role = me.role; myUlb = me.ulb || null;
+  } catch (e) {}
+  if (role !== "admin" || !myUlb) {
+    $("denyText").textContent = role === "admin"
+      ? `Signed in as ${user.email}, but this admin has no ULB. In Firebase Console > Realtime Database set users / ${user.uid} / ulb = * (platform owner) or the ULB name, then sign in again.`
+      : `Signed in as ${user.email}, but this account is not an admin.`;
     show("denyCard", true); return;
   }
-  $("meEmail").textContent = user.email;
+  try { allTowns = await (await fetch("ulb_list.json")).json(); } catch (e) { allTowns = []; }
+  for (const t of allTowns) ulbNames[t.slug] = t.name;
+
+  $("meEmail").textContent = user.email.split("@")[0];
+  $("meScope").textContent = isSuper() ? "Platform owner: all ULBs" : "ULB admin: " + (ulbNames[myUlb] || myUlb);
   show("adminArea", true);
-  unsubUsers = onValue(ref(db, "users"), renderUsers);
+  show("ulbCard", isSuper());
+
+  if (isSuper()) {
+    unsubUlbs = onValue(ref(db, "ulbs"), (snap) => { ulbs = snap.val() || {}; renderUlbs(); fillUlbSelects(); });
+    unsubUsers = onValue(ref(db, "users"), renderUsers);
+  } else {
+    ulbs = { [myUlb]: { name: ulbNames[myUlb] || myUlb, active: true } };
+    fillUlbSelects();
+    unsubUsers = onValue(query(ref(db, "users"), orderByChild("ulb"), equalTo(myUlb)), renderUsers);
+  }
 });
+
+function fillUlbSelects() {
+  // ULB picker for the owner: towns not registered yet
+  const pick = $("uPick"); pick.innerHTML = "";
+  for (const t of allTowns) {
+    if (ulbs[t.slug]) continue;
+    const o = document.createElement("option"); o.value = t.slug; o.textContent = t.name + (t.code ? " (" + t.code + ")" : ""); pick.append(o);
+  }
+  // ULB for new user
+  const sel = $("nUlb"); const keep = sel.value; sel.innerHTML = "";
+  const keys = isSuper() ? Object.keys(ulbs).sort((a, b) => (ulbs[a].name || a).localeCompare(ulbs[b].name || b)) : [myUlb];
+  for (const k of keys) {
+    const o = document.createElement("option"); o.value = k; o.textContent = (ulbs[k]?.name || ulbNames[k] || k) + (ulbs[k]?.active === false ? " (inactive)" : ""); sel.append(o);
+  }
+  if (isSuper()) {
+    const o = document.createElement("option"); o.value = "*"; o.textContent = "ALL ULBs (platform owner)"; sel.append(o);
+  }
+  if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+  sel.disabled = !isSuper();
+}
+
+$("btnAddUlb").onclick = async () => {
+  const slug = $("uPick").value;
+  if (!slug) return msg("ulbMsg", "err", "Every ULB is already added.");
+  const t = allTowns.find(x => x.slug === slug);
+  try {
+    await set(ref(db, `ulbs/${slug}`), { name: t.name, code: t.code || "", active: true, createdAt: Date.now() });
+    msg("ulbMsg", "ok", `${t.name} added. Now create its logins below.`);
+  } catch (e) { msg("ulbMsg", "err", e.code || e.message); }
+};
+
+function renderUlbs() {
+  const box = $("ulbList"); const keys = Object.keys(ulbs);
+  if (!keys.length) { box.textContent = "No ULBs yet."; return; }
+  box.innerHTML = "";
+  keys.sort((a, b) => (ulbs[a].name || a).localeCompare(ulbs[b].name || b));
+  for (const k of keys) {
+    const u = ulbs[k];
+    const row = document.createElement("div"); row.className = "row";
+    const who = document.createElement("div"); who.className = "who";
+    const b = document.createElement("b"); b.textContent = u.name || k;
+    const s = document.createElement("span"); s.textContent = (u.code ? "Code " + u.code + " | " : "") + (u.active ? "Active" : "Switched off: no login of this ULB can read or write");
+    who.append(b, s);
+    const btn = document.createElement("button"); btn.className = "ghost small"; btn.textContent = u.active ? "Switch off" : "Switch on";
+    btn.onclick = async () => {
+      if (u.active && !confirm(`Switch off ${u.name || k}? All its users lose access until you switch it on again.`)) return;
+      try { await update(ref(db, `ulbs/${k}`), { active: !u.active }); } catch (e) { alert(e.code || e.message); }
+    };
+    row.append(who, btn); box.append(row);
+  }
+}
 
 $("btnAdd").onclick = async () => {
   const name = $("nName").value.trim();
   const uid0 = $("nEmail").value.trim();
+  const ulb = isSuper() ? $("nUlb").value : myUlb;
+  if (!ulb) return msg("addMsg", "err", "Choose a ULB. Add the ULB first.");
   if (!/^[A-Za-z0-9._-]{3,30}$/.test(uid0)) return msg("addMsg", "err", "User ID: 3-30 letters, numbers, dot, dash or underscore.");
   const email = toEmail(uid0);
   const pass = $("nPass").value;
   const role = $("nRole").value;
-  if (!name || !email) return msg("addMsg", "err", "Enter name and email.");
+  if (!name) return msg("addMsg", "err", "Enter the full name.");
   if (pass.length < 8) return msg("addMsg", "err", "Password must be at least 8 characters.");
+  if (ulb === "*" && role !== "admin") return msg("addMsg", "err", "A platform-owner login must have the admin role.");
   $("btnAdd").disabled = true;
   try {
     const cred = await createUserWithEmailAndPassword(auth2, email, pass);
     await set(ref(db, `users/${cred.user.uid}`), {
-      name, email, role, createdAt: Date.now(), createdBy: auth.currentUser.email
+      name, email, role, ulb, createdAt: Date.now(), createdBy: auth.currentUser.email
     });
     await signOut(auth2);
-    msg("addMsg", "ok", `Created. User ID: ${uid0}  |  Login email: ${email}  |  Password: ${pass}  |  Role: ${role}. Note these down and give them to the user.`);
+    msg("addMsg", "ok", `Created. ULB: ${ulb === "*" ? "ALL" : (ulbNames[ulb] || ulb)}  |  User ID: ${uid0}  |  Password: ${pass}  |  Role: ${role}. Note these down and give them to the user.`);
     $("nName").value = ""; $("nEmail").value = ""; $("nPass").value = "";
   } catch (e) {
     msg("addMsg", "err", e.code === "auth/email-already-in-use"
@@ -183,35 +269,38 @@ $("btnAdd").onclick = async () => {
   $("btnAdd").disabled = false;
 };
 
+function userRow(uid, u) {
+  const row = document.createElement("div"); row.className = "row";
+  const who = document.createElement("div"); who.className = "who";
+  const b = document.createElement("b"); b.textContent = u.name || "(no name)";
+  const s = document.createElement("span"); s.textContent = (u.email || uid).replace("@" + DOMAIN, "");
+  who.append(b, s);
+  const sel = document.createElement("select");
+  for (const r of ROLES) { const o = document.createElement("option"); o.value = r; o.textContent = r; if (u.role === r) o.selected = true; sel.append(o); }
+  sel.onchange = async () => {
+    if (uid === auth.currentUser.uid && sel.value !== "admin" &&
+        !confirm("You are removing your own admin access. Continue?")) { sel.value = "admin"; return; }
+    try { await update(ref(db, `users/${uid}`), { role: sel.value }); } catch (e) { alert(e.code || e.message); }
+  };
+  row.append(who, sel);
+  return row;
+}
+
 function renderUsers(snap) {
   const val = snap.val() || {};
   const box = $("userList");
   const uids = Object.keys(val);
   if (!uids.length) { box.textContent = "No users yet."; return; }
   box.innerHTML = "";
-  uids.sort((a, b) => (val[a].name || "").localeCompare(val[b].name || ""));
-  for (const uid of uids) {
-    const u = val[uid];
-    const row = document.createElement("div"); row.className = "row";
-    const who = document.createElement("div"); who.className = "who";
-    const b = document.createElement("b"); b.textContent = u.name || "(no name)";
-    const s = document.createElement("span"); s.textContent = u.email || uid;
-    who.append(b, s);
-    const sel = document.createElement("select");
-    for (const r of ROLES) { const o = document.createElement("option"); o.value = r; o.textContent = r; if (u.role === r) o.selected = true; sel.append(o); }
-    sel.onchange = async () => {
-      if (uid === auth.currentUser.uid && sel.value !== "admin" &&
-          !confirm("You are removing your own admin access. Continue?")) { sel.value = "admin"; return; }
-      try { await update(ref(db, `users/${uid}`), { role: sel.value }); } catch (e) { alert(e.code || e.message); }
-    };
-    const off = document.createElement("button"); off.className = "ghost small"; off.textContent = u.role === "disabled" ? "Disabled" : "Disable";
-    off.onclick = async () => {
-      if (uid === auth.currentUser.uid) return alert("You cannot disable yourself.");
-      if (!confirm(`Disable ${u.email || uid}? They will be left with no role.`)) return;
-      try { await update(ref(db, `users/${uid}`), { role: "disabled" }); } catch (e) { alert(e.code || e.message); }
-    };
-    row.append(who, sel, off);
-    box.append(row);
+  const groups = {};
+  for (const uid of uids) (groups[val[uid].ulb || "(no ULB)"] ||= []).push(uid);
+  const gkeys = Object.keys(groups).sort((a, b) => (a === "*" ? -1 : b === "*" ? 1 : (ulbNames[a] || a).localeCompare(ulbNames[b] || b)));
+  for (const g of gkeys) {
+    const h = document.createElement("div"); h.className = "grp";
+    h.textContent = g === "*" ? "Platform owner (all ULBs)" : (ulbNames[g] || g);
+    box.append(h);
+    groups[g].sort((a, b) => (val[a].name || "").localeCompare(val[b].name || ""));
+    for (const uid of groups[g]) box.append(userRow(uid, val[uid]));
   }
 }
 </script>
