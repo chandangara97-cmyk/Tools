@@ -967,12 +967,14 @@ const GisPropertySurveyInner: React.FC = () => {
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="max-w-7xl mx-auto flex items-center gap-1 mt-4 overflow-x-auto border-t border-[#16363d] pt-2">
+        {/* Section navigation: each work area is a separate workspace page */}
+        <div className="max-w-7xl mx-auto mt-4 border-t border-[#16363d] pt-3">
+          <p className="text-[10px] uppercase tracking-[.2em] font-bold text-[#7fa6a0] mb-2">Workspace pages · choose one section at a time</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
           <button
             onClick={() => setActiveTab('survey')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'survey' ? 'bg-[#0e8a7d] text-white shadow-md' : 'text-[#9fc7c1] hover:bg-white/5'
+            className={`min-h-[76px] flex-col items-start justify-center px-3 py-3 rounded-xl border text-left text-[11px] font-bold transition-all flex gap-2 whitespace-normal ${
+              activeTab === 'survey' ? 'bg-[#0e8a7d] text-white border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] text-[#9fc7c1] hover:bg-[#12343a] hover:text-white'
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
@@ -980,8 +982,8 @@ const GisPropertySurveyInner: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('map-editor')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'map-editor' ? 'bg-[#0e8a7d] text-white shadow-md' : 'text-[#9fc7c1] hover:bg-white/5'
+            className={`min-h-[76px] flex-col items-start justify-center px-3 py-3 rounded-xl border text-left text-[11px] font-bold transition-all flex gap-2 whitespace-normal ${
+              activeTab === 'map-editor' ? 'bg-[#0e8a7d] text-white border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] text-[#9fc7c1] hover:bg-[#12343a] hover:text-white'
             }`}
           >
             <PenTool className="w-3.5 h-3.5 text-[#f7dfae]" />
@@ -989,8 +991,8 @@ const GisPropertySurveyInner: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('records')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'records' ? 'bg-[#0e8a7d] text-white shadow-md' : 'text-[#9fc7c1] hover:bg-white/5'
+            className={`min-h-[76px] flex-col items-start justify-center px-3 py-3 rounded-xl border text-left text-[11px] font-bold transition-all flex gap-2 whitespace-normal ${
+              activeTab === 'records' ? 'bg-[#0e8a7d] text-white border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] text-[#9fc7c1] hover:bg-[#12343a] hover:text-white'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
@@ -998,8 +1000,8 @@ const GisPropertySurveyInner: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('assessment')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'assessment' ? 'bg-[#0e8a7d] text-white shadow-md' : 'text-[#9fc7c1] hover:bg-white/5'
+            className={`min-h-[76px] flex-col items-start justify-center px-3 py-3 rounded-xl border text-left text-[11px] font-bold transition-all flex gap-2 whitespace-normal ${
+              activeTab === 'assessment' ? 'bg-[#0e8a7d] text-white border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] text-[#9fc7c1] hover:bg-[#12343a] hover:text-white'
             }`}
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -1007,8 +1009,8 @@ const GisPropertySurveyInner: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('collection')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'collection' ? 'bg-[#0e8a7d] text-white shadow-md' : 'text-[#9fc7c1] hover:bg-white/5'
+            className={`min-h-[76px] flex-col items-start justify-center px-3 py-3 rounded-xl border text-left text-[11px] font-bold transition-all flex gap-2 whitespace-normal ${
+              activeTab === 'collection' ? 'bg-[#0e8a7d] text-white border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] text-[#9fc7c1] hover:bg-[#12343a] hover:text-white'
             }`}
           >
             <Landmark className="w-3.5 h-3.5" />
@@ -1016,8 +1018,8 @@ const GisPropertySurveyInner: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('reports')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'reports' ? 'bg-[#0e8a7d] text-white shadow-md' : 'text-[#9fc7c1] hover:bg-white/5'
+            className={`min-h-[76px] flex-col items-start justify-center px-3 py-3 rounded-xl border text-left text-[11px] font-bold transition-all flex gap-2 whitespace-normal ${
+              activeTab === 'reports' ? 'bg-[#0e8a7d] text-white border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] text-[#9fc7c1] hover:bg-[#12343a] hover:text-white'
             }`}
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -1025,13 +1027,14 @@ const GisPropertySurveyInner: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('exports')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'exports' ? 'bg-[#0e8a7d] text-white shadow-md' : 'text-[#9fc7c1] hover:bg-white/5'
+            className={`min-h-[76px] flex-col items-start justify-center px-3 py-3 rounded-xl border text-left text-[11px] font-bold transition-all flex gap-2 whitespace-normal ${
+              activeTab === 'exports' ? 'bg-[#0e8a7d] text-white border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] text-[#9fc7c1] hover:bg-[#12343a] hover:text-white'
             }`}
           >
             <Download className="w-3.5 h-3.5 text-[#38bdf8]" />
             7. GIS Deliverables &amp; Exports (SHP/KML)
           </button>
+          </div>
         </div>
       </div>
 

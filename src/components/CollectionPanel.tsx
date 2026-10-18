@@ -72,6 +72,7 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [collectionPage, setCollectionPage] = useState<'overview' | 'properties' | 'settings' | 'audit'>('overview');
 
   const townRecords = useMemo(() => records.filter((r) => r.town === townName), [records, townName]);
   const rows = useMemo(() => townRecords.map((r) => {
@@ -140,7 +141,21 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
         </div>
       )}
 
-      <div className={`${card} space-y-3`}>
+      <div className="rounded-2xl border border-[#23534d] bg-gradient-to-r from-[#102d35] via-[#0e282f] to-[#102c2a] p-3 sm:p-4 shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+          <div><p className="text-[10px] uppercase tracking-[.22em] font-bold text-[#20b5a6]">Collection workspace</p><h2 className="text-lg font-extrabold text-white">Property tax collection</h2><p className="text-xs text-[#9fc7c1]">Each work area opens as its own page.</p></div>
+          <span className="text-xs text-[#f7dfae] bg-[#d6a34b]/10 border border-[#d6a34b]/30 rounded-full px-3 py-1.5">{townName}</span>
+        </div>
+        <nav className="grid grid-cols-2 md:grid-cols-4 gap-2" aria-label="Collection pages">
+          {([{id:'overview',n:'01',title:'Demand overview',sub:'Summary & generation'},{id:'properties',n:'02',title:'Properties & ledger',sub:'Search dues and record payment'},{id:'settings',n:'03',title:'Rules & settings',sub:'Due date, interest, rebate'},{id:'audit',n:'04',title:'Audit trail',sub:'Review recorded actions'}] as const).map((item) => (
+            <button key={item.id} type="button" onClick={() => setCollectionPage(item.id)} className={`text-left rounded-xl border p-3 transition-all ${collectionPage === item.id ? 'bg-[#0e8a7d] border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] hover:border-[#20b5a6]/70 hover:bg-[#12343a]'}`}>
+              <span className={`text-[10px] font-black tracking-widest ${collectionPage === item.id ? 'text-[#f7dfae]' : 'text-[#20b5a6]'}`}>{item.n}</span><span className="block text-xs font-bold text-white mt-1">{item.title}</span><span className="block text-[10px] text-[#c5d8df] mt-1">{item.sub}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {collectionPage === 'overview' && <div className={`${card} space-y-3`}>
         <div className="flex flex-wrap items-center gap-3">
           <h3 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider flex items-center gap-2"><Landmark className="w-4 h-4" /> Demand &amp; collection</h3>
           <select value={fy} onChange={(e) => setFy(e.target.value)} className={inp}>
@@ -165,9 +180,9 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
           </button>
         </div>
         {msg && <p className="text-xs text-[#f7dfae]">{msg}</p>}
-      </div>
+      </div>}
 
-      <div className={`${card} space-y-3`}>
+      {collectionPage === 'properties' && <div className={`${card} space-y-3`}>
         <div className="flex items-center gap-2">
           <Search className="w-4 h-4 text-[#9fc7c1]" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search property ID, owner, house no., ward" className={`${inp} flex-1`} />
@@ -193,9 +208,9 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
           </table>
           {rows.length > 100 && <p className="text-[10px] text-[#7fa6a0] mt-1">Showing the 100 highest dues. Search to find others.</p>}
         </div>
-      </div>
+      </div>}
 
-      {selected && (
+      {selected && collectionPage === 'properties' && (
         <PropertyLedger
           key={selected.r.id}
           town={townName} townKey={townKey} rec={selected.r} entries={selected.entries} settings={settings}
@@ -203,7 +218,7 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
         />
       )}
 
-      {canEditRates(role) && (
+      {collectionPage === 'settings' && canEditRates(role) && (
         <div className={card}>
           <button type="button" className="text-xs font-bold text-[#20b5a6]" onClick={() => setShowSettings(!showSettings)}>
             {showSettings ? 'Close' : 'Enter / edit'} due date, interest and rebate rules for {townName}
@@ -212,7 +227,7 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
         </div>
       )}
 
-      {canSeeAudit(role) && (
+      {collectionPage === 'audit' && canSeeAudit(role) && (
         <div className={card}>
           <h4 className="text-xs font-bold text-[#9fc7c1] uppercase tracking-wider mb-2">Audit log (latest 60)</h4>
           <div className="max-h-64 overflow-y-auto text-[11px] font-mono space-y-1 text-[#cfe6e2]">
@@ -221,6 +236,8 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
           </div>
         </div>
       )}
+      {collectionPage === 'settings' && !canEditRates(role) && <div className={card}><p className="text-sm font-bold text-white">Settings access restricted</p><p className="text-xs text-[#9fc7c1] mt-1">Your role cannot edit collection rules. Contact an administrator.</p></div>}
+      {collectionPage === 'audit' && !canSeeAudit(role) && <div className={card}><p className="text-sm font-bold text-white">Audit access restricted</p><p className="text-xs text-[#9fc7c1] mt-1">Your role cannot view the audit trail.</p></div>}
       <p className="text-[11px] text-[#7fa6a0]">Signed in as {displayName}. Ledger entries cannot be edited or deleted; mistakes are fixed with a reversal. Needs an internet connection.</p>
     </div>
   );
