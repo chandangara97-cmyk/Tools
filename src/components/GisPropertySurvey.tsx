@@ -76,6 +76,7 @@ const GisPropertySurveyInner: React.FC = () => {
   // A ULB login is locked to its own town; only the platform owner ("*") can pick any ULB.
   const [selectedTownKey, setSelectedTownKey] = useState<string>(isSuper || !ulb ? townSlug('Bhota') : ulb);
   const [wardNo, setWardNo] = useState<string>('1');
+  const [townSearch, setTownSearch] = useState<string>('');
   const townHeads = useTownHeads(selectedTownKey);
   const bills = useMemo(() => allowedHeads(role, userHead, isSuper, townHeads), [role, userHead, isSuper, townHeads]);
   const choose = (c: Choice) => { setBillHead(c.head ?? null); setActiveTab(c.tab); };
@@ -110,8 +111,8 @@ const GisPropertySurveyInner: React.FC = () => {
 
   // ULBs this login may see: all for the platform owner, just its own otherwise.
   const visibleTowns = useMemo(
-    () => (isSuper ? editableTowns : Object.fromEntries(Object.entries(editableTowns).filter(([k]) => k === ulb))),
-    [editableTowns, isSuper, ulb],
+    () => (isSuper ? editableTowns : Object.fromEntries(Object.entries(editableTowns).filter(([k]) => k === ulb || isSearchOnly(role, isSuper)))),
+    [editableTowns, isSuper, ulb, role],
   );
 
   // Property Records
@@ -965,8 +966,29 @@ const GisPropertySurveyInner: React.FC = () => {
                 <option key={key} value={key}>{t.n}</option>
               ))}
             </select>
+          ) : isSearchOnly(role, isSuper) ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                aria-label="Search town list"
+                type="search"
+                placeholder="Search town..."
+                value={townSearch}
+                onChange={(e) => setTownSearch(e.target.value)}
+                className="w-36 sm:w-48 bg-white border border-slate-300 text-slate-800 text-sm rounded-lg px-3 py-2"
+              />
+              <select
+                aria-label="Select town"
+                value={selectedTownKey}
+                onChange={(e) => { setSelectedTownKey(e.target.value); setWardNo('1'); setSelectedWardForEdit('1'); }}
+                className="max-w-48 bg-white border border-slate-300 text-slate-800 text-sm rounded-lg px-3 py-2"
+              >
+                {Object.entries(visibleTowns).filter(([, t]) => !townSearch.trim() || t.n.toLowerCase().includes(townSearch.trim().toLowerCase())).sort((a, b) => a[1].n.localeCompare(b[1].n)).map(([key, t]) => (
+                  <option key={key} value={key}>{t.n}</option>
+                ))}
+              </select>
+            </div>
           ) : (
-            <span className="bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg px-3 py-2 font-bold">{currentTown.n}</span>
+            <span className="bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-2 font-bold">{currentTown.n}</span>
           )}
         </div>
       </div>

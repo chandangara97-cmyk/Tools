@@ -3,20 +3,20 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
-  --ink: #0d1224;
-  --slip: #181f3d;
-  --rule: #2f3a6b;
-  --stamp: #f2b233;
-  --due: #ff6b6f;
-  --paid: #34d399;
+  color-scheme: light;
+  --ink: #f4f7fb;
+  --slip: #ffffff;
+  --rule: #dbe3ee;
+  --stamp: #b7791f;
+  --due: #c53030;
+  --paid: #16805d;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: #0d1224;
-  color: #eef0fb;
+  background-color: #f4f7fb;
+  color: #1f2937;
   font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -33,7 +33,7 @@ h1, h2, h3, .slab {
   position: relative;
   border-radius: 6px 14px 14px 6px;
   padding-left: 1.6rem !important;
-  background-image: radial-gradient(circle at 0.55rem center, #0d1224 0 4px, transparent 4.5px);
+  background-image: radial-gradient(circle at 0.55rem center, #f4f7fb 0 4px, transparent 4.5px);
   background-size: 1.1rem 1.1rem;
   background-repeat: repeat-y;
   background-position: 0 0;
@@ -41,7 +41,7 @@ h1, h2, h3, .slab {
 .stub::after {
   content: '';
   position: absolute; top: 8px; bottom: 8px; left: 1.1rem;
-  border-left: 2px dashed rgba(154, 168, 255, .35);
+  border-left: 2px dashed rgba(100, 116, 139, .35);
   pointer-events: none;
 }
 
@@ -72,3 +72,31 @@ h1, h2, h3, .slab {
 @media print {
   body { background-color: #fff !important; color: #000 !important; }
 }
+
+/* Global refreshed municipal portal theme: clean civic blue, white surfaces and clear contrast. */
+body { background: #f4f7fb !important; color: #1f2937 !important; }
+header.sticky { background: rgba(255,255,255,.96) !important; color: #172554 !important; border-color: #dbe3ee !important; box-shadow: 0 2px 12px rgba(15,23,42,.06); }
+header.sticky button, header.sticky a { color: #334155 !important; }
+main, section { color: #1f2937; }
+input, select, textarea { color-scheme: light; }
+input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+  background-color: #fff;
+  border-color: #cbd5e1;
+  color: #1f2937;
+}
+input::placeholder, textarea::placeholder { color: #94a3b8; }
+.bg-\\[\\#0d1224\\], .bg-\\[\\#121830\\], .bg-\\[\\#141a36\\], .bg-\\[\\#181f3d\\], .bg-\\[\\#1d2547\\], .bg-\\[\\#232c52\\] {
+  background-color: #fff !important;
+}
+.border-\\[\\#28325c\\], .border-\\[\\#2f3a6b\\], .border-\\[\\#2a3464\\] { border-color: #dbe3ee !important; }
+.text-white { color: #1e293b !important; }
+.text-\\[\\#aab4dc\\], .text-\\[\\#d6dcf5\\] { color: #64748b !important; }
+.bg-slate-900 { background-color: #fff !important; color: #1e293b !important; }
+.bg-slate-800\\/80, .bg-slate-800 { background-color: #f8fafc !important; }
+.border-slate-800, .border-slate-700\\/80 { border-color: #e2e8f0 !important; }
+.text-slate-400 { color: #64748b !important; }
+.text-slate-300 { color: #475569 !important; }
+.stub { background-color: #fff; }
+::-webkit-scrollbar-track { background: #eaf0f7; }
+::-webkit-scrollbar-thumb { background: #b8c7d9; }
+:focus-visible { outline-color: #2563eb; }
