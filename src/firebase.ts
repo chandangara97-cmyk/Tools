@@ -26,8 +26,10 @@ export function cloudWatchProperties(
   return onValue(
     ref(db, `properties/${townKey}`),
     (snap) => {
-      const val = snap.val() as Record<string, PropertyRecord> | null;
-      onData(val ? Object.values(val) : []);
+      // properties/{town}/{ward}/{propertyId}: flatten the ward layer into one list.
+      const val = snap.val() as Record<string, Record<string, PropertyRecord>> | null;
+      const list = val ? Object.values(val).flatMap((wardMap) => Object.values(wardMap)) : [];
+      onData(list);
     },
     (err) => onError?.(err),
   );

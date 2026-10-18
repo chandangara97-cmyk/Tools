@@ -1,30 +1,47 @@
-# Ward-wise properties update — files to apply
+# Scheme Hub 2026 (CivicCollect)
 
-## Code files (go to GitHub, in your Tools repo)
-- `database.rules.json` -> replace the file at the repo root
-- `firebase.ts` -> replace `src/firebase.ts`
-- `syncQueue.ts` -> replace `src/services/syncQueue.ts`
+Field survey and property-tax system for Himachal Pradesh urban local bodies (ULBs):
+GIS property survey, assessment, demand and collection, citizen portal, reports,
+and KML/WKT converters.
 
-Commit and push these three. Your existing GitHub Actions workflow
-(`Deploy to GitHub Pages`) builds and redeploys automatically on push to `main`.
+**Stack:** React 19, TypeScript, Vite, Tailwind, Firebase (Auth + Realtime Database),
+Capacitor (Android APK) and PWA.
 
-## Data file (goes to Firebase, NOT to GitHub)
-- `properties_nested.json` -> Firebase Console -> Realtime Database ->
-  open the `properties` node -> kebab menu -> Import JSON.
-  This replaces only the `properties` subtree (Bhota, Shimla_MC, Nerwa),
-  nothing else in the database is touched.
+## Run
 
-Contains:
-- Bhota (ward 1) and Shimla_MC (ward 6): your original 3 real records,
-  re-nested under their ward.
-- Nerwa (ward 4): 14 synthetic demo records — a full mix of homes, shops,
-  and government buildings. Not real survey data; every record is tagged
-  `createdBy: "demo-seed"` and `rem: "Sample/demo record - not real survey data"`
-  so it's easy to find and clear out later.
+```
+npm install
+npm run dev            # http://localhost:3000
+npm run build          # tsc + vite build
+npm run test:all       # collection + search + browser tests
+```
 
-## Deploy order
-1. Publish the new `database.rules.json` to Realtime Database first.
-2. Push the 3 code files to GitHub (triggers the Pages redeploy).
-3. Import `properties_nested.json` at the `properties` node.
+## Data layout (Realtime Database)
 
-Doing the rules first avoids a gap where old-shaped data sits under new rules.
+- `properties/{town}/{ward}/{propertyId}` (ward-nested; see `src/services/ids.ts` `wardKey`)
+- `photos/{town}/{propertyId}`, `users/{uid}/role`, ledgers, counters
+
+Rules live in `database.rules.json`. Never loosen them to make a write work.
+
+## Roles
+
+`admin`, `surveyor`, `assessor`, `supervisor`, `cashier`. Assessor drafts, supervisor
+approves and reverses, cashier takes cash.
+
+## Docs
+
+- `FINAL_SETUP.md`: first-time Firebase + deploy checklist (start here)
+- `BUILD_APK.md`: Android build
+- `RAZORPAY_SETUP.md`: online payments (keys stay in Cloud Functions)
+- `ULB_ACCESS.md`, `BILLING_AUTOMATION_SETUP.md`, `PHASE*_NOTES.md`: background notes
+
+## Data migration
+
+`properties_nested.json` is a one-time import for the `properties` node in Firebase
+Console (Realtime Database > Import JSON). It contains demo records tagged
+`createdBy: "demo-seed"`. Do not import it into a live database with real data.
+
+## Deploy
+
+Push to `main`: GitHub Actions builds and publishes to GitHub Pages. Publish
+`database.rules.json` before pushing code that changes the data shape.

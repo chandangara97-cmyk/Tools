@@ -5,13 +5,13 @@ import { useSyncExternalStore } from 'react';
 import { ref, set, remove, runTransaction } from 'firebase/database';
 import { auth, db, cloudWatchConnection } from '../firebase';
 import type { PropertyRecord } from '../utils/gisUtils';
-import { hnoDupKey, upnDupKey } from './ids';
+import { hnoDupKey, upnDupKey, wardKey } from './ids';
 
 export interface QueuedPhoto { id: string; data: string }
 
 type Op =
-  | { k: 'save'; town: string; rec: PropertyRecord; photos: QueuedPhoto[]; releaseKeys: string[]; q: number }
-  | { k: 'delete'; town: string; id: string; keys: string[]; photoIds: string[]; q: number };
+  | { k: 'save'; town: string; rec: PropertyRecord; photos: QueuedPhoto[]; releaseKeys: string[]; oldWard?: string; q: number }
+  | { k: 'delete'; town: string; id: string; ward: string; keys: string[]; photoIds: string[]; q: number };
 
 export interface Conflict { id: string; town: string; reason: string; rec: PropertyRecord; at: number }
 
@@ -64,10 +64,14 @@ export function queueSave(town: string, rec: PropertyRecord, photos: QueuedPhoto
 
   // merge into an existing pending save for the same property
   const existing = queue.find((o) => o.k === 'save' && o.rec.id === rec.id) as Extract<Op, { k: 'save' }> | undefined;
+  const prevWardKey = previous ? wardKey(previous.ward) : undefined;
+  const newWardKey = wardKey(full.ward);
+  // keep the earliest known old ward, in case of several queued edits before the device syncs
+  const oldWard = existing?.oldWard ?? (prevWardKey && prevWardKey !== newWardKey ? prevWardKey : undefined);
   queue = queue.filter((o) => !(o.k === 'save' && o.rec.id === rec.id));
   const mergedPhotos = [...(existing?.photos || []), ...photos];
   const mergedRelease = Array.from(new Set([...(existing?.releaseKeys || []), ...releaseKeys]));
-  queue.push({ k: 'save', town, rec: full, photos: mergedPhotos, releaseKeys: mergedRelease, q: now });
+  queue.push({ k: 'save', town, rec: full, photos: mergedPhotos, releaseKeys: mergedRelease, oldWard, q: now });
   conflictList = conflictList.filter((c) => c.id !== rec.id);
   changed();
   void flush();
@@ -77,7 +81,7 @@ export function queueSave(town: string, rec: PropertyRecord, photos: QueuedPhoto
 export function queueDelete(town: string, rec: PropertyRecord) {
   queue = queue.filter((o) => !(o.k === 'save' && o.rec.id === rec.id));
   conflictList = conflictList.filter((c) => c.id !== rec.id);
-  queue.push({ k: 'delete', town, id: rec.id, keys: dupKeysFor(rec), photoIds: rec.photoIds || [], q: Date.now() });
+  queue.push({ k: 'delete', town, id: rec.id, ward: rec.ward, keys: dupKeysFor(rec), photoIds: rec.photoIds || [], q: Date.now() });
   changed();
   void flush();
 }
@@ -126,7 +130,11 @@ async function runOp(op: Op): Promise<'done' | 'conflict'> {
       }
       claimed.push(k);
     }
-    await withTimeout(set(ref(db, `properties/${town}/${rec.id}`), rec));
+    const newWard = wardKey(rec.ward);
+    await withTimeout(set(ref(db, `properties/${town}/${newWard}/${rec.id}`), rec));
+    if (op.oldWard && op.oldWard !== newWard) {
+      await withTimeout(remove(ref(db, `properties/${town}/${op.oldWard}/${rec.id}`))).catch(() => {});
+    }
     for (const p of op.photos) {
       await withTimeout(set(ref(db, `photos/${town}/${rec.id}/${p.id}`), { data: p.data, at: Date.now() }));
     }
@@ -134,7 +142,7 @@ async function runOp(op: Op): Promise<'done' | 'conflict'> {
     return 'done';
   }
   // delete: property first, then its keys and photos
-  await withTimeout(remove(ref(db, `properties/${op.town}/${op.id}`)));
+  await withTimeout(remove(ref(db, `properties/${op.town}/${wardKey(op.ward)}/${op.id}`)));
   await withTimeout(remove(ref(db, `photos/${op.town}/${op.id}`))).catch(() => {});
   for (const k of op.keys) await release(op.town, k, op.id).catch(() => {});
   return 'done';
