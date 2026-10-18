@@ -3,6 +3,7 @@ import { AlertTriangle, Printer, Download, Undo2, Receipt, Search, Landmark } fr
 import type { PropertyRecord } from '../utils/gisUtils';
 import { triggerFileDownload } from '../utils/gisUtils';
 import { useAuth, canCollect, canManageLedger, canSeeAudit, canEditRates, canSetPayableRates } from '../services/auth';
+import { HeadId, HEAD_LIST, headLabel, useTownHeads } from '../services/heads';
 import { PayableRates, fixedAmountFor, savePayableRates, usePayableRates, validateRates } from '../services/payableRates';
 import { financialYearOf } from '../services/assessment';
 import { useAssessments } from '../services/assessmentStore';
@@ -11,7 +12,7 @@ import {
   todayIso, validateSettings, dueDateOf,
 } from '../services/collection';
 import {
-  generateDemands, generateFixedDemands, postAdjustment, postPayment, reverseEntries, saveCollectionSettings, useAudit, useLedgers,
+  generateDemands, generateFixedDemands, postAdjustment, postPayment, reverseEntries, saveHeadSettings, useAudit, useHeadSettings, useLedgers,
 } from '../services/collectionStore';
 
 interface Props {
@@ -29,17 +30,17 @@ const btn = 'inline-flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-
 export const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 
 function receiptHtml(o: {
-  town: string; rec: PropertyRecord; pay: LedgerEntry; rebate?: LedgerEntry; cancelled: boolean;
+  head: HeadId; town: string; rec: PropertyRecord; pay: LedgerEntry; rebate?: LedgerEntry; cancelled: boolean;
   parts: { fy: string; interest: number; principal: number }[]; balanceAfter: number;
 }) {
-  const { town, rec, pay, rebate, cancelled, parts, balanceAfter } = o;
+  const { head, town, rec, pay, rebate, cancelled, parts, balanceAfter } = o;
   const rows = parts.map((p) => `<tr><td>${esc(p.fy)}</td><td class="r">${money(p.principal)}</td><td class="r">${money(p.interest)}</td></tr>`).join('');
   return `<!doctype html><html><head><meta charset="utf-8"><title>Receipt ${esc(pay.receiptNo)}</title>
 <style>body{font-family:Arial,sans-serif;font-size:13px;margin:24px;color:#111}h1{font-size:18px;margin:0}h2{font-size:14px;margin:2px 0 14px}
 table{border-collapse:collapse;width:100%;margin:8px 0}td,th{border:1px solid #999;padding:5px 8px;text-align:left}.r{text-align:right}
 .kv td{border:none;padding:2px 8px 2px 0}.big{font-size:16px;font-weight:bold}.stamp{color:#b00;font-size:28px;font-weight:bold;border:3px solid #b00;display:inline-block;padding:2px 12px;transform:rotate(-6deg);margin:6px 0}
 .sig{margin-top:48px;display:flex;justify-content:space-between}</style></head><body>
-<h1>${esc(town)}</h1><h2>Property tax receipt</h2>
+<h1>${esc(town)}</h1><h2>${esc(headLabel(head))} receipt</h2>
 ${cancelled ? '<div class="stamp">CANCELLED</div>' : ''}
 <table class="kv"><tr><td>Receipt no.</td><td><b>${esc(pay.receiptNo)}</b></td><td>Date</td><td><b>${esc(pay.date)}</b></td></tr>
 <tr><td>Property ID</td><td>${esc(rec.id)}</td><td>Ward</td><td>${esc(rec.ward)}</td></tr>
@@ -60,10 +61,17 @@ export function printHtml(html: string) {
   f.onload = () => { try { f.contentWindow?.focus(); f.contentWindow?.print(); } finally { setTimeout(() => f.remove(), 60000); } };
 }
 
-export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, settings, settingsSaved }) => {
+export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, settings: propertySettings, settingsSaved: propertySaved }) => {
   const { role, displayName } = useAuth();
-  const ledgers = useLedgers(townKey);
-  const { rates } = usePayableRates(townKey);
+  const heads = useTownHeads(townKey);
+  const [head, setHead] = useState<HeadId>('property_tax');
+  const activeHead: HeadId = heads.includes(head) ? head : 'property_tax';
+  const other = useHeadSettings(townKey, activeHead);
+  const settings = activeHead === 'property_tax' ? propertySettings : other.settings;
+  const settingsSaved = activeHead === 'property_tax' ? propertySaved : other.saved;
+  const ledgers = useLedgers(townKey, activeHead);
+  const ratesAll = usePayableRates(townKey);
+  const rates = ratesAll[activeHead] || { residential: null, commercial: null };
   const audit = useAudit(townKey, canSeeAudit(role));
   const today = todayIso();
   const thisFy = financialYearOf(new Date());
@@ -116,9 +124,9 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
   const fixedTargets = useMemo(() => townRecords.filter((r) => (fixedAmountFor(rates, r.use) ?? 0) > 0), [townRecords, rates]);
   const fixedPending = fixedTargets.filter((r) => !(ledgers[r.id] || []).some((e) => e.id === `demand_${fy}`)).length;
   const generateFixed = () => {
-    if (!window.confirm(`Generate demand for ${fy} from the fixed amounts (Residential ${rates.residential === null ? 'not set' : money(rates.residential)}, Commercial ${rates.commercial === null ? 'not set' : money(rates.commercial)}) for ${fixedPending} propert${fixedPending === 1 ? 'y' : 'ies'}?\n\nA demand cannot be edited afterwards, only adjusted or reversed.`)) return;
+    if (!window.confirm(`Generate ${headLabel(activeHead)} demand for ${fy} from the fixed amounts (Residential ${rates.residential === null ? 'not set' : money(rates.residential)}, Commercial ${rates.commercial === null ? 'not set' : money(rates.commercial)}) for ${fixedPending} propert${fixedPending === 1 ? 'y' : 'ies'}?\n\nA demand cannot be edited afterwards, only adjusted or reversed.`)) return;
     void run('Fixed-amount demand', async () => {
-      const r = await generateFixedDemands(townKey, fy, townRecords.map((x) => ({ id: x.id, use: x.use })), rates, ledgers);
+      const r = await generateFixedDemands(townKey, fy, townRecords.map((x) => ({ id: x.id, use: x.use })), rates, ledgers, activeHead);
       return `${r.created} created, ${r.skippedExisting} already had one, ${r.noRate} skipped (not Residential/Commercial or no amount set).`;
     });
   };
@@ -134,7 +142,7 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
     const qt = (s: string) => `"${String(s).replace(/"/g, '""')}"`;
     const lines: string[] = [];
     rows.forEach(({ r, led }) => led.rows.forEach((x) => lines.push([r.id, r.ward, qt(r.owner), x.fy, x.dueDate, x.demand, x.adjustments, x.rebate, x.paidPrincipal, x.paidInterest, x.principalDue, x.interestDue, x.totalDue].join(','))));
-    triggerFileDownload([head.join(','), ...lines].join('\n'), `${townName}_Ledger_${today}.csv`, 'text/csv');
+    triggerFileDownload([head.join(','), ...lines].join('\n'), `${townName}_${activeHead}_Ledger_${today}.csv`, 'text/csv');
   };
 
   const selected = sel ? rows.find(({ r }) => r.id === sel) : undefined;
@@ -155,8 +163,14 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
 
       <div className="rounded-2xl border border-[#23534d] bg-gradient-to-r from-[#102d35] via-[#0e282f] to-[#102c2a] p-3 sm:p-4 shadow-lg">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-          <div><p className="text-[10px] uppercase tracking-[.22em] font-bold text-[#20b5a6]">Collection workspace</p><h2 className="text-lg font-extrabold text-white">Property tax collection</h2><p className="text-xs text-[#9fc7c1]">Each work area opens as its own page.</p></div>
+          <div><p className="text-[10px] uppercase tracking-[.22em] font-bold text-[#20b5a6]">Collection workspace</p><h2 className="text-lg font-extrabold text-white">{headLabel(activeHead)} collection</h2><p className="text-xs text-[#9fc7c1]">Each work area opens as its own page.</p></div>
           <span className="text-xs text-[#f7dfae] bg-[#d6a34b]/10 border border-[#d6a34b]/30 rounded-full px-3 py-1.5">{townName}</span>
+        </div>
+        <div className="flex flex-wrap gap-2 mb-3" role="tablist" aria-label="Bill head">
+          {HEAD_LIST.filter((h) => heads.includes(h.id)).map((h) => (
+            <button key={h.id} type="button" role="tab" aria-selected={activeHead === h.id} onClick={() => { setHead(h.id); setSel(null); setMsg(''); }}
+              className={`text-xs font-bold px-3 py-1.5 rounded-full border ${activeHead === h.id ? 'bg-[#d6a34b] text-[#2b1d00] border-[#d6a34b]' : 'bg-[#091a1f]/70 text-[#9fc7c1] border-[#23534d] hover:border-[#20b5a6]/70'}`}>{h.label}</button>
+          ))}
         </div>
         <nav className="grid grid-cols-2 md:grid-cols-5 gap-2" aria-label="Collection pages">
           {([{id:'overview',n:'01',title:'Demand overview',sub:'Summary & generation'},{id:'properties',n:'02',title:'Properties & ledger',sub:'Search dues and record payment'},{id:'settings',n:'03',title:'Rules & settings',sub:'Due date, interest, rebate'},...(canSetPayableRates(role) ? [{id:'rates',n:'04',title:'Fixed amounts',sub:'Residential & commercial'} as const] : []),{id:'audit',n:canSetPayableRates(role) ? '05' : '04',title:'Audit trail',sub:'Review recorded actions'}] as const).map((item) => (
@@ -169,7 +183,7 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
 
       {collectionPage === 'overview' && <div className={`${card} space-y-3`}>
         <div className="flex flex-wrap items-center gap-3">
-          <h3 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider flex items-center gap-2"><Landmark className="w-4 h-4" /> Demand &amp; collection</h3>
+          <h3 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider flex items-center gap-2"><Landmark className="w-4 h-4" /> {headLabel(activeHead)} · demand &amp; collection</h3>
           <select value={fy} onChange={(e) => setFy(e.target.value)} className={inp}>
             {[-1, 0, 1].map((d) => { const y = parseInt(thisFy.slice(0, 4), 10) + d; const l = `${y}-${String((y + 1) % 100).padStart(2, '0')}`; return <option key={l} value={l}>{l}</option>; })}
           </select>
@@ -179,10 +193,10 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
           <div className="bg-[#091a1f] rounded-lg p-3"><span className="text-[#9fc7c1] block">Tax outstanding</span><b className="text-lg font-mono text-white">{money(totals.principal)}</b></div>
           <div className="bg-[#091a1f] rounded-lg p-3"><span className="text-[#9fc7c1] block">Interest outstanding</span><b className="text-lg font-mono text-[#f7dfae]">{money(totals.interest)}</b></div>
           <div className="bg-[#091a1f] rounded-lg p-3"><span className="text-[#9fc7c1] block">Properties with dues</span><b className="text-lg font-mono text-white">{totals.withDues}</b></div>
-          <div className="bg-[#091a1f] rounded-lg p-3"><span className="text-[#9fc7c1] block">Demand raised for {fy}</span><b className="text-lg font-mono text-white">{alreadyDemanded} / {approvedCount}</b><span className="text-[10px] text-[#7fa6a0]">approved assessments with tax</span></div>
+          <div className="bg-[#091a1f] rounded-lg p-3"><span className="text-[#9fc7c1] block">Demand raised for {fy}</span><b className="text-lg font-mono text-white">{activeHead === 'property_tax' ? `${alreadyDemanded} / ${approvedCount}` : `${rows.filter(({ entries }) => entries.some((e) => e.id === `demand_${fy}`)).length} / ${fixedTargets.length}`}</b><span className="text-[10px] text-[#7fa6a0]">{activeHead === 'property_tax' ? 'approved assessments with tax' : 'properties with a fixed amount'}</span></div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {canManageLedger(role) && (
+          {canManageLedger(role) && activeHead === 'property_tax' && (
             <button type="button" disabled={busy || approvedCount === alreadyDemanded} onClick={generate} className={`${btn} bg-[#0e8a7d] text-white`}>
               Generate demand for {fy}
             </button>
@@ -232,20 +246,20 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
         <PropertyLedger
           key={selected.r.id}
           town={townName} townKey={townKey} rec={selected.r} entries={selected.entries} settings={settings}
-          busy={busy} run={run} role={role} fixedAmount={fixedAmountFor(rates, selected.r.use)}
+          busy={busy} run={run} role={role} head={activeHead} fixedAmount={fixedAmountFor(rates, selected.r.use)}
         />
       )}
 
       {collectionPage === 'settings' && canEditRates(role) && (
         <div className={card}>
           <button type="button" className="text-xs font-bold text-[#20b5a6]" onClick={() => setShowSettings(!showSettings)}>
-            {showSettings ? 'Close' : 'Enter / edit'} due date, interest and rebate rules for {townName}
+            {showSettings ? 'Close' : 'Enter / edit'} {headLabel(activeHead)} due date, interest and rebate rules for {townName}
           </button>
-          {showSettings && <SettingsEditor key={JSON.stringify(settings)} initial={settings} busy={busy} onSave={(s) => void run('Collection rules saved', async () => { await saveCollectionSettings(townKey, s); setShowSettings(false); })} />}
+          {showSettings && <SettingsEditor key={JSON.stringify(settings)} initial={settings} busy={busy} onSave={(s) => void run('Collection rules saved', async () => { await saveHeadSettings(townKey, activeHead, s); setShowSettings(false); })} />}
         </div>
       )}
 
-      {collectionPage === 'rates' && canSetPayableRates(role) && <RateFiller key={`${rates.residential}-${rates.commercial}`} townName={townName} initial={rates} busy={busy} onSave={(r) => void run('Fixed amounts saved', async () => { await savePayableRates(townKey, r, rates); })} />}
+      {collectionPage === 'rates' && canSetPayableRates(role) && <RateFiller key={JSON.stringify(ratesAll)} townName={townName} heads={HEAD_LIST.filter((h) => heads.includes(h.id)).map((h) => h.id)} all={ratesAll} busy={busy} onSave={(h, r) => void run(`${headLabel(h)} fixed amounts saved`, async () => { await savePayableRates(townKey, h, r, ratesAll[h]); })} />}
 
       {collectionPage === 'audit' && canSeeAudit(role) && (
         <div className={card}>
@@ -267,8 +281,8 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
 const PropertyLedger: React.FC<{
   town: string; townKey: string; rec: PropertyRecord; entries: LedgerEntry[]; settings: CollectionSettings;
   busy: boolean; run: (label: string, work: () => Promise<string | void>) => Promise<void>; role: ReturnType<typeof useAuth>['role'];
-  fixedAmount: number | null;
-}> = ({ town, townKey, rec, entries, settings, busy, run, role, fixedAmount }) => {
+  fixedAmount: number | null; head: HeadId;
+}> = ({ town, townKey, rec, entries, settings, busy, run, role, fixedAmount, head }) => {
   const today = todayIso();
   const led = useMemo(() => computeLedger(entries, settings, today), [entries, settings, today]);
   const [amount, setAmount] = useState('');
@@ -301,7 +315,7 @@ const PropertyLedger: React.FC<{
   const submit = () => run('Payment', async () => {
     const r = await postPayment({
       town: townKey, propertyId: rec.id, ownerName: rec.owner, amount: amt, date, mode,
-      ref: refNo, payer, note, rebateFy: useRebate ? rebateFy : undefined,
+      ref: refNo, payer, note, rebateFy: useRebate ? rebateFy : undefined, head,
     }, entries, settings);
     setAmount(''); setRefNo(''); setNote(''); setUseRebate(false);
     return `receipt ${r.receiptNo} for ${money(amt)}${r.rebate ? ` (rebate ${money(r.rebate)} allowed)` : ''}. Print it from the list below.`;
@@ -313,7 +327,7 @@ const PropertyLedger: React.FC<{
       : [e.id];
     const why = window.prompt(`Reverse ${e.type}${e.receiptNo ? ' ' + e.receiptNo : ''} of ${money(e.amount)}?\n\nReason (kept in the audit log):`);
     if (!why || !why.trim()) return;
-    void run('Reversal', async () => { await reverseEntries(townKey, rec.id, entries, ids, why); });
+    void run('Reversal', async () => { await reverseEntries(townKey, rec.id, entries, ids, why, head); });
   };
 
   const printReceipt = (pay: LedgerEntry, download: boolean) => {
@@ -321,13 +335,13 @@ const PropertyLedger: React.FC<{
     const parts = led.allocations[pay.id]?.parts || [];
     const upTo = entries.filter((x) => x.at <= Math.max(pay.at, rebate?.at || 0) && !(x.type === 'reversal'));
     const balanceAfter = computeLedger(upTo, settings, pay.date).totalDue;
-    const html = receiptHtml({ town, rec, pay, rebate, cancelled: cancelled.has(pay.id), parts, balanceAfter });
+    const html = receiptHtml({ head, town, rec, pay, rebate, cancelled: cancelled.has(pay.id), parts, balanceAfter });
     if (download) triggerFileDownload(html, `Receipt_${(pay.receiptNo || pay.id).replace(/[^A-Za-z0-9]/g, '_')}.html`, 'text/html');
     else printHtml(html);
   };
 
   const submitAdjust = () => run('Adjustment', async () => {
-    await postAdjustment(townKey, rec.id, adjFy, parseFloat(adjAmt), adjWhy, today);
+    await postAdjustment(townKey, rec.id, adjFy, parseFloat(adjAmt), adjWhy, today, head);
     setAdjAmt(''); setAdjWhy('');
   });
 
@@ -452,32 +466,39 @@ const PropertyLedger: React.FC<{
 };
 
 // ---------------------------------------------------------------------------
-const RateFiller: React.FC<{ townName: string; initial: PayableRates; busy: boolean; onSave: (r: { residential: number | null; commercial: number | null }) => void }> = ({ townName, initial, busy, onSave }) => {
-  const [res, setRes] = useState(initial.residential === null ? '' : String(initial.residential));
-  const [com, setCom] = useState(initial.commercial === null ? '' : String(initial.commercial));
+const RateRow: React.FC<{ head: HeadId; initial: PayableRates | undefined; busy: boolean; onSave: (h: HeadId, r: { residential: number | null; commercial: number | null }) => void; townName: string }> = ({ head, initial, busy, onSave, townName }) => {
+  const [res, setRes] = useState(initial?.residential == null ? '' : String(initial.residential));
+  const [com, setCom] = useState(initial?.commercial == null ? '' : String(initial.commercial));
   const [err, setErr] = useState('');
   const toNum = (v: string) => (v.trim() === '' ? null : Number(v));
   const save = () => {
     const r = { residential: toNum(res), commercial: toNum(com) };
     const e = validateRates(r);
     if (e) { setErr(e); return; }
-    if (!window.confirm(`Save fixed amounts for ${townName}?\n\nResidential: ${r.residential === null ? 'not set' : money(r.residential)}\nCommercial: ${r.commercial === null ? 'not set' : money(r.commercial)}\n\nDemands already raised are not changed.`)) return;
-    setErr(''); onSave(r);
+    if (!window.confirm(`Save ${headLabel(head)} fixed amounts for ${townName}?\n\nResidential: ${r.residential === null ? 'not set' : money(r.residential)}\nCommercial: ${r.commercial === null ? 'not set' : money(r.commercial)}\n\nDemands already raised are not changed.`)) return;
+    setErr(''); onSave(head, r);
   };
   return (
-    <div className={`${card} space-y-3`}>
-      <h3 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider">Fixed amounts payable · {townName}</h3>
-      <p className="text-[11px] text-[#9fc7c1]">Filled by hand for this urban body only. The cashier sees these amounts against each Residential and Commercial property. Other uses have no fixed amount.</p>
+    <div className="bg-[#091a1f] rounded-lg p-3 space-y-2">
+      <h4 className="text-xs font-bold text-[#f7dfae] uppercase tracking-wider">{headLabel(head)}</h4>
       <div className="grid sm:grid-cols-2 gap-3">
         <label className="text-[11px] text-[#9fc7c1]">Residential (₹ per property per year)<input type="number" inputMode="decimal" min="0" step="0.01" value={res} onChange={(e) => setRes(e.target.value)} className={`${inp} w-full mt-1`} /></label>
         <label className="text-[11px] text-[#9fc7c1]">Commercial (₹ per property per year)<input type="number" inputMode="decimal" min="0" step="0.01" value={com} onChange={(e) => setCom(e.target.value)} className={`${inp} w-full mt-1`} /></label>
       </div>
       {err && <p className="text-xs text-red-300">{err}</p>}
-      <button type="button" disabled={busy} onClick={save} className={`${btn} bg-[#0e8a7d] text-white`}>Save fixed amounts</button>
-      <p className="text-[11px] text-[#7fa6a0]">Changing these does not alter demands already generated; use an adjustment for those. Every change is written to the audit trail.</p>
+      <button type="button" disabled={busy} onClick={save} className={`${btn} bg-[#0e8a7d] text-white`}>Save {headLabel(head)} amounts</button>
     </div>
   );
 };
+
+const RateFiller: React.FC<{ townName: string; heads: HeadId[]; all: Record<string, PayableRates>; busy: boolean; onSave: (h: HeadId, r: { residential: number | null; commercial: number | null }) => void }> = ({ townName, heads, all, busy, onSave }) => (
+  <div className={`${card} space-y-3`}>
+    <h3 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider">Fixed amounts payable · {townName}</h3>
+    <p className="text-[11px] text-[#9fc7c1]">Filled by hand for this urban body only, separately for each bill head. The cashier sees these amounts against each Residential and Commercial property. Other uses have no fixed amount. Each head is saved on its own.</p>
+    {heads.map((h) => <RateRow key={h} head={h} initial={all[h]} busy={busy} onSave={onSave} townName={townName} />)}
+    <p className="text-[11px] text-[#7fa6a0]">Changing these does not alter demands already generated; use an adjustment for those. Every change is written to the audit trail.</p>
+  </div>
+);
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 

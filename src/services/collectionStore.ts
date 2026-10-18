@@ -7,6 +7,7 @@ import { financialYearOf } from './assessment';
 import type { Assessment } from './assessmentStore';
 import { currentUid } from './assessmentStore';
 import { ulbCode } from './ids';
+import { HeadId, headLabel, ledgerKey, splitLedgerKey } from './heads';
 import {
   CollectionSettings, LedgerEntry, PayMode, placeholderSettings, previewPayment,
 } from './collection';
@@ -31,18 +32,39 @@ export function saveCollectionSettings(townKey: string, s: CollectionSettings) {
   return set(ref(db, `collectionSettings/${townKey}`), clean(s));
 }
 
+/** Rules (due date, interest, rebate) of a bill head other than property tax: headSettings/<town>/<head>. */
+export function useHeadSettings(townKey: string, head: HeadId): { settings: CollectionSettings; saved: boolean } {
+  const [state, setState] = useState({ settings: placeholderSettings(), saved: false });
+  useEffect(() => {
+    setState({ settings: placeholderSettings(), saved: false });
+    if (head === 'property_tax') return;
+    return onValue(ref(db, `headSettings/${townKey}/${head}`), (snap) => {
+      const v = snap.val() as CollectionSettings | null;
+      setState(v ? { settings: { ...placeholderSettings(), ...v, clauses: v.clauses || {} }, saved: true } : { settings: placeholderSettings(), saved: false });
+    }, () => { /* ignore */ });
+  }, [townKey, head]);
+  return state;
+}
+export function saveHeadSettings(townKey: string, head: HeadId, s: CollectionSettings) {
+  return head === 'property_tax' ? saveCollectionSettings(townKey, s) : set(ref(db, `headSettings/${townKey}/${head}`), clean(s));
+}
+
 /** All ledgers of a town: propertyId -> entries. Fine for a ULB-sized town; move to SQL if it grows. */
-export function useLedgers(townKey: string): Record<string, LedgerEntry[]> {
+export function useLedgers(townKey: string, head: HeadId = 'property_tax'): Record<string, LedgerEntry[]> {
   const [map, setMap] = useState<Record<string, LedgerEntry[]>>({});
   useEffect(() => {
     setMap({});
     return onValue(ref(db, `ledger/${townKey}`), (snap) => {
       const raw = (snap.val() || {}) as Record<string, Record<string, Omit<LedgerEntry, 'id'>>>;
       const out: Record<string, LedgerEntry[]> = {};
-      for (const [pid, es] of Object.entries(raw)) out[pid] = Object.entries(es).map(([id, e]) => ({ ...e, id }));
+      for (const [key, es] of Object.entries(raw)) {
+        const k = splitLedgerKey(key);
+        if (k.head !== head) continue;
+        out[k.pid] = Object.entries(es).map(([id, e]) => ({ ...e, id }));
+      }
       setMap(out);
     }, () => { /* ignore */ });
-  }, [townKey]);
+  }, [townKey, head]);
   return map;
 }
 
@@ -67,6 +89,7 @@ export interface PaymentInput {
   town: string; propertyId: string; ownerName: string;
   amount: number; date: string; mode: PayMode; ref?: string; payer?: string; note?: string;
   rebateFy?: string;
+  head?: HeadId;
 }
 export interface PaymentResult { receiptNo: string; paymentId: string; rebate: number }
 
@@ -76,12 +99,17 @@ export async function postPayment(p: PaymentInput, entries: LedgerEntry[], setti
   if (!prev.ok) throw new Error(prev.error);
   if (p.mode !== 'cash' && !p.ref?.trim()) throw new Error(p.mode === 'cheque' ? 'Enter the cheque number.' : 'Enter the transaction reference.');
 
+  const head = p.head || 'property_tax';
   const rcFy = financialYearOf(new Date(p.date + 'T00:00:00'));
-  const ctr = await runTransaction(ref(db, `receiptCounters/${p.town}/${rcFy}`), (cur) => (typeof cur === 'number' ? cur : 0) + 1);
+  // property tax keeps its original counter and receipt format; other heads get their own series
+  const ctrKey = head === 'property_tax' ? rcFy : `${head}_${rcFy}`;
+  const ctr = await runTransaction(ref(db, `receiptCounters/${p.town}/${ctrKey}`), (cur) => (typeof cur === 'number' ? cur : 0) + 1);
   if (!ctr.committed) throw new Error('Could not get a receipt number.');
-  const receiptNo = `${ulbCode(p.town)}/${rcFy}/${String(ctr.snapshot.val()).padStart(6, '0')}`;
+  const receiptNo = head === 'property_tax'
+    ? `${ulbCode(p.town)}/${rcFy}/${String(ctr.snapshot.val()).padStart(6, '0')}`
+    : `${ulbCode(p.town)}/${head.toUpperCase().slice(0, 3)}/${rcFy}/${String(ctr.snapshot.val()).padStart(6, '0')}`;
 
-  const base = `ledger/${p.town}/${p.propertyId}`;
+  const base = `ledger/${p.town}/${ledgerKey(head, p.propertyId)}`;
   const paymentId = newKey(base);
   const firstFy = prev.result?.rows.find((r) => r.fy)?.fy || rcFy;
   const common = { at: Date.now(), by: currentUid(), date: p.date, receiptNo };
@@ -96,15 +124,15 @@ export async function postPayment(p: PaymentInput, entries: LedgerEntry[], setti
   if (prev.rebate > 0 && prev.rebateFy) {
     updates[`${base}/${newKey(base)}`] = clean({ ...common, type: 'rebate', fy: prev.rebateFy, amount: prev.rebate, note: 'Early-payment rebate' });
   }
-  updates[`audit/${p.town}/${newKey(`audit/${p.town}`)}`] = auditEntry('payment', `Receipt ${receiptNo}, ₹${p.amount}, ${p.mode}${prev.rebate ? `, rebate ₹${prev.rebate}` : ''}`, p.propertyId);
+  updates[`audit/${p.town}/${newKey(`audit/${p.town}`)}`] = auditEntry('payment', `${headLabel(head)} receipt ${receiptNo}, ₹${p.amount}, ${p.mode}${prev.rebate ? `, rebate ₹${prev.rebate}` : ''}`, p.propertyId);
   await update(ref(db), updates);
   return { receiptNo, paymentId, rebate: prev.rebate };
 }
 
 /** Cancel entries by posting reversal entries. `ids` are the entries to cancel (a payment and its rebate go together). */
-export async function reverseEntries(town: string, propertyId: string, entries: LedgerEntry[], ids: string[], reason: string) {
+export async function reverseEntries(town: string, propertyId: string, entries: LedgerEntry[], ids: string[], reason: string, head: HeadId = 'property_tax') {
   if (!reason.trim()) throw new Error('A reason is required.');
-  const base = `ledger/${town}/${propertyId}`;
+  const base = `ledger/${town}/${ledgerKey(head, propertyId)}`;
   const updates: Record<string, unknown> = {};
   const done = new Set(entries.filter((e) => e.type === 'reversal').map((e) => e.reverses));
   const today = new Date();
@@ -120,7 +148,7 @@ export async function reverseEntries(town: string, propertyId: string, entries: 
     labels.push(`${o.type}${o.receiptNo ? ' ' + o.receiptNo : ''} ₹${o.amount}`);
   }
   if (!labels.length) throw new Error('Nothing to reverse (already reversed?).');
-  updates[`audit/${town}/${newKey(`audit/${town}`)}`] = auditEntry('reversal', `${labels.join('; ')}. Reason: ${reason.trim()}`, propertyId);
+  updates[`audit/${town}/${newKey(`audit/${town}`)}`] = auditEntry('reversal', `${headLabel(head)}: ${labels.join('; ')}. Reason: ${reason.trim()}`, propertyId);
   await update(ref(db), updates);
 }
 
@@ -158,7 +186,7 @@ export async function generateDemands(
  */
 export async function generateFixedDemands(
   town: string, fy: string, props: { id: string; use: string }[], rates: { residential: number | null; commercial: number | null },
-  ledgers: Record<string, LedgerEntry[]>,
+  ledgers: Record<string, LedgerEntry[]>, head: HeadId = 'property_tax',
 ): Promise<{ created: number; skippedExisting: number; noRate: number }> {
   const date = new Date();
   const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -173,24 +201,24 @@ export async function generateFixedDemands(
   for (let i = 0; i < todo.length; i += 100) {
     const updates: Record<string, unknown> = {};
     for (const t of todo.slice(i, i + 100)) {
-      updates[`ledger/${town}/${t.id}/demand_${fy}`] = clean({
+      updates[`ledger/${town}/${ledgerKey(head, t.id)}/demand_${fy}`] = clean({
         type: 'demand', fy, amount: t.amt, date: day, at: Date.now(), by: currentUid(), source: 'fixed',
-        note: `Fixed town amount (${t.use})`,
+        note: `${headLabel(head)}: fixed town amount (${t.use})`,
       });
     }
-    if (i + 100 >= todo.length) updates[`audit/${town}/${newKey(`audit/${town}`)}`] = auditEntry('demand', `Generated ${todo.length} fixed-amount demand(s) for ${fy}`);
+    if (i + 100 >= todo.length) updates[`audit/${town}/${newKey(`audit/${town}`)}`] = auditEntry('demand', `${headLabel(head)}: generated ${todo.length} fixed-amount demand(s) for ${fy}`);
     await update(ref(db), updates);
   }
   return { created: todo.length, skippedExisting, noRate };
 }
 
 /** Extra demand (+) or reduction (-) on a year, e.g. after a re-assessment. */
-export function postAdjustment(town: string, propertyId: string, fy: string, amount: number, reason: string, date: string) {
+export function postAdjustment(town: string, propertyId: string, fy: string, amount: number, reason: string, date: string, head: HeadId = 'property_tax') {
   if (!reason.trim()) throw new Error('A reason is required.');
   if (!amount || isNaN(amount)) throw new Error('Enter a non-zero amount.');
-  const base = `ledger/${town}/${propertyId}`;
+  const base = `ledger/${town}/${ledgerKey(head, propertyId)}`;
   return update(ref(db), {
     [`${base}/${newKey(base)}`]: clean({ type: 'adjustment', fy, amount, date, at: Date.now(), by: currentUid(), reason: reason.trim() }),
-    [`audit/${town}/${newKey(`audit/${town}`)}`]: auditEntry('adjustment', `${fy} ${amount > 0 ? '+' : ''}${amount}. ${reason.trim()}`, propertyId),
+    [`audit/${town}/${newKey(`audit/${town}`)}`]: auditEntry('adjustment', `${headLabel(head)} ${fy} ${amount > 0 ? '+' : ''}${amount}. ${reason.trim()}`, propertyId),
   });
 }
