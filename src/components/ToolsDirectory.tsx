@@ -39,7 +39,20 @@ export const ToolsDirectory: React.FC<ToolsDirectoryProps> = ({ onSelectTool }) 
   };
 
   return (
-    <section className="space-y-6" id="tools">
+    <section className="tools-directory-page space-y-6" id="tools">
+      <style>{`
+        .tools-directory-page { color:#20324b; }
+        .tools-directory-page h2 { color:#17345d !important; font-size:clamp(1.35rem,2.4vw,1.9rem); letter-spacing:-.035em; }
+        .tools-directory-page h2 span { background:#e8f1fc !important; color:#2459a9 !important; border-color:#cbdcf1 !important; }
+        .tools-directory-page p { color:#61738b !important; }
+        .tools-directory-page .bg-\\[\\#181f3d\\] { background:#fff !important; }
+        .tools-directory-page input { min-height:46px; border-radius:14px; background:#f8fbff !important; border-color:#d5e1ef !important; color:#20324b !important; }
+        .tools-directory-page button { border-radius:12px; }
+        .tools-directory-page .grid > div { border-color:#dce6f1 !important; background:#fff !important; box-shadow:0 8px 26px rgba(27,55,91,.06); }
+        .tools-directory-page .grid > div:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(27,55,91,.12); }
+        .tools-directory-page h3 { color:#1e3656 !important; }
+        @media(max-width:640px){ .tools-directory-page .grid { gap:12px; } .tools-directory-page .grid > div { padding:16px; } }
+      `}</style>
       {/* Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>

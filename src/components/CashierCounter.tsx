@@ -23,6 +23,7 @@ import {
   TaxRatesConfig,
 } from '../types';
 import { calculateTaxBreakdown } from '../services/portalStore';
+import townsJson from '../data/townsData.json';
 
 interface CashierCounterProps {
   properties: Property[];
@@ -45,6 +46,15 @@ export const CashierCounter: React.FC<CashierCounterProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWard, setSelectedWard] = useState<string>('ALL');
+  const [townSearch, setTownSearch] = useState('');
+  const townList = Object.entries(townsJson as Record<string, { n?: string }>).map(([id, town]) => ({
+    id,
+    name: town.n || id,
+  })).sort((a, b) => a.name.localeCompare(b.name));
+  const visibleTowns = townList.filter((town) =>
+    town.name.toLowerCase().includes(townSearch.trim().toLowerCase()) ||
+    town.id.toLowerCase().includes(townSearch.trim().toLowerCase())
+  );
 
   // Filter properties
   const filtered = properties.filter((p) => {
@@ -53,7 +63,10 @@ export const CashierCounter: React.FC<CashierCounterProps> = ({
       p.holdingNo.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
       p.assessmentNo.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
       p.ownerName.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
-      p.mobile.includes(searchTerm.trim());
+      p.mobile.includes(searchTerm.trim()) ||
+      p.zone.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
+      p.wardNo.toString().includes(searchTerm.trim()) ||
+      p.usage.toLowerCase().includes(searchTerm.toLowerCase().trim());
 
     const matchesWard = selectedWard === 'ALL' || p.wardNo.toString() === selectedWard;
 
@@ -72,7 +85,24 @@ export const CashierCounter: React.FC<CashierCounterProps> = ({
     .reduce((sum, r) => sum + r.totalPaid, 0);
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="cashier-counter-page space-y-6 pb-12">
+      <style>{`
+        .cashier-counter-page { color:#20324b; }
+        .cashier-counter-page > .bg-slate-900 { background:linear-gradient(125deg,#12345b,#2459a9) !important; border-color:#2d5c91 !important; border-radius:24px; box-shadow:0 14px 34px rgba(24,60,103,.16); }
+        .cashier-counter-page > .bg-slate-900 .bg-slate-800\\/80 { background:rgba(255,255,255,.11) !important; border-color:rgba(255,255,255,.17) !important; }
+        .cashier-counter-page > .bg-slate-900 .text-white { color:#fff !important; }
+        .cashier-counter-page > .bg-slate-900 .text-slate-400 { color:#d0e0f4 !important; }
+        .cashier-counter-page > .bg-white { border-color:#dce6f1 !important; border-radius:18px; box-shadow:0 6px 24px rgba(27,55,91,.05); }
+        .cashier-counter-page input,.cashier-counter-page select { min-height:42px; border-radius:12px; border-color:#cbd9e8 !important; background:#fff !important; color:#20324b !important; font-size:13px; }
+        .cashier-counter-page table { min-width:880px; }
+        .cashier-town-directory { border-radius:18px; }
+        .cashier-town-list > div { transition:background .15s ease,border-color .15s ease; }
+        .cashier-town-list > div:hover { background:#edf5ff !important; border-color:#9bbce5 !important; }
+        .cashier-counter-page thead { background:#edf4fc !important; color:#526984 !important; }
+        .cashier-counter-page tbody tr:hover { background:#f2f7fd !important; }
+        .cashier-counter-page button { border-radius:10px; }
+        @media(max-width:640px){ .cashier-counter-page { gap:14px; } .cashier-counter-page > .bg-slate-900 { padding:18px; } .cashier-counter-page > .bg-white { padding:14px; } }
+      `}</style>
       {/* Shift Register Dashboard Banner */}
       <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-slate-800">
         <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-800">
@@ -134,6 +164,32 @@ export const CashierCounter: React.FC<CashierCounterProps> = ({
               Zero pending queue items
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* Complete town directory for cashier lookup */}
+      <div className="cashier-town-directory bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div>
+            <h2 className="font-bold text-slate-900 text-sm">Town Directory</h2>
+            <p className="text-xs text-slate-500 mt-1">Search the complete town list by town name or town code.</p>
+          </div>
+          <span className="text-xs font-bold rounded-full px-3 py-1.5 bg-blue-50 text-blue-700">{visibleTowns.length} of {townList.length} towns</span>
+        </div>
+        <div className="relative mb-3">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input type="search" value={townSearch} onChange={(e) => setTownSearch(e.target.value)}
+            placeholder="Search town name or code…" aria-label="Search all towns"
+            className="w-full pl-10 pr-4 py-2.5 text-sm border border-slate-300 rounded-xl" />
+        </div>
+        <div className="cashier-town-list grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 max-h-64 overflow-y-auto">
+          {visibleTowns.map((town) => (
+            <div key={town.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+              <div className="text-sm font-semibold text-slate-800">{town.name}</div>
+              <div className="text-[10px] text-slate-500 font-mono">{town.id}</div>
+            </div>
+          ))}
+          {visibleTowns.length === 0 && <p className="col-span-full text-sm text-slate-500 py-4 text-center">No matching towns found.</p>}
         </div>
       </div>
 

@@ -19,7 +19,14 @@ export function App() {
   const view = showTools ? activeView : 'gis-survey';
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] text-slate-800 font-sans antialiased selection:bg-[#4f46e5] selection:text-white">
+    <div className="scheme-app min-h-screen bg-[#f4f7fb] text-slate-800 font-sans antialiased selection:bg-[#4f46e5] selection:text-white">
+      <style>{`
+        .scheme-app { --page-ink:#172b4d; --page-muted:#61738b; --page-line:#dce6f1; --page-accent:#2459a9; background:linear-gradient(180deg,#edf4fc 0%,#f8fafc 260px,#f4f7fb 100%); min-height:100vh; }
+        .scheme-app main { max-width:1440px; margin-inline:auto; }
+        .scheme-app button,.scheme-app a,.scheme-app input,.scheme-app select { transition:background-color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease; }
+        .scheme-app button:focus-visible,.scheme-app a:focus-visible,.scheme-app input:focus-visible,.scheme-app select:focus-visible { outline:3px solid #83b5ff; outline-offset:2px; }
+        @media(max-width:640px){ .scheme-app { overflow-x:hidden; } .scheme-app main { padding-inline:12px; } }
+      `}</style>
       <Navbar
         activeView={view}
         setActiveView={setActiveView}

@@ -17,7 +17,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView, onOpe
   const { isInstallable } = usePWAInstall();
   const { signOut } = useAuth();
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 text-slate-800 shadow-sm">
+    <header className="scheme-navbar sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 text-slate-800 shadow-sm">
+      <style>{`
+        .scheme-navbar { background:rgba(255,255,255,.94) !important; border-color:#d9e5f1 !important; box-shadow:0 5px 22px rgba(25,55,90,.07) !important; }
+        .scheme-navbar > div { min-height:64px; }
+        .scheme-navbar button,.scheme-navbar a { border-radius:11px; }
+        .scheme-navbar button:hover,.scheme-navbar a:hover { background:#edf4fc !important; color:#1f5595 !important; }
+        .scheme-navbar button:first-child span:first-child { background:linear-gradient(135deg,#164e8c,#3479c8) !important; box-shadow:0 4px 12px rgba(36,89,169,.2); }
+        @media(max-width:480px){ .scheme-navbar > div { padding-inline:12px; gap:8px; } .scheme-navbar .font-bold.text-base { font-size:13px; } }
+      `}</style>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-3">
         <button onClick={() => setActiveView('gis-survey')} className="flex items-center gap-2.5 text-left focus:outline-none">
           <span className="w-8 h-8 rounded-lg bg-blue-700 flex items-center justify-center">

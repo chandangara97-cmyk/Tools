@@ -938,7 +938,19 @@ const GisPropertySurveyInner: React.FC = () => {
   }, [lat, lng]);
 
   return (
-    <div className="min-h-screen bg-[#0d1224] text-[#eef0fb]">
+    <div className="gis-survey-page min-h-screen bg-[#f4f7fb] text-slate-800">
+      <style>{`
+        .gis-survey-page { --gis-ink:#193654; --gis-muted:#657b94; --gis-line:#d9e5f1; color:#233b57 !important; background:linear-gradient(180deg,#eaf3fc 0,#f8fafc 300px,#f4f7fb 100%) !important; }
+        .gis-survey-page .bg-\\[\\#0d1224\\],.gis-survey-page .bg-\\[\\#121830\\],.gis-survey-page .bg-\\[\\#141a36\\],.gis-survey-page .bg-\\[\\#181f3d\\],.gis-survey-page .bg-\\[\\#1d2547\\],.gis-survey-page .bg-\\[\\#232c52\\] { background-color:#fff !important; }
+        .gis-survey-page .border-\\[\\#28325c\\],.gis-survey-page .border-\\[\\#2f3a6b\\],.gis-survey-page .border-\\[\\#2a3464\\] { border-color:#d9e5f1 !important; }
+        .gis-survey-page .text-white { color:#1f3856 !important; }
+        .gis-survey-page .text-\\[\\#aab4dc\\],.gis-survey-page .text-\\[\\#d6dcf5\\],.gis-survey-page .text-\\[\\#8790bd\\] { color:#657b94 !important; }
+        .gis-survey-page input,.gis-survey-page select,.gis-survey-page textarea { background:#fff !important; border-color:#cbd9e8 !important; color:#203b58 !important; border-radius:11px; }
+        .gis-survey-page button { transition:all .18s ease; }
+        .gis-survey-page button:hover { filter:brightness(.98); }
+        .gis-survey-page .rounded-2xl,.gis-survey-page .rounded-3xl { box-shadow:0 7px 25px rgba(24,55,88,.055); }
+        @media(max-width:640px){ .gis-survey-page { overflow-x:hidden; } .gis-survey-page table { min-width:720px; } }
+      `}</style>
       {/* Slim header: where you are, and a way back to the menu (not shown to search-only logins) */}
       {!searchOnly && (
       <div className="bg-[#141a36] border-b border-[#2f3a6b] px-4 sm:px-6 py-3">
