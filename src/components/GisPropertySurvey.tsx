@@ -69,11 +69,28 @@ const GisPropertySurveyInner: React.FC = () => {
   // Every login opens on a menu that lists only what it may do. One-option logins go straight in.
   const tabs = useMemo(() => allowedTabs(role, userHead, isSuper), [role, userHead, isSuper]);
   const [activeTab, setActiveTab] = useState<Tab | 'menu'>(() => {
+    try {
+      if (sessionStorage.getItem('schemeHubSearch')) return 'search';
+      const launch = sessionStorage.getItem('schemeHubModule');
+      if (launch === 'gis-survey') return 'survey';
+      if (launch === 'property-tax' || launch === 'garbage' || launch === 'water' || launch === 'other-bills') return 'collection';
+      if (launch === 'reports') return 'reports';
+    } catch { /* storage may be disabled */ }
     const t = allowedTabs(role, userHead, isSuper);
     if (t.length !== 1) return 'menu';
     return t[0] !== 'collection' || (!isSuper && role === 'supervisor' && userHead) ? t[0] : 'menu';
   });
-  const [billHead, setBillHead] = useState<HeadId | null>(() => (!isSuper && role === 'supervisor' && userHead && userHead !== 'property_tax' ? userHead : null));
+  const [billHead, setBillHead] = useState<HeadId | null>(() => {
+    try {
+      const launch = sessionStorage.getItem('schemeHubModule');
+      if (launch === 'property-tax') return 'property_tax';
+      if (launch === 'garbage') return 'garbage';
+      if (launch === 'water') return 'water';
+      if (launch === 'other-bills') return 'other';
+    } catch { /* storage may be disabled */ }
+    return (!isSuper && role === 'supervisor' && userHead && userHead !== 'property_tax' ? userHead : null);
+  });
+  useEffect(() => { try { sessionStorage.removeItem('schemeHubModule'); } catch { /* storage may be disabled */ } }, []);
   // A ULB login is locked to its own town; only the platform owner ("*") can pick any ULB.
   const [selectedTownKey, setSelectedTownKey] = useState<string>(isSuper || !ulb ? townSlug('Bhota') : ulb);
   const [wardNo, setWardNo] = useState<string>('1');

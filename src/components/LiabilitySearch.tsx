@@ -95,7 +95,10 @@ export const LiabilitySearch: React.FC<Props> = ({ townKey, townName, records, h
   const ledgers = useAllLedgers(townKey);
   const settings = useAllSettings(townKey);
   const today = todayIso();
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(() => {
+    try { const raw = sessionStorage.getItem('schemeHubSearch'); if (raw) { const saved = JSON.parse(raw) as { query?: string }; sessionStorage.removeItem('schemeHubSearch'); return saved.query || ''; } } catch { /* storage may be disabled */ }
+    return '';
+  });
   const [picked, setPicked] = useState<string | null>(null);
   const [billing, setBilling] = useState(false);
   const { role } = useAuth();
@@ -121,7 +124,7 @@ export const LiabilitySearch: React.FC<Props> = ({ townKey, townName, records, h
     if (exact.length) return exact;
     return town
       .filter((r) => {
-        const hay = norm(`${r.owner} ${r.hno} ${r.addr || ''} ${r.id} ${r.upn || ''}`);
+        const hay = norm(`${r.owner} ${r.hno} ${r.addr || ''} ${r.str || ''} ${r.id} ${r.upn || ''}`);
         return (
           compact(r.id).includes(c) ||
           (r.upn && compact(r.upn).includes(c)) ||
