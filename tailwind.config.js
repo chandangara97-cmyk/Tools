@@ -8,19 +8,19 @@ export default {
     extend: {
       colors: {
         navy: {
-          900: '#07161d',
+          900: '#0d1224',
           800: '#0b2545',
           700: '#102b4e',
           600: '#173a67',
         },
         teal: {
-          accent: '#0e8a7d',
+          accent: '#4f46e5',
           dark: '#072b27',
-          light: '#27b3a3',
+          light: '#9aa8ff',
         },
         gold: {
-          DEFAULT: '#d6a34b',
-          soft: '#f7dfae',
+          DEFAULT: '#f2b233',
+          soft: '#ffe3a3',
         }
       }
     },

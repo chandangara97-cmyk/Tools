@@ -130,6 +130,15 @@
         ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('ulb').val() === '*'",
         ".validate": "!newData.exists() || (newData.hasChildren(['name','active']) && newData.child('active').isBoolean())"
       }
+    },
+    "credentials": {
+      "$town": {
+        ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && (root.child('users').child(auth.uid).child('ulb').val() === '*' || (root.child('users').child(auth.uid).child('ulb').val() === $town && root.child('ulbs').child($town).child('active').val() === true))",
+        "$uid": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && (root.child('users').child(auth.uid).child('ulb').val() === '*' || (root.child('users').child(auth.uid).child('ulb').val() === $town && root.child('ulbs').child($town).child('active').val() === true))",
+          ".validate": "!newData.exists() || (newData.hasChildren(['userId','password','role']) && newData.child('userId').isString() && newData.child('password').isString())"
+        }
+      }
     }
   }
 }

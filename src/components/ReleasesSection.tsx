@@ -16,11 +16,11 @@ export const ReleasesSection: React.FC = () => {
         <div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
             Releases &amp; Advance Calendar
-            <span className="text-xs font-normal text-[#9fc7c1] bg-[#0f242d] border border-[#1d434c] px-2 py-0.5 rounded-full">
+            <span className="text-xs font-normal text-[#aab4dc] bg-[#181f3d] border border-[#28325c] px-2 py-0.5 rounded-full">
               2026-27 Publications
             </span>
           </h2>
-          <p className="text-xs sm:text-sm text-[#9fc7c1] mt-1">
+          <p className="text-xs sm:text-sm text-[#aab4dc] mt-1">
             Tracking releases for GDP, IIP, CPI, PLFS and Himachal Pradesh economic surveys.
           </p>
         </div>
@@ -29,17 +29,17 @@ export const ReleasesSection: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Latest Releases */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="bg-[#0f242d] border border-[#1d434c] rounded-2xl p-5 shadow-lg space-y-4">
+          <div className="bg-[#181f3d] border border-[#28325c] rounded-2xl p-5 shadow-lg space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#20b5a6]" />
+                <FileText className="w-4 h-4 text-[#9aa8ff]" />
                 Latest Publications
               </h3>
               <div className="flex items-center gap-1.5 text-xs">
                 <button
                   onClick={() => setOrgFilter('all')}
                   className={`px-2.5 py-1 rounded font-bold ${
-                    orgFilter === 'all' ? 'bg-[#0e8a7d] text-white' : 'bg-[#091a1f] text-[#9fc7c1]'
+                    orgFilter === 'all' ? 'bg-[#4f46e5] text-white' : 'bg-[#121830] text-[#aab4dc]'
                   }`}
                 >
                   All
@@ -47,7 +47,7 @@ export const ReleasesSection: React.FC = () => {
                 <button
                   onClick={() => setOrgFilter('MoSPI')}
                   className={`px-2.5 py-1 rounded font-bold ${
-                    orgFilter === 'MoSPI' ? 'bg-[#0e8a7d] text-white' : 'bg-[#091a1f] text-[#9fc7c1]'
+                    orgFilter === 'MoSPI' ? 'bg-[#4f46e5] text-white' : 'bg-[#121830] text-[#aab4dc]'
                   }`}
                 >
                   MoSPI (Central)
@@ -55,7 +55,7 @@ export const ReleasesSection: React.FC = () => {
                 <button
                   onClick={() => setOrgFilter('HP Statistics')}
                   className={`px-2.5 py-1 rounded font-bold ${
-                    orgFilter === 'HP Statistics' ? 'bg-[#0e8a7d] text-white' : 'bg-[#091a1f] text-[#9fc7c1]'
+                    orgFilter === 'HP Statistics' ? 'bg-[#4f46e5] text-white' : 'bg-[#121830] text-[#aab4dc]'
                   }`}
                 >
                   HP DES (State)
@@ -63,18 +63,18 @@ export const ReleasesSection: React.FC = () => {
               </div>
             </div>
 
-            <div className="divide-y divide-[#1a3840]">
+            <div className="divide-y divide-[#232c52]">
               {filteredItems.map((item, idx) => (
                 <div key={idx} className="py-3.5 first:pt-0 last:pb-0 space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-mono text-[#9fc7c1]">{item.date || 'Recent'}</span>
+                    <span className="text-[11px] font-mono text-[#aab4dc]">{item.date || 'Recent'}</span>
                     <span className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded ${
                       item.org === 'MoSPI' ? 'bg-blue-950 text-blue-300' : 'bg-emerald-950 text-emerald-300'
                     }`}>
                       {item.org}
                     </span>
                     {item.isNew && (
-                      <span className="bg-[#d6a34b] text-[#07161d] text-[9px] font-black px-1.5 py-0.2 rounded">
+                      <span className="bg-[#f2b233] text-[#0d1224] text-[9px] font-black px-1.5 py-0.2 rounded">
                         NEW
                       </span>
                     )}
@@ -83,12 +83,12 @@ export const ReleasesSection: React.FC = () => {
                     href={item.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs font-bold text-white hover:text-[#20b5a6] transition-colors flex items-center gap-1 leading-snug"
+                    className="text-xs font-bold text-white hover:text-[#9aa8ff] transition-colors flex items-center gap-1 leading-snug"
                   >
-                    {item.title} <ExternalLink className="w-3 h-3 text-[#7ea19b] flex-none" />
+                    {item.title} <ExternalLink className="w-3 h-3 text-[#8790bd] flex-none" />
                   </a>
                   {item.note && (
-                    <p className="text-[11px] text-[#9fc7c1] leading-relaxed">{item.note}</p>
+                    <p className="text-[11px] text-[#aab4dc] leading-relaxed">{item.note}</p>
                   )}
                 </div>
               ))}
@@ -96,8 +96,8 @@ export const ReleasesSection: React.FC = () => {
           </div>
 
           {/* Official Pinned Sources */}
-          <div className="bg-[#0f242d] border border-[#1d434c] rounded-2xl p-5 shadow-lg space-y-3">
-            <h3 className="text-xs font-bold text-[#f7dfae] uppercase tracking-wider">
+          <div className="bg-[#181f3d] border border-[#28325c] rounded-2xl p-5 shadow-lg space-y-3">
+            <h3 className="text-xs font-bold text-[#ffe3a3] uppercase tracking-wider">
               Primary Official Portals
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -107,16 +107,16 @@ export const ReleasesSection: React.FC = () => {
                   href={pin.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-3 bg-[#091a1f] hover:bg-[#112730] border border-[#1b3d39] rounded-xl transition-all space-y-1 group block"
+                  className="p-3 bg-[#121830] hover:bg-[#112730] border border-[#252e56] rounded-xl transition-all space-y-1 group block"
                 >
-                  <div className="flex items-center justify-between text-[10px] text-[#7ea19b]">
+                  <div className="flex items-center justify-between text-[10px] text-[#8790bd]">
                     <span>{pin.org}</span>
                     <span className="font-mono">{pin.kind}</span>
                   </div>
-                  <div className="font-bold text-white group-hover:text-[#20b5a6] transition-colors leading-snug">
+                  <div className="font-bold text-white group-hover:text-[#9aa8ff] transition-colors leading-snug">
                     {pin.title}
                   </div>
-                  {pin.note && <div className="text-[11px] text-[#9fc7c1]">{pin.note}</div>}
+                  {pin.note && <div className="text-[11px] text-[#aab4dc]">{pin.note}</div>}
                 </a>
               ))}
             </div>
@@ -125,17 +125,17 @@ export const ReleasesSection: React.FC = () => {
 
         {/* Right Column: Upcoming Releases Calendar */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-[#0f242d] border border-[#1d434c] rounded-2xl p-5 shadow-lg space-y-4">
+          <div className="bg-[#181f3d] border border-[#28325c] rounded-2xl p-5 shadow-lg space-y-4">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-[#f7dfae]" />
+              <Calendar className="w-4 h-4 text-[#ffe3a3]" />
               Upcoming Calendar
             </h3>
             <div className="space-y-3">
               {REPORTS_DATA.upcoming.map((u, i) => (
-                <div key={i} className="p-3 bg-[#091a1f] border border-[#1b3d39] rounded-xl text-xs space-y-1">
+                <div key={i} className="p-3 bg-[#121830] border border-[#252e56] rounded-xl text-xs space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[#f7dfae] font-bold">{u.date}</span>
-                    <span className="text-[10px] bg-white/10 text-[#9fc7c1] px-1.5 py-0.5 rounded">
+                    <span className="font-mono text-[#ffe3a3] font-bold">{u.date}</span>
+                    <span className="text-[10px] bg-white/10 text-[#aab4dc] px-1.5 py-0.5 rounded">
                       {u.org}
                     </span>
                   </div>
@@ -143,7 +143,7 @@ export const ReleasesSection: React.FC = () => {
                 </div>
               ))}
             </div>
-            <p className="text-[10.5px] text-[#7ea19b] pt-2 border-t border-[#1b3d39]">
+            <p className="text-[10.5px] text-[#8790bd] pt-2 border-t border-[#252e56]">
               {REPORTS_DATA.upcoming_source}
             </p>
           </div>

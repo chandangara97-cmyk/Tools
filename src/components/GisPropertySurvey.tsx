@@ -10,6 +10,7 @@ import { AssessmentPanel } from './AssessmentPanel';
 import { CollectionPanel } from './CollectionPanel';
 import { ReportsPanel } from './ReportsPanel';
 import { WorkMenu, BILL_NAME, Choice } from './WorkMenu';
+import { LiabilitySearch } from './LiabilitySearch';
 import { allowedTabs, allowedHeads, Tab } from '../services/access';
 import { HeadId, useTownHeads } from '../services/heads';
 import { rekeyTowns, townSlug } from '../services/townPath';
@@ -88,7 +89,7 @@ const GisPropertySurveyInner: React.FC = () => {
   // a login can never sit on a page it is not allowed to open
   useEffect(() => { if (activeTab !== 'menu' && !tabs.includes(activeTab)) setActiveTab('menu'); }, [activeTab, tabs]);
   const PAGE_TITLE: Record<Tab, string> = {
-    survey: 'Property survey', 'map-editor': 'Ward map', records: 'Property records', assessment: 'Assessment',
+    search: 'Search dues', survey: 'Property survey', 'map-editor': 'Ward map', records: 'Property records', assessment: 'Assessment',
     collection: billHead ? BILL_NAME[billHead] : 'Collection', reports: 'Reports & notices', exports: 'GIS exports',
   };
   const writable = canWriteSurvey(role);
@@ -580,7 +581,7 @@ const GisPropertySurveyInner: React.FC = () => {
 
       // Polygon boundary stroke
       ctx.lineWidth = isSelected ? 3 : 1.5;
-      ctx.strokeStyle = isSelected ? '#d6a34b' : '#27b3a3';
+      ctx.strokeStyle = isSelected ? '#f2b233' : '#9aa8ff';
       ctx.stroke();
 
       // Ward centroid label
@@ -590,7 +591,7 @@ const GisPropertySurveyInner: React.FC = () => {
       cy /= ring.length;
       const [scx, scy] = toScreen(cx, cy);
 
-      ctx.fillStyle = isSelected ? '#ffffff' : '#9fc7c1';
+      ctx.fillStyle = isSelected ? '#ffffff' : '#aab4dc';
       ctx.font = 'bold 12px monospace';
       ctx.textAlign = 'center';
       ctx.fillText(`Ward ${w.w}`, scx, scy);
@@ -689,14 +690,14 @@ const GisPropertySurveyInner: React.FC = () => {
         ctx.arc(sx, sy, pixAcc, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(214, 163, 75, 0.2)';
         ctx.fill();
-        ctx.strokeStyle = '#d6a34b';
+        ctx.strokeStyle = '#f2b233';
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
         // Pin target
         ctx.beginPath();
         ctx.arc(sx, sy, 6, 0, Math.PI * 2);
-        ctx.fillStyle = '#d6a34b';
+        ctx.fillStyle = '#f2b233';
         ctx.fill();
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 2;
@@ -721,7 +722,7 @@ const GisPropertySurveyInner: React.FC = () => {
     ctx.fillText('● Green: Res  ● Red: Comm  ▲ Blue: GCP', 22, height - 20);
 
     // North arrow
-    ctx.fillStyle = '#d6a34b';
+    ctx.fillStyle = '#f2b233';
     ctx.beginPath();
     ctx.moveTo(width - 25, 25);
     ctx.lineTo(width - 32, 45);
@@ -937,9 +938,9 @@ const GisPropertySurveyInner: React.FC = () => {
   }, [lat, lng]);
 
   return (
-    <div className="min-h-screen bg-[#07161d] text-[#edf3fc]">
+    <div className="min-h-screen bg-[#0d1224] text-[#eef0fb]">
       {/* Slim header: where you are, and a way back to the menu */}
-      <div className="bg-[#0b242e] border-b border-[#1b3d45] px-4 sm:px-6 py-3">
+      <div className="bg-[#151b36] border-b border-[#1b3d45] px-4 sm:px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 flex-wrap">
           {activeTab === 'menu' ? (
             <h1 className="text-lg font-bold text-white">Menu</h1>
@@ -947,7 +948,7 @@ const GisPropertySurveyInner: React.FC = () => {
             <div className="flex items-center gap-3">
               {!singleDest && (
                 <button type="button" onClick={() => setActiveTab('menu')}
-                  className="inline-flex items-center gap-1.5 bg-[#0e8a7d] hover:bg-[#11a394] text-white text-sm font-bold px-3 py-2 rounded-xl">
+                  className="inline-flex items-center gap-1.5 bg-[#4f46e5] hover:bg-[#6259f0] text-white text-sm font-bold px-3 py-2 rounded-xl">
                   <ArrowLeft className="w-4 h-4" /> Menu
                 </button>
               )}
@@ -958,14 +959,14 @@ const GisPropertySurveyInner: React.FC = () => {
             <select
               value={selectedTownKey}
               onChange={(e) => { setSelectedTownKey(e.target.value); setWardNo('1'); setSelectedWardForEdit('1'); }}
-              className="bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg px-3 py-2 font-medium focus:outline-none focus:border-[#20b5a6]"
+              className="bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg px-3 py-2 font-medium focus:outline-none focus:border-[#9aa8ff]"
             >
               {Object.entries(visibleTowns).sort((a, b) => a[1].n.localeCompare(b[1].n)).map(([key, t]) => (
                 <option key={key} value={key}>{t.n}</option>
               ))}
             </select>
           ) : (
-            <span className="bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg px-3 py-2 font-bold">{currentTown.n}</span>
+            <span className="bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg px-3 py-2 font-bold">{currentTown.n}</span>
           )}
         </div>
       </div>
@@ -988,32 +989,35 @@ const GisPropertySurveyInner: React.FC = () => {
         {activeTab === 'menu' && (
           <WorkMenu townName={currentTown.n} tabs={tabs} bills={bills} onChoose={choose} />
         )}
+        {activeTab === 'search' && (
+          <LiabilitySearch townKey={selectedTownKey} townName={currentTown.n} records={records} heads={bills} />
+        )}
         {activeTab === 'survey' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Left Column: Form */}
             <div className="lg:col-span-7 space-y-6">
               {/* Survey Setup Card */}
-              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-5 shadow-lg">
-                <h2 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider mb-4 flex items-center gap-2">
+              <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-5 shadow-lg">
+                <h2 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider mb-4 flex items-center gap-2">
                   <Compass className="w-4 h-4" />
                   Survey Configuration
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Town / ULB</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Town / ULB</label>
                     <input
                       type="text"
                       readOnly
                       value={currentTown.n}
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 font-medium"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 font-medium"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Ward No. *</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Ward No. *</label>
                     <select
                       value={wardNo}
                       onChange={(e) => setWardNo(e.target.value)}
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 font-medium focus:border-[#20b5a6]"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 font-medium focus:border-[#9aa8ff]"
                     >
                       {currentTown.w.map((w) => (
                         <option key={w.w} value={w.w}>
@@ -1023,70 +1027,70 @@ const GisPropertySurveyInner: React.FC = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Surveyor Name</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Surveyor Name</label>
                     <input
                       type="text"
                       value={surveyorName}
                       onChange={(e) => setSurveyorName(e.target.value)}
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 font-medium focus:border-[#20b5a6]"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 font-medium focus:border-[#9aa8ff]"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Property Details Card */}
-              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-5 shadow-lg space-y-4">
+              <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-5 shadow-lg space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider flex items-center gap-2">
+                  <h2 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider flex items-center gap-2">
                     <Building2 className="w-4 h-4" />
                     Property Identification
                   </h2>
-                  <span className="bg-[#091a1f] text-[#f7dfae] border border-[#23534d] text-xs font-mono font-bold px-2.5 py-1 rounded">
+                  <span className="bg-[#121830] text-[#ffe3a3] border border-[#2f3a6b] text-xs font-mono font-bold px-2.5 py-1 rounded">
                     ID: {editId || nextPropertyId}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Owner Name *</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Owner Name *</label>
                     <input
                       type="text"
                       placeholder="e.g. Ramesh Chand"
                       value={owner}
                       onChange={(e) => setOwner(e.target.value)}
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#20b5a6]"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 focus:border-[#9aa8ff]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">House / Plot No. *</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">House / Plot No. *</label>
                     <input
                       type="text"
                       placeholder="e.g. 14/B or Plot 20"
                       value={hno}
                       onChange={(e) => setHno(e.target.value)}
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#20b5a6]"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 focus:border-[#9aa8ff]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Locality / Street Address</label>
+                  <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Locality / Street Address</label>
                   <input
                     type="text"
                     placeholder="e.g. Near Bus Stand, Main Road"
                     value={addr}
                     onChange={(e) => setAddr(e.target.value)}
-                    className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#20b5a6]"
+                    className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 focus:border-[#9aa8ff]"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Use Category *</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Use Category *</label>
                     <select
                       value={useType}
                       onChange={(e) => setUseType(e.target.value)}
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#20b5a6]"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 focus:border-[#9aa8ff]"
                     >
                       <option>Residential</option>
                       <option>Commercial</option>
@@ -1097,11 +1101,11 @@ const GisPropertySurveyInner: React.FC = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Occupancy</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Occupancy</label>
                     <select
                       value={occ}
                       onChange={(e) => setOcc(e.target.value)}
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#20b5a6]"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 focus:border-[#9aa8ff]"
                     >
                       <option>Owner-occupied</option>
                       <option>Let out</option>
@@ -1109,11 +1113,11 @@ const GisPropertySurveyInner: React.FC = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Structure Type</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Structure Type</label>
                     <select
                       value={str}
                       onChange={(e) => setStr(e.target.value)}
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#20b5a6]"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 focus:border-[#9aa8ff]"
                     >
                       <option>RCC</option>
                       <option>Pucca (other)</option>
@@ -1125,60 +1129,60 @@ const GisPropertySurveyInner: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Year Built</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Year Built</label>
                     <input
                       type="number"
                       placeholder="e.g. 2018"
                       value={yr}
                       onChange={(e) => setYr(e.target.value)}
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#20b5a6]"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 focus:border-[#9aa8ff]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Zone (Tax Rate)</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Zone (Tax Rate)</label>
                     <select
                       value={zone}
                       onChange={(e) => setZone(e.target.value)}
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#20b5a6]"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 focus:border-[#9aa8ff]"
                     >
                       <option value="A">Zone A (Prime Commercial/Road)</option>
                       <option value="B">Zone B (Interior / Secondary)</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Class (if the bylaws use one)</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Class (if the bylaws use one)</label>
                     <input
                       type="text"
                       placeholder="leave blank if not used"
                       value={ncls}
                       onChange={(e) => setNcls(e.target.value)}
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#20b5a6]"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 focus:border-[#9aa8ff]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">UPN / GIS Unique ID</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">UPN / GIS Unique ID</label>
                     <input
                       type="text"
                       placeholder="e.g. HP-BHT-01-0012"
                       value={upn}
                       onChange={(e) => setUpn(e.target.value)}
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#20b5a6]"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 focus:border-[#9aa8ff]"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Area Measurements Card */}
-              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-5 shadow-lg space-y-4">
+              <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-5 shadow-lg space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider flex items-center gap-2">
+                  <h2 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider flex items-center gap-2">
                     <Maximize2 className="w-4 h-4" />
                     Plinth &amp; Plot Area (sq m)
                   </h2>
                   <button
                     type="button"
                     onClick={addFloor}
-                    className="bg-[#1b433e] hover:bg-[#20524c] text-[#20b5a6] text-xs font-bold px-2.5 py-1 rounded flex items-center gap-1"
+                    className="bg-[#2a3464] hover:bg-[#20524c] text-[#9aa8ff] text-xs font-bold px-2.5 py-1 rounded flex items-center gap-1"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add Floor
                   </button>
@@ -1187,14 +1191,14 @@ const GisPropertySurveyInner: React.FC = () => {
                 <div className="space-y-2">
                   {floorAreas.map((fArea, fIdx) => (
                     <div key={fIdx} className="flex items-center gap-3">
-                      <span className="text-xs text-[#9fc7c1] w-24">Floor {fIdx + 1}:</span>
+                      <span className="text-xs text-[#aab4dc] w-24">Floor {fIdx + 1}:</span>
                       <input
                         type="number"
                         step="0.1"
                         value={fArea || ''}
                         onChange={(e) => handleFloorChange(fIdx, parseFloat(e.target.value) || 0)}
                         placeholder="Plinth area (sq m)"
-                        className="flex-1 bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2 focus:border-[#20b5a6]"
+                        className="flex-1 bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2 focus:border-[#9aa8ff]"
                       />
                       {floorAreas.length > 1 && (
                         <button
@@ -1210,38 +1214,38 @@ const GisPropertySurveyInner: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#1a3840]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#232c52]">
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Total Built-Up Area (Auto):</label>
-                    <div className="bg-[#091a1f] border border-[#23534d] text-[#f7dfae] text-sm font-mono font-bold rounded-lg p-2.5">
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Total Built-Up Area (Auto):</label>
+                    <div className="bg-[#121830] border border-[#2f3a6b] text-[#ffe3a3] text-sm font-mono font-bold rounded-lg p-2.5">
                       {totalBuiltUp.toFixed(2)} sq m
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Plot / Land Area (sq m):</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Plot / Land Area (sq m):</label>
                     <input
                       type="number"
                       step="0.1"
                       value={landArea || ''}
                       onChange={(e) => setLandArea(parseFloat(e.target.value) || 0)}
                       placeholder="Land area"
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#20b5a6]"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 focus:border-[#9aa8ff]"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Geo-tagging Card */}
-              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-5 shadow-lg space-y-4">
+              <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-5 shadow-lg space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider flex items-center gap-2">
+                  <h2 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider flex items-center gap-2">
                     <Crosshair className="w-4 h-4" />
                     Spatial Geo-Tag &amp; Projections
                   </h2>
                   <button
                     type="button"
                     onClick={handleCaptureGps}
-                    className="bg-[#0e8a7d] hover:bg-[#11a394] text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow"
+                    className="bg-[#4f46e5] hover:bg-[#6259f0] text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow"
                   >
                     <MapPin className="w-3.5 h-3.5" />
                     Capture GPS Here
@@ -1250,44 +1254,44 @@ const GisPropertySurveyInner: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Latitude (WGS84)</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Latitude (WGS84)</label>
                     <input
                       type="text"
                       value={lat}
                       onChange={(e) => setLat(e.target.value)}
                       placeholder="e.g. 31.6118"
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#20b5a6] font-mono"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 focus:border-[#9aa8ff] font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">Longitude (WGS84)</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Longitude (WGS84)</label>
                     <input
                       type="text"
                       value={lng}
                       onChange={(e) => setLng(e.target.value)}
                       placeholder="e.g. 76.5638"
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#20b5a6] font-mono"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 focus:border-[#9aa8ff] font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#9fc7c1] mb-1 font-semibold">GPS Accuracy (m)</label>
+                    <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">GPS Accuracy (m)</label>
                     <input
                       type="text"
                       value={acc}
                       onChange={(e) => setAcc(e.target.value)}
                       placeholder="e.g. 3.5"
-                      className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#20b5a6] font-mono"
+                      className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 focus:border-[#9aa8ff] font-mono"
                     />
                   </div>
                 </div>
 
                 {/* UTM Readout */}
                 {currentUtm && (
-                  <div className="bg-[#091a1f] p-3 rounded-lg border border-[#1b433e] text-xs font-mono text-[#9fc7c1] flex items-center justify-between flex-wrap gap-2">
+                  <div className="bg-[#121830] p-3 rounded-lg border border-[#2a3464] text-xs font-mono text-[#aab4dc] flex items-center justify-between flex-wrap gap-2">
                     <div>
-                      <span className="text-[#f7dfae] font-bold">UTM Zone 43N (m):</span> Easting: {currentUtm.easting.toLocaleString()} mE, Northing: {currentUtm.northing.toLocaleString()} mN
+                      <span className="text-[#ffe3a3] font-bold">UTM Zone 43N (m):</span> Easting: {currentUtm.easting.toLocaleString()} mE, Northing: {currentUtm.northing.toLocaleString()} mN
                     </div>
-                    <span className="text-[10px] bg-[#14333b] text-white px-2 py-0.5 rounded">
+                    <span className="text-[10px] bg-[#20284b] text-white px-2 py-0.5 rounded">
                       EPSG:32643
                     </span>
                   </div>
@@ -1295,7 +1299,7 @@ const GisPropertySurveyInner: React.FC = () => {
               </div>
 
               {/* Building Photos */}
-              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-5 shadow-lg">
+              <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-5 shadow-lg">
                 <PhotoCapture photos={photos} onChange={setPhotos} disabled={!writable} />
               </div>
 
@@ -1304,9 +1308,9 @@ const GisPropertySurveyInner: React.FC = () => {
                 <div
                   className={`p-3 rounded-lg text-xs font-semibold flex items-center gap-2 ${
                     formMsg.type === 'ok'
-                      ? 'bg-[#0e8a7d]/20 text-[#20b5a6] border border-[#0e8a7d]/40'
+                      ? 'bg-[#4f46e5]/20 text-[#9aa8ff] border border-[#4f46e5]/40'
                       : formMsg.type === 'warn'
-                      ? 'bg-[#d6a34b]/20 text-[#f7dfae] border border-[#d6a34b]/40'
+                      ? 'bg-[#f2b233]/20 text-[#ffe3a3] border border-[#f2b233]/40'
                       : 'bg-[#b91c1c]/20 text-red-300 border border-red-500/40'
                   }`}
                 >
@@ -1321,14 +1325,14 @@ const GisPropertySurveyInner: React.FC = () => {
                   type="button"
                   onClick={() => void handleSaveProperty()}
                   disabled={!writable}
-                  className="flex-1 bg-[#0e8a7d] hover:bg-[#11a394] disabled:opacity-40 text-white text-sm font-bold py-3 rounded-xl shadow-lg transition-transform active:scale-[0.98]"
+                  className="flex-1 bg-[#4f46e5] hover:bg-[#6259f0] disabled:opacity-40 text-white text-sm font-bold py-3 rounded-xl shadow-lg transition-transform active:scale-[0.98]"
                 >
                   {editId ? 'Update Property Record' : 'Save Property Record'}
                 </button>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="bg-[#142831] hover:bg-[#1b3642] text-[#9fc7c1] text-sm font-semibold px-5 py-3 rounded-xl border border-[#23534d]"
+                  className="bg-[#1d2547] hover:bg-[#232c52] text-[#aab4dc] text-sm font-semibold px-5 py-3 rounded-xl border border-[#2f3a6b]"
                 >
                   Clear / New
                 </button>
@@ -1337,21 +1341,21 @@ const GisPropertySurveyInner: React.FC = () => {
 
             {/* Right Column: Mini Interactive Map Preview */}
             <div className="lg:col-span-5 space-y-4">
-              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-4 shadow-lg sticky top-20">
+              <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-4 shadow-lg sticky top-20">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-bold text-[#20b5a6] uppercase tracking-wider flex items-center gap-1.5">
+                  <h3 className="text-xs font-bold text-[#9aa8ff] uppercase tracking-wider flex items-center gap-1.5">
                     <MapPin className="w-4 h-4" />
                     Ward Outlines &amp; Tap Geo-Tagging
                   </h3>
                   <button
                     onClick={() => setActiveTab('map-editor')}
-                    className="text-xs text-[#f7dfae] hover:underline flex items-center gap-1"
+                    className="text-xs text-[#ffe3a3] hover:underline flex items-center gap-1"
                   >
                     Open Full Editor &rarr;
                   </button>
                 </div>
 
-                <div className="relative border border-[#23534d] rounded-lg overflow-hidden bg-[#091a1f] h-[360px]">
+                <div className="relative border border-[#2f3a6b] rounded-lg overflow-hidden bg-[#121830] h-[360px]">
                   <canvas
                     ref={mapCanvasRef}
                     width={560}
@@ -1364,20 +1368,20 @@ const GisPropertySurveyInner: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-3 p-3 bg-[#091a1f] rounded-lg border border-[#1a3840] text-xs space-y-1.5">
-                  <div className="flex justify-between text-[#9fc7c1]">
+                <div className="mt-3 p-3 bg-[#121830] rounded-lg border border-[#232c52] text-xs space-y-1.5">
+                  <div className="flex justify-between text-[#aab4dc]">
                     <span>Current Town:</span>
                     <strong className="text-white">{currentTown.n}</strong>
                   </div>
-                  <div className="flex justify-between text-[#9fc7c1]">
+                  <div className="flex justify-between text-[#aab4dc]">
                     <span>Total Wards in Frame:</span>
-                    <strong className="text-[#20b5a6]">{currentTown.w.length} Wards</strong>
+                    <strong className="text-[#9aa8ff]">{currentTown.w.length} Wards</strong>
                   </div>
-                  <div className="flex justify-between text-[#9fc7c1]">
+                  <div className="flex justify-between text-[#aab4dc]">
                     <span>Selected Active Ward:</span>
-                    <strong className="text-[#f7dfae]">Ward {wardNo}</strong>
+                    <strong className="text-[#ffe3a3]">Ward {wardNo}</strong>
                   </div>
-                  <div className="text-[11px] text-[#7ea19b] pt-1 border-t border-[#1b3d39]">
+                  <div className="text-[11px] text-[#8790bd] pt-1 border-t border-[#252e56]">
                     Tap anywhere inside the ward boundary polygon to position the property structure tag and auto-link ward number.
                   </div>
                 </div>
@@ -1392,13 +1396,13 @@ const GisPropertySurveyInner: React.FC = () => {
         {activeTab === 'map-editor' && (
           <div className="space-y-6">
             {/* Editor Toolbar */}
-            <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-4 shadow-lg flex flex-wrap items-center justify-between gap-4">
+            <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-4 shadow-lg flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-bold text-[#9fc7c1] uppercase mr-1">GIS Mode:</span>
+                <span className="text-xs font-bold text-[#aab4dc] uppercase mr-1">GIS Mode:</span>
                 <button
                   onClick={() => { setEditorMode('view'); setDrawingRing([]); }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                    editorMode === 'view' ? 'bg-[#0e8a7d] text-white' : 'bg-[#091a1f] text-[#9fc7c1] border border-[#23534d]'
+                    editorMode === 'view' ? 'bg-[#4f46e5] text-white' : 'bg-[#121830] text-[#aab4dc] border border-[#2f3a6b]'
                   }`}
                 >
                   Inspect &amp; Tag
@@ -1406,7 +1410,7 @@ const GisPropertySurveyInner: React.FC = () => {
                 <button
                   onClick={() => { setEditorMode('draw'); setDrawingRing([]); }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${
-                    editorMode === 'draw' ? 'bg-[#d6a34b] text-[#07161d] font-bold' : 'bg-[#091a1f] text-[#f7dfae] border border-[#23534d]'
+                    editorMode === 'draw' ? 'bg-[#f2b233] text-[#0d1224] font-bold' : 'bg-[#121830] text-[#ffe3a3] border border-[#2f3a6b]'
                   }`}
                 >
                   <PenTool className="w-3.5 h-3.5" />
@@ -1415,7 +1419,7 @@ const GisPropertySurveyInner: React.FC = () => {
                 <button
                   onClick={() => { setEditorMode('edit-vertex'); setDrawingRing([]); }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                    editorMode === 'edit-vertex' ? 'bg-[#3b82f6] text-white' : 'bg-[#091a1f] text-[#9fc7c1] border border-[#23534d]'
+                    editorMode === 'edit-vertex' ? 'bg-[#3b82f6] text-white' : 'bg-[#121830] text-[#aab4dc] border border-[#2f3a6b]'
                   }`}
                 >
                   Vertex Node Editor
@@ -1424,11 +1428,11 @@ const GisPropertySurveyInner: React.FC = () => {
 
               {/* Ward selector for editor */}
               <div className="flex items-center gap-2">
-                <label className="text-xs text-[#9fc7c1] font-semibold">Active Ward:</label>
+                <label className="text-xs text-[#aab4dc] font-semibold">Active Ward:</label>
                 <select
                   value={selectedWardForEdit}
                   onChange={(e) => setSelectedWardForEdit(e.target.value)}
-                  className="bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg px-2.5 py-1.5"
+                  className="bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg px-2.5 py-1.5"
                 >
                   {currentTown.w.map(w => (
                     <option key={w.w} value={w.w}>Ward {w.w}</option>
@@ -1436,21 +1440,21 @@ const GisPropertySurveyInner: React.FC = () => {
                 </select>
                 <button
                   onClick={() => setZoom(z => Math.min(4, z + 0.3))}
-                  className="bg-[#091a1f] hover:bg-white/10 text-white text-xs font-bold px-2.5 py-1.5 rounded border border-[#23534d]"
+                  className="bg-[#121830] hover:bg-white/10 text-white text-xs font-bold px-2.5 py-1.5 rounded border border-[#2f3a6b]"
                   title="Zoom In"
                 >
                   +
                 </button>
                 <button
                   onClick={() => setZoom(z => Math.max(0.6, z - 0.3))}
-                  className="bg-[#091a1f] hover:bg-white/10 text-white text-xs font-bold px-2.5 py-1.5 rounded border border-[#23534d]"
+                  className="bg-[#121830] hover:bg-white/10 text-white text-xs font-bold px-2.5 py-1.5 rounded border border-[#2f3a6b]"
                   title="Zoom Out"
                 >
                   -
                 </button>
                 <button
                   onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}
-                  className="bg-[#091a1f] hover:bg-white/10 text-white text-xs font-bold px-2.5 py-1.5 rounded border border-[#23534d]"
+                  className="bg-[#121830] hover:bg-white/10 text-white text-xs font-bold px-2.5 py-1.5 rounded border border-[#2f3a6b]"
                   title="Reset View"
                 >
                   Fit
@@ -1460,9 +1464,9 @@ const GisPropertySurveyInner: React.FC = () => {
 
             {/* Drawing Notification banner */}
             {editorMode === 'draw' && (
-              <div className="bg-[#d6a34b]/20 border border-[#d6a34b] text-[#f7dfae] p-3 rounded-xl text-xs flex items-center justify-between gap-4">
+              <div className="bg-[#f2b233]/20 border border-[#f2b233] text-[#ffe3a3] p-3 rounded-xl text-xs flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                  <PenTool className="w-4 h-4 text-[#d6a34b]" />
+                  <PenTool className="w-4 h-4 text-[#f2b233]" />
                   <span>
                     <strong>Digitizing New Ward:</strong> Click points on the canvas below to add polygon vertices ({drawingRing.length} points placed).
                   </span>
@@ -1471,7 +1475,7 @@ const GisPropertySurveyInner: React.FC = () => {
                   <button
                     onClick={handleCompleteNewWard}
                     disabled={drawingRing.length < 3}
-                    className="bg-[#0e8a7d] disabled:opacity-50 hover:bg-[#11a394] text-white font-bold px-3 py-1.5 rounded-lg text-xs"
+                    className="bg-[#4f46e5] disabled:opacity-50 hover:bg-[#6259f0] text-white font-bold px-3 py-1.5 rounded-lg text-xs"
                   >
                     Finish &amp; Close Polygon
                   </button>
@@ -1486,7 +1490,7 @@ const GisPropertySurveyInner: React.FC = () => {
             )}
 
             {/* GIS Map Canvas */}
-            <div className="relative border border-[#1d434c] rounded-2xl overflow-hidden bg-[#091a1f] shadow-2xl h-[480px]">
+            <div className="relative border border-[#28325c] rounded-2xl overflow-hidden bg-[#121830] shadow-2xl h-[480px]">
               <canvas
                 ref={mapCanvasRef}
                 width={1200}
@@ -1499,33 +1503,33 @@ const GisPropertySurveyInner: React.FC = () => {
             {/* Topology & AMRUT Layer Quality Inspector */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Topology Validator Box */}
-              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-5 shadow-lg space-y-4">
+              <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-5 shadow-lg space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider flex items-center gap-2">
                     <FileCheck className="w-4 h-4" />
                     AMRUT Topology &amp; Geometry Validation
                   </h3>
-                  <span className="text-xs text-[#9fc7c1]">Ward {selectedWardForEdit}</span>
+                  <span className="text-xs text-[#aab4dc]">Ward {selectedWardForEdit}</span>
                 </div>
 
                 {topologyResult ? (
                   <div className="space-y-3 text-xs">
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      <div className="bg-[#091a1f] p-2.5 rounded-lg border border-[#1b3d39]">
-                        <span className="text-[#9fc7c1] block">Vertex Nodes</span>
+                      <div className="bg-[#121830] p-2.5 rounded-lg border border-[#252e56]">
+                        <span className="text-[#aab4dc] block">Vertex Nodes</span>
                         <b className="text-white text-sm font-mono">{topologyResult.metrics.vertexCount} pts</b>
                       </div>
-                      <div className="bg-[#091a1f] p-2.5 rounded-lg border border-[#1b3d39]">
-                        <span className="text-[#9fc7c1] block">Area (sq km)</span>
-                        <b className="text-[#f7dfae] text-sm font-mono">{topologyResult.metrics.areaSqKm} km²</b>
+                      <div className="bg-[#121830] p-2.5 rounded-lg border border-[#252e56]">
+                        <span className="text-[#aab4dc] block">Area (sq km)</span>
+                        <b className="text-[#ffe3a3] text-sm font-mono">{topologyResult.metrics.areaSqKm} km²</b>
                       </div>
-                      <div className="bg-[#091a1f] p-2.5 rounded-lg border border-[#1b3d39]">
-                        <span className="text-[#9fc7c1] block">Perimeter</span>
-                        <b className="text-[#20b5a6] text-sm font-mono">{topologyResult.metrics.perimeterMeters.toLocaleString()} m</b>
+                      <div className="bg-[#121830] p-2.5 rounded-lg border border-[#252e56]">
+                        <span className="text-[#aab4dc] block">Perimeter</span>
+                        <b className="text-[#9aa8ff] text-sm font-mono">{topologyResult.metrics.perimeterMeters.toLocaleString()} m</b>
                       </div>
                     </div>
 
-                    <div className="p-3 rounded-lg bg-[#091a1f] border border-[#1b3d39] space-y-1.5">
+                    <div className="p-3 rounded-lg bg-[#121830] border border-[#252e56] space-y-1.5">
                       <div className="flex items-center justify-between">
                         <span>Self-Intersection (Bow-tie) Check:</span>
                         {topologyResult.metrics.selfIntersections === 0 ? (
@@ -1561,25 +1565,25 @@ const GisPropertySurveyInner: React.FC = () => {
                     )}
                   </div>
                 ) : (
-                  <p className="text-xs text-[#9fc7c1]">Select a ward to inspect its topology.</p>
+                  <p className="text-xs text-[#aab4dc]">Select a ward to inspect its topology.</p>
                 )}
               </div>
 
               {/* Ground Control Points (GCP) & Spatial Reference Table */}
-              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-5 shadow-lg space-y-4">
+              <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-5 shadow-lg space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider flex items-center gap-2">
                     <Compass className="w-4 h-4" />
                     Ground Control Points (GCPs) Reference
                   </h3>
-                  <span className="text-[10px] bg-[#1a403d] text-[#20b5a6] px-2 py-0.5 rounded font-bold">
+                  <span className="text-[10px] bg-[#2a3464] text-[#9aa8ff] px-2 py-0.5 rounded font-bold">
                     RTK-Fixed
                   </span>
                 </div>
 
                 <div className="overflow-x-auto text-xs">
                   <table className="w-full text-left font-mono">
-                    <thead className="bg-[#091a1f] text-[#9fc7c1] border-b border-[#23534d]">
+                    <thead className="bg-[#121830] text-[#aab4dc] border-b border-[#2f3a6b]">
                       <tr>
                         <th className="p-2">Point ID</th>
                         <th className="p-2">Description</th>
@@ -1588,13 +1592,13 @@ const GisPropertySurveyInner: React.FC = () => {
                         <th className="p-2">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#1b3d39]">
+                    <tbody className="divide-y divide-[#252e56]">
                       {gcps.map(gcp => (
                         <tr key={gcp.id}>
-                          <td className="p-2 font-bold text-[#f7dfae]">{gcp.id}</td>
+                          <td className="p-2 font-bold text-[#ffe3a3]">{gcp.id}</td>
                           <td className="p-2 font-sans text-white">{gcp.name}</td>
-                          <td className="p-2 text-[#9fc7c1]">{gcp.utmE.toFixed(1)}</td>
-                          <td className="p-2 text-[#9fc7c1]">{gcp.utmN.toFixed(1)}</td>
+                          <td className="p-2 text-[#aab4dc]">{gcp.utmE.toFixed(1)}</td>
+                          <td className="p-2 text-[#aab4dc]">{gcp.utmN.toFixed(1)}</td>
                           <td className="p-2 text-[#10b981] font-sans">Verified</td>
                         </tr>
                       ))}
@@ -1602,7 +1606,7 @@ const GisPropertySurveyInner: React.FC = () => {
                   </table>
                 </div>
 
-                <p className="text-[11px] text-[#7ea19b]">
+                <p className="text-[11px] text-[#8790bd]">
                   GCP reference pillars establish geodetic horizontal control for AMRUT tender scale compliance (1:1,000 / 1:4,000).
                 </p>
               </div>
@@ -1615,15 +1619,15 @@ const GisPropertySurveyInner: React.FC = () => {
         {/* ==================================================== */}
         {activeTab === 'records' && (
           <div className="space-y-4">
-            <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
               <input
                 type="search"
                 placeholder="Search by owner name, house no, UPN or ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:w-96 bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg px-3.5 py-2.5 focus:border-[#20b5a6]"
+                className="w-full sm:w-96 bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg px-3.5 py-2.5 focus:border-[#9aa8ff]"
               />
-              <div className="text-xs font-semibold text-[#9fc7c1]">
+              <div className="text-xs font-semibold text-[#aab4dc]">
                 Showing {records.filter(r => (r.id + r.owner + r.hno + (r.upn || '')).toLowerCase().includes(searchQuery.toLowerCase())).length} of {records.length} records
               </div>
             </div>
@@ -1632,27 +1636,27 @@ const GisPropertySurveyInner: React.FC = () => {
               {records
                 .filter(r => (r.id + r.owner + r.hno + (r.upn || '')).toLowerCase().includes(searchQuery.toLowerCase()))
                 .map((r) => (
-                  <div key={r.id} className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-4 shadow-md space-y-3 flex flex-col justify-between">
+                  <div key={r.id} className="bg-[#181f3d] border border-[#28325c] rounded-xl p-4 shadow-md space-y-3 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-bold text-[#f7dfae] bg-[#091a1f] px-2 py-0.5 rounded border border-[#23534d]">
+                        <span className="text-xs font-mono font-bold text-[#ffe3a3] bg-[#121830] px-2 py-0.5 rounded border border-[#2f3a6b]">
                           {r.id}
                         </span>
-                        <span className="text-xs text-[#9fc7c1]">Ward {r.ward}</span>
+                        <span className="text-xs text-[#aab4dc]">Ward {r.ward}</span>
                       </div>
                       <h4 className="text-sm font-bold text-white mt-2">{r.owner}</h4>
-                      <p className="text-xs text-[#9fc7c1] mt-0.5">
+                      <p className="text-xs text-[#aab4dc] mt-0.5">
                         House {r.hno} {r.addr ? `· ${r.addr}` : ''}
                       </p>
 
                       <div className="flex flex-wrap gap-1.5 mt-3">
-                        <span className="text-[10px] bg-[#1a3840] text-[#20b5a6] px-2 py-0.5 rounded font-semibold">
+                        <span className="text-[10px] bg-[#232c52] text-[#9aa8ff] px-2 py-0.5 rounded font-semibold">
                           {r.use}
                         </span>
-                        <span className="text-[10px] bg-[#1a3840] text-[#9fc7c1] px-2 py-0.5 rounded font-semibold">
+                        <span className="text-[10px] bg-[#232c52] text-[#aab4dc] px-2 py-0.5 rounded font-semibold">
                           {r.str}
                         </span>
-                        <span className="text-[10px] bg-[#1a3840] text-[#9fc7c1] px-2 py-0.5 rounded font-semibold">
+                        <span className="text-[10px] bg-[#232c52] text-[#aab4dc] px-2 py-0.5 rounded font-semibold">
                           {r.bu} sq m built
                         </span>
                         {r.lat && r.lng ? (
@@ -1667,10 +1671,10 @@ const GisPropertySurveyInner: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#1a3840]">
+                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#232c52]">
                       <button
                         onClick={() => handleEditRecord(r)}
-                        className="bg-[#1b433e] hover:bg-[#235852] text-[#20b5a6] text-xs font-bold px-3 py-1.5 rounded-lg"
+                        className="bg-[#2a3464] hover:bg-[#38447a] text-[#9aa8ff] text-xs font-bold px-3 py-1.5 rounded-lg"
                       >
                         Edit
                       </button>
@@ -1724,26 +1728,26 @@ const GisPropertySurveyInner: React.FC = () => {
             />
             {/* Summary Highlights */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-4 shadow-lg">
-                <span className="text-xs text-[#9fc7c1] font-semibold block">Total Properties</span>
+              <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-4 shadow-lg">
+                <span className="text-xs text-[#aab4dc] font-semibold block">Total Properties</span>
                 <b className="text-2xl font-bold text-white font-mono mt-1 block">
                   {summaryMetrics.totalProps}
                 </b>
               </div>
-              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-4 shadow-lg">
-                <span className="text-xs text-[#9fc7c1] font-semibold block">Geo-Tagged GPS</span>
-                <b className="text-2xl font-bold text-[#20b5a6] font-mono mt-1 block">
+              <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-4 shadow-lg">
+                <span className="text-xs text-[#aab4dc] font-semibold block">Geo-Tagged GPS</span>
+                <b className="text-2xl font-bold text-[#9aa8ff] font-mono mt-1 block">
                   {summaryMetrics.geoTagged} ({summaryMetrics.totalProps > 0 ? Math.round((summaryMetrics.geoTagged / summaryMetrics.totalProps) * 100) : 0}%)
                 </b>
               </div>
-              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-4 shadow-lg">
-                <span className="text-xs text-[#9fc7c1] font-semibold block">Total Built-Up Area</span>
-                <b className="text-2xl font-bold text-[#f7dfae] font-mono mt-1 block">
+              <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-4 shadow-lg">
+                <span className="text-xs text-[#aab4dc] font-semibold block">Total Built-Up Area</span>
+                <b className="text-2xl font-bold text-[#ffe3a3] font-mono mt-1 block">
                   {Math.round(summaryMetrics.totalBuiltUpSqM).toLocaleString()} sq m
                 </b>
               </div>
-              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-4 shadow-lg">
-                <span className="text-xs text-[#9fc7c1] font-semibold block">Est. General Tax</span>
+              <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-4 shadow-lg">
+                <span className="text-xs text-[#aab4dc] font-semibold block">Est. General Tax</span>
                 <b className="text-2xl font-bold text-white font-mono mt-1 block">
                   {rateTable.taxRatePct === null ? 'Rate not set' : `₹${Math.round(summaryMetrics.estTaxAnnual).toLocaleString()}/yr`}
                 </b>
@@ -1751,23 +1755,23 @@ const GisPropertySurveyInner: React.FC = () => {
             </div>
 
             {/* Assessment CSV Generation Box */}
-            <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-5 shadow-lg space-y-4">
+            <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-5 shadow-lg space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-bold text-white">Municipal Tax Assessment Roll Export</h3>
-                  <p className="text-xs text-[#9fc7c1]">Form-A (Assessment List) and Form-E (Rateable Value Factors) conforming to Municipal Property Taxation Bye-laws</p>
+                  <p className="text-xs text-[#aab4dc]">Form-A (Assessment List) and Form-E (Rateable Value Factors) conforming to Municipal Property Taxation Bye-laws</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => triggerFileDownload(getFormACsv(), `${currentTown.n}_Form_A_Assessment_Roll.csv`, 'text/csv')}
-                    className="bg-[#0e8a7d] hover:bg-[#11a394] text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow"
+                    className="bg-[#4f46e5] hover:bg-[#6259f0] text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow"
                   >
                     <Download className="w-3.5 h-3.5" />
                     Download Form-A (CSV)
                   </button>
                   <button
                     onClick={() => triggerFileDownload(getFormECsv(), `${currentTown.n}_Form_E_Factors_Assessment.csv`, 'text/csv')}
-                    className="bg-[#1b433e] hover:bg-[#235852] text-[#20b5a6] text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 border border-[#23534d]"
+                    className="bg-[#2a3464] hover:bg-[#38447a] text-[#9aa8ff] text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 border border-[#2f3a6b]"
                   >
                     <Download className="w-3.5 h-3.5" />
                     Download Form-E (CSV)
@@ -1776,9 +1780,9 @@ const GisPropertySurveyInner: React.FC = () => {
               </div>
 
               {/* Form-A Preview Table */}
-              <div className="overflow-x-auto text-xs border border-[#1b3d39] rounded-lg">
+              <div className="overflow-x-auto text-xs border border-[#252e56] rounded-lg">
                 <table className="w-full text-left font-sans">
-                  <thead className="bg-[#091a1f] text-[#9fc7c1] border-b border-[#23534d]">
+                  <thead className="bg-[#121830] text-[#aab4dc] border-b border-[#2f3a6b]">
                     <tr>
                       <th className="p-2.5">ID</th>
                       <th className="p-2.5">Owner</th>
@@ -1789,16 +1793,16 @@ const GisPropertySurveyInner: React.FC = () => {
                       <th className="p-2.5">Est. Annual Tax</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1b3d39]">
+                  <tbody className="divide-y divide-[#252e56]">
                     {records.slice(0, 8).map((r) => (
                       <tr key={r.id} className="hover:bg-white/5">
-                        <td className="p-2.5 font-mono text-[#f7dfae]">{r.id}</td>
+                        <td className="p-2.5 font-mono text-[#ffe3a3]">{r.id}</td>
                         <td className="p-2.5 font-bold text-white">{r.owner}</td>
                         <td className="p-2.5">{r.ward}</td>
                         <td className="p-2.5">{r.use}</td>
                         <td className="p-2.5 font-mono">{r.bu} sq m</td>
                         <td className="p-2.5 font-bold">{r.zone}</td>
-                        <td className="p-2.5 font-mono text-[#20b5a6]">
+                        <td className="p-2.5 font-mono text-[#9aa8ff]">
                           {(() => { const t = calcAssessment(r, rateTable, new Date().getFullYear()).tax; return t === null ? '-' : `₹${Math.round(t).toLocaleString()}`; })()}
                         </td>
                       </tr>
@@ -1816,16 +1820,16 @@ const GisPropertySurveyInner: React.FC = () => {
         {activeTab === 'exports' && (
           <div className="space-y-6">
             {/* Header banner explaining capabilities */}
-            <div className="bg-gradient-to-r from-[#0e8a7d]/20 to-[#102b4e]/40 border border-[#20b5a6]/40 rounded-2xl p-6 shadow-xl">
+            <div className="bg-gradient-to-r from-[#4f46e5]/20 to-[#102b4e]/40 border border-[#9aa8ff]/40 rounded-2xl p-6 shadow-xl">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#0e8a7d] text-white flex items-center justify-center flex-none">
+                <div className="w-12 h-12 rounded-xl bg-[#4f46e5] text-white flex items-center justify-center flex-none">
                   <FileCheck className="w-6 h-6" />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white">
                     AMRUT-Grade Municipal GIS Deliverables Suite
                   </h3>
-                  <p className="text-xs text-[#c5d8df] mt-1 leading-relaxed">
+                  <p className="text-xs text-[#d6dcf5] mt-1 leading-relaxed">
                     Generates production-grade ESRI Shapefiles (.shp, .shx, .dbf, .prj), OGC KML with ExtendedData, and GeoJSON layers. Ready for direct ingestion into QGIS, ArcGIS, municipal Web-GIS portals, and town master-plan databases.
                   </p>
                 </div>
@@ -1835,21 +1839,21 @@ const GisPropertySurveyInner: React.FC = () => {
             {/* Deliverable Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Shapefile Card */}
-              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-5 shadow-lg flex flex-col justify-between space-y-4">
+              <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-5 shadow-lg flex flex-col justify-between space-y-4">
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#f7dfae] uppercase tracking-wider">ESRI Shapefile</span>
-                    <span className="text-[10px] bg-[#1a403d] text-[#20b5a6] px-2 py-0.5 rounded font-bold">Industry Standard</span>
+                    <span className="text-xs font-bold text-[#ffe3a3] uppercase tracking-wider">ESRI Shapefile</span>
+                    <span className="text-[10px] bg-[#2a3464] text-[#9aa8ff] px-2 py-0.5 rounded font-bold">Industry Standard</span>
                   </div>
                   <h4 className="text-base font-bold text-white mt-2">Ward Boundary Shapefile</h4>
-                  <p className="text-xs text-[#9fc7c1] mt-1">
+                  <p className="text-xs text-[#aab4dc] mt-1">
                     Multi-part package (.shp, .shx, .dbf, .prj) containing polygon rings, AMRUT attributes (Ward_No, ULB_Name, Area_SqKm, Perimeter_M) and WGS84 / UTM 43N projection string.
                   </p>
                 </div>
 
                 <button
                   onClick={handleExportShapefile}
-                  className="w-full bg-[#0e8a7d] hover:bg-[#11a394] text-white text-xs font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 shadow"
+                  className="w-full bg-[#4f46e5] hover:bg-[#6259f0] text-white text-xs font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 shadow"
                 >
                   <Download className="w-4 h-4" />
                   Download Shapefile Package
@@ -1857,21 +1861,21 @@ const GisPropertySurveyInner: React.FC = () => {
               </div>
 
               {/* KML Card */}
-              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-5 shadow-lg flex flex-col justify-between space-y-4">
+              <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-5 shadow-lg flex flex-col justify-between space-y-4">
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#f7dfae] uppercase tracking-wider">OGC KML</span>
-                    <span className="text-[10px] bg-[#1a403d] text-[#20b5a6] px-2 py-0.5 rounded font-bold">Google Earth</span>
+                    <span className="text-xs font-bold text-[#ffe3a3] uppercase tracking-wider">OGC KML</span>
+                    <span className="text-[10px] bg-[#2a3464] text-[#9aa8ff] px-2 py-0.5 rounded font-bold">Google Earth</span>
                   </div>
                   <h4 className="text-base font-bold text-white mt-2">KML / KMZ Boundary &amp; Pins</h4>
-                  <p className="text-xs text-[#9fc7c1] mt-1">
+                  <p className="text-xs text-[#aab4dc] mt-1">
                     Hierarchical KML folder structure containing both Ward Boundaries (with styled polygon outlines) and surveyed Property Points with rich HTML popup bubbles.
                   </p>
                 </div>
 
                 <button
                   onClick={() => triggerFileDownload(exportAmrutKml(currentTown, records), `${currentTown.n}_AMRUT_Wards_and_Properties.kml`, 'application/vnd.google-earth.kml+xml')}
-                  className="w-full bg-[#1b433e] hover:bg-[#235852] text-[#20b5a6] text-xs font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 border border-[#23534d]"
+                  className="w-full bg-[#2a3464] hover:bg-[#38447a] text-[#9aa8ff] text-xs font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 border border-[#2f3a6b]"
                 >
                   <Download className="w-4 h-4" />
                   Download OGC KML
@@ -1879,21 +1883,21 @@ const GisPropertySurveyInner: React.FC = () => {
               </div>
 
               {/* GeoJSON Card */}
-              <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-5 shadow-lg flex flex-col justify-between space-y-4">
+              <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-5 shadow-lg flex flex-col justify-between space-y-4">
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#f7dfae] uppercase tracking-wider">RFC 7946 GeoJSON</span>
-                    <span className="text-[10px] bg-[#1a403d] text-[#20b5a6] px-2 py-0.5 rounded font-bold">Web GIS &amp; DB</span>
+                    <span className="text-xs font-bold text-[#ffe3a3] uppercase tracking-wider">RFC 7946 GeoJSON</span>
+                    <span className="text-[10px] bg-[#2a3464] text-[#9aa8ff] px-2 py-0.5 rounded font-bold">Web GIS &amp; DB</span>
                   </div>
                   <h4 className="text-base font-bold text-white mt-2">AMRUT GeoJSON Collection</h4>
-                  <p className="text-xs text-[#9fc7c1] mt-1">
+                  <p className="text-xs text-[#aab4dc] mt-1">
                     Normalized FeatureCollection containing Polygons for ward boundaries and Points for properties, equipped with CRS urn and metadata headers.
                   </p>
                 </div>
 
                 <button
                   onClick={() => triggerFileDownload(exportAmrutGeoJson(selectedTownKey, currentTown, records), `${currentTown.n}_AMRUT_GIS_Layer.geojson`, 'application/geo+json')}
-                  className="w-full bg-[#142831] hover:bg-[#1c3845] text-white text-xs font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 border border-[#23534d]"
+                  className="w-full bg-[#1d2547] hover:bg-[#1c3845] text-white text-xs font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 border border-[#2f3a6b]"
                 >
                   <Download className="w-4 h-4" />
                   Download AMRUT GeoJSON
@@ -1902,34 +1906,34 @@ const GisPropertySurveyInner: React.FC = () => {
             </div>
 
             {/* Projection & Spatial Accuracy Specification Box */}
-            <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-5 shadow-lg space-y-3">
+            <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-5 shadow-lg space-y-3">
               <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                <Compass className="w-4 h-4 text-[#20b5a6]" />
+                <Compass className="w-4 h-4 text-[#9aa8ff]" />
                 Geodetic &amp; Projection Compliance Specification
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
-                <div className="p-3 bg-[#091a1f] rounded-lg border border-[#1a3840]">
-                  <span className="text-[#9fc7c1] block mb-1 font-sans font-semibold">Geographic Coordinate Reference System:</span>
-                  <div className="text-[#f7dfae]">Datum: WGS 1984 (EPSG:4326)</div>
+                <div className="p-3 bg-[#121830] rounded-lg border border-[#232c52]">
+                  <span className="text-[#aab4dc] block mb-1 font-sans font-semibold">Geographic Coordinate Reference System:</span>
+                  <div className="text-[#ffe3a3]">Datum: WGS 1984 (EPSG:4326)</div>
                   <div className="text-white mt-1">Prime Meridian: Greenwich, Unit: Decimal Degrees</div>
                 </div>
-                <div className="p-3 bg-[#091a1f] rounded-lg border border-[#1a3840]">
-                  <span className="text-[#9fc7c1] block mb-1 font-sans font-semibold">Projected Coordinate Reference System:</span>
-                  <div className="text-[#f7dfae]">Projection: Transverse Mercator (UTM Zone 43N - EPSG:32643)</div>
+                <div className="p-3 bg-[#121830] rounded-lg border border-[#232c52]">
+                  <span className="text-[#aab4dc] block mb-1 font-sans font-semibold">Projected Coordinate Reference System:</span>
+                  <div className="text-[#ffe3a3]">Projection: Transverse Mercator (UTM Zone 43N - EPSG:32643)</div>
                   <div className="text-white mt-1">False Easting: 500,000 m, Central Meridian: 75.0° E, Unit: Metre</div>
                 </div>
               </div>
             </div>
 
             {/* Print Municipal Ward Map Booklet */}
-            <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-5 shadow-lg flex items-center justify-between gap-4">
+            <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-5 shadow-lg flex items-center justify-between gap-4">
               <div>
                 <h4 className="text-sm font-bold text-white">Hard-Copy Municipal Ward Map Sheet</h4>
-                <p className="text-xs text-[#9fc7c1]">Print-ready A4/A3 landscape presentation map with official title block, north arrow, scale statement and signature spaces.</p>
+                <p className="text-xs text-[#aab4dc]">Print-ready A4/A3 landscape presentation map with official title block, north arrow, scale statement and signature spaces.</p>
               </div>
               <button
                 onClick={() => window.print()}
-                className="bg-[#c8372a] hover:bg-[#b02f23] text-white text-xs font-bold px-4 py-2.5 rounded-lg flex items-center gap-2 shadow"
+                className="bg-[#e5484d] hover:bg-[#cc3b40] text-white text-xs font-bold px-4 py-2.5 rounded-lg flex items-center gap-2 shadow"
               >
                 <Printer className="w-4 h-4" />
                 Print / Export PDF

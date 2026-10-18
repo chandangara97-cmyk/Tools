@@ -35,12 +35,21 @@ After sign-in the app opens on a menu with big buttons, showing only what that l
 
 | Login | Menu |
 |---|---|
-| Cashier | One button per bill head of the ULB (Property tax, Water, Garbage, Sewerage, Other) |
-| Supervisor tied to one head (e.g. `_SUP_GAR`) | Opens straight into that head only |
-| Supervisor without a head (`_APR`, `_LDG`) | All bill heads, survey, records, assessment, reports, ward map, exports |
+| Cashier | Search dues, then one button per bill head of the ULB (Property tax, Water, Garbage, Sewerage, Other) |
+| Supervisor tied to one head (e.g. `_SUP_GAR`) | Search dues and that head only |
+| Supervisor without a head (`_APR`, `_LDG`) | Search dues, all bill heads, survey, records, assessment, reports, ward map, exports |
 | Data collector | Property survey, Property records |
 | Assessor | Assessment, Property records |
-| Monitor | Reports, plus all bill heads (view only) |
+| Monitor | Search dues, Reports, plus all bill heads (view only) |
 | ULB admin / owner | Everything |
 
 The head comes from `users/<uid>/head`, which the admin page already writes.
+
+## Saved IDs and passwords
+When the admin page creates an ID, it also saves the User ID, password and function under `credentials/<town>/<uid>`. The admin page has a "Saved IDs and passwords (town wise)" card: pick a town in the dropdown to see its IDs, passwords and functions, with CSV download and copy.
+- Only the platform owner and that town's ULB admin can read or write `credentials/<town>`. Deploy the rules: `firebase deploy --only database`.
+- IDs created before this change have no saved password.
+- If a password is reset in Firebase Console, this list is not updated.
+
+## Search dues
+Type a property ID, part of an owner's name, house number or UPN. The result shows the total liability on that property across every bill head (tax or charge, interest, due) as on today, and the total liability of the owner across all properties surveyed under the same owner name. A login only sees the bill heads it may open. No new database rules are needed; it reads the existing ledger.

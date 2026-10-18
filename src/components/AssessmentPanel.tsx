@@ -16,10 +16,10 @@ interface Props {
 }
 
 const STATUS_STYLE: Record<AssessmentStatus | 'none', string> = {
-  none: 'bg-[#142831] text-[#9fc7c1]',
+  none: 'bg-[#1d2547] text-[#aab4dc]',
   draft: 'bg-sky-950/60 text-sky-200',
-  submitted: 'bg-[#d6a34b]/20 text-[#f7dfae]',
-  approved: 'bg-[#0e8a7d]/25 text-[#20b5a6]',
+  submitted: 'bg-[#f2b233]/20 text-[#ffe3a3]',
+  approved: 'bg-[#4f46e5]/25 text-[#9aa8ff]',
   rejected: 'bg-red-950/50 text-red-300',
 };
 
@@ -119,19 +119,19 @@ export const AssessmentPanel: React.FC<Props> = ({ townKey, townName, records, r
   return (
     <div className="space-y-4">
       {rateTable.status === 'placeholder' && (
-        <div className="rounded-lg p-3 text-xs bg-[#d6a34b]/20 text-[#f7dfae] border border-[#d6a34b]/40 flex gap-2">
+        <div className="rounded-lg p-3 text-xs bg-[#f2b233]/20 text-[#ffe3a3] border border-[#f2b233]/40 flex gap-2">
           <AlertTriangle className="w-4 h-4 flex-none mt-0.5" />
           <span>{rateSaved ? 'The saved rate table is marked placeholder.' : 'No rate table saved for this town yet.'} Values below use placeholder factors copied from the old export, so they are not official. An admin must enter the notified rates and set the table to "approved".</span>
         </div>
       )}
 
-      <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-4 shadow-lg space-y-3">
+      <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-4 shadow-lg space-y-3">
         <div className="flex flex-wrap items-center gap-3">
-          <h3 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider">Assessment {fy}</h3>
-          <select value={fy} onChange={(e) => setFy(e.target.value)} className="bg-[#091a1f] border border-[#23534d] text-white text-xs rounded p-1.5">
+          <h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider">Assessment {fy}</h3>
+          <select value={fy} onChange={(e) => setFy(e.target.value)} className="bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded p-1.5">
             {fyOptions.map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
-          <span className="text-[11px] text-[#9fc7c1]">Rate table from {rateTable.effectiveFrom}, {rateTable.status}</span>
+          <span className="text-[11px] text-[#aab4dc]">Rate table from {rateTable.effectiveFrom}, {rateTable.status}</span>
         </div>
         <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
           {(['none', 'draft', 'submitted', 'approved', 'rejected'] as const).map((k) => (
@@ -141,30 +141,30 @@ export const AssessmentPanel: React.FC<Props> = ({ townKey, townName, records, r
         <div className="flex flex-wrap gap-2">
           {canAssess(role) && (
             <>
-              <button type="button" disabled={busy} onClick={() => void assessAll()} className="inline-flex items-center gap-1 bg-[#0e8a7d] disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-lg">
+              <button type="button" disabled={busy} onClick={() => void assessAll()} className="inline-flex items-center gap-1 bg-[#4f46e5] disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-lg">
                 <Calculator className="w-3.5 h-3.5" /> Assess all unassessed
               </button>
-              <button type="button" disabled={busy || !counts.draft} onClick={() => void submitAll()} className="inline-flex items-center gap-1 bg-[#1b433e] disabled:opacity-40 text-[#20b5a6] text-xs font-bold px-3 py-2 rounded-lg">
+              <button type="button" disabled={busy || !counts.draft} onClick={() => void submitAll()} className="inline-flex items-center gap-1 bg-[#2a3464] disabled:opacity-40 text-[#9aa8ff] text-xs font-bold px-3 py-2 rounded-lg">
                 <Send className="w-3.5 h-3.5" /> Submit drafts for review
               </button>
             </>
           )}
           {canApprove(role) && (
-            <button type="button" disabled={busy || !counts.submitted} onClick={approveAllSubmitted} className="inline-flex items-center gap-1 bg-[#1b433e] disabled:opacity-40 text-[#20b5a6] text-xs font-bold px-3 py-2 rounded-lg">
+            <button type="button" disabled={busy || !counts.submitted} onClick={approveAllSubmitted} className="inline-flex items-center gap-1 bg-[#2a3464] disabled:opacity-40 text-[#9aa8ff] text-xs font-bold px-3 py-2 rounded-lg">
               <CheckCircle className="w-3.5 h-3.5" /> Approve all submitted
             </button>
           )}
-          <button type="button" disabled={!counts.approved} onClick={exportCsv} className="inline-flex items-center gap-1 bg-[#142831] disabled:opacity-40 text-[#9fc7c1] text-xs font-bold px-3 py-2 rounded-lg border border-[#23534d]">
+          <button type="button" disabled={!counts.approved} onClick={exportCsv} className="inline-flex items-center gap-1 bg-[#1d2547] disabled:opacity-40 text-[#aab4dc] text-xs font-bold px-3 py-2 rounded-lg border border-[#2f3a6b]">
             <Download className="w-3.5 h-3.5" /> Approved roll (CSV)
           </button>
         </div>
-        {msg && <p className="text-xs text-[#f7dfae]">{msg}</p>}
-        {!canAssess(role) && !canApprove(role) && <p className="text-[11px] text-[#7fa6a0]">Your role can view assessments only.</p>}
+        {msg && <p className="text-xs text-[#ffe3a3]">{msg}</p>}
+        {!canAssess(role) && !canApprove(role) && <p className="text-[11px] text-[#8790bd]">Your role can view assessments only.</p>}
       </div>
 
-      <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl shadow-lg overflow-x-auto">
+      <div className="bg-[#181f3d] border border-[#28325c] rounded-xl shadow-lg overflow-x-auto">
         <table className="w-full text-xs text-left">
-          <thead className="text-[#9fc7c1] border-b border-[#1d434c]">
+          <thead className="text-[#aab4dc] border-b border-[#28325c]">
             <tr><th className="p-2.5">Property</th><th className="p-2.5">Use</th><th className="p-2.5 text-right">Built-up</th><th className="p-2.5 text-right">Net value</th><th className="p-2.5 text-right">Tax</th><th className="p-2.5">Status</th><th className="p-2.5"></th></tr>
           </thead>
           <tbody>
@@ -174,18 +174,18 @@ export const AssessmentPanel: React.FC<Props> = ({ townKey, townName, records, r
               const stale = !!a && (a.status === 'draft' || a.status === 'submitted') && a.calc.netTaxableValue !== live.netTaxableValue;
               return (
                 <React.Fragment key={r.id}>
-                  <tr className="border-b border-[#14333b] text-white">
-                    <td className="p-2.5 font-mono">{r.id}<div className="text-[10px] text-[#9fc7c1] font-sans">{r.owner}</div></td>
+                  <tr className="border-b border-[#20284b] text-white">
+                    <td className="p-2.5 font-mono">{r.id}<div className="text-[10px] text-[#aab4dc] font-sans">{r.owner}</div></td>
                     <td className="p-2.5">{r.use}</td>
                     <td className="p-2.5 text-right">{c.builtUp}</td>
                     <td className="p-2.5 text-right">{inr(c.netTaxableValue)}</td>
                     <td className="p-2.5 text-right">{inr(c.tax)}</td>
                     <td className="p-2.5">
                       <span className={`px-2 py-0.5 rounded font-semibold ${STATUS_STYLE[st]}`}>{st === 'none' ? 'not assessed' : st}</span>
-                      {stale && <div className="text-[10px] text-[#f7dfae]">survey or rates changed since</div>}
+                      {stale && <div className="text-[10px] text-[#ffe3a3]">survey or rates changed since</div>}
                     </td>
                     <td className="p-2.5 whitespace-nowrap">
-                      <button type="button" className="text-[#20b5a6] font-bold mr-2" onClick={() => setOpen(open === r.id ? null : r.id)}>{open === r.id ? 'Hide' : 'Working'}</button>
+                      <button type="button" className="text-[#9aa8ff] font-bold mr-2" onClick={() => setOpen(open === r.id ? null : r.id)}>{open === r.id ? 'Hide' : 'Working'}</button>
                       {canApprove(role) && a?.status === 'submitted' && (
                         <>
                           <button type="button" disabled={busy} className="text-emerald-300 font-bold mr-2" onClick={() => review(a, 'approved')}>Approve</button>
@@ -195,7 +195,7 @@ export const AssessmentPanel: React.FC<Props> = ({ townKey, townName, records, r
                     </td>
                   </tr>
                   {open === r.id && (
-                    <tr className="bg-[#091a1f] text-[#cfe6e2]">
+                    <tr className="bg-[#121830] text-[#d6dcf5]">
                       <td colSpan={7} className="p-3">
                         <div className="font-mono space-y-0.5">
                           <div>Built-up area: {c.builtUp} sq m</div>
@@ -204,22 +204,22 @@ export const AssessmentPanel: React.FC<Props> = ({ townKey, townName, records, r
                           {(c.adjustments || []).map((x) => <div key={x.name}>{x.amount < 0 ? '-' : '+'} {x.name} ({x.base === 'tax' ? 'on tax' : 'on value'}): {inr(Math.abs(x.amount))}{x.clause ? `  [${x.clause}]` : ''}</div>)}
                           <div>= Net taxable value {inr(c.netTaxableValue)}; tax {inr(c.tax)}</div>
                         </div>
-                        {c.warnings.map((w) => <div key={w} className="text-[#f7dfae] mt-1">⚠ {w}</div>)}
-                        {a && <div className="mt-1 text-[#9fc7c1]">Rate table {a.rateTableId} ({a.rateStatus}){a.reviewNote ? `; review note: ${a.reviewNote}` : ''}</div>}
+                        {c.warnings.map((w) => <div key={w} className="text-[#ffe3a3] mt-1">⚠ {w}</div>)}
+                        {a && <div className="mt-1 text-[#aab4dc]">Rate table {a.rateTableId} ({a.rateStatus}){a.reviewNote ? `; review note: ${a.reviewNote}` : ''}</div>}
                       </td>
                     </tr>
                   )}
                 </React.Fragment>
               );
             })}
-            {!rows.length && <tr><td colSpan={7} className="p-4 text-center text-[#9fc7c1]">No surveyed properties in {townName} yet.</td></tr>}
+            {!rows.length && <tr><td colSpan={7} className="p-4 text-center text-[#aab4dc]">No surveyed properties in {townName} yet.</td></tr>}
           </tbody>
         </table>
       </div>
 
       {canEditRates(role) && (
-        <div className="bg-[#0f242d] border border-[#1d434c] rounded-xl p-4 shadow-lg">
-          <button type="button" className="text-xs font-bold text-[#20b5a6]" onClick={() => setShowRates(!showRates)}>
+        <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-4 shadow-lg">
+          <button type="button" className="text-xs font-bold text-[#9aa8ff]" onClick={() => setShowRates(!showRates)}>
             {showRates ? 'Close' : 'Enter / edit'} bylaw rates for {townName}
           </button>
           {showRates && <RateTableEditor key={rateTable.id + rateTable.status} initial={rateTable} busy={busy} onSave={(t) => void saveRates(t)} />}

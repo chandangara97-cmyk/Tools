@@ -45,26 +45,26 @@ export const ToolsDirectory: React.FC<ToolsDirectoryProps> = ({ onSelectTool }) 
         <div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
             Field Tools Directory
-            <span className="text-xs font-normal text-[#9fc7c1] bg-[#0f242d] border border-[#1d434c] px-2 py-0.5 rounded-full">
+            <span className="text-xs font-normal text-[#aab4dc] bg-[#181f3d] border border-[#28325c] px-2 py-0.5 rounded-full">
               {TOOLS.length} Total Tools
             </span>
           </h2>
-          <p className="text-xs sm:text-sm text-[#9fc7c1] mt-1">
+          <p className="text-xs sm:text-sm text-[#aab4dc] mt-1">
             GIS property survey and KML / Shapefile converters for QGIS.
           </p>
         </div>
       </div>
 
       {/* Search Bar & Category Chips */}
-      <div className="bg-[#0f242d] border border-[#1d434c] rounded-2xl p-4 shadow-lg space-y-3">
+      <div className="bg-[#181f3d] border border-[#28325c] rounded-2xl p-4 shadow-lg space-y-3">
         <div className="relative">
-          <Search className="w-4 h-4 text-[#7ea19b] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#8790bd] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="search"
             placeholder="Search tool by job, e.g. bill, KML, boundary, scrutiny, TA/DA..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#20b5a6]"
+            className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#9aa8ff]"
           />
         </div>
 
@@ -74,8 +74,8 @@ export const ToolsDirectory: React.FC<ToolsDirectoryProps> = ({ onSelectTool }) 
             onClick={() => setSelectedCategory('all')}
             className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap ${
               selectedCategory === 'all'
-                ? 'bg-[#1b433e] text-[#20b5a6] border border-[#20b5a6]'
-                : 'bg-[#091a1f] text-[#9fc7c1] border border-[#1b3d39] hover:bg-white/5'
+                ? 'bg-[#2a3464] text-[#9aa8ff] border border-[#9aa8ff]'
+                : 'bg-[#121830] text-[#aab4dc] border border-[#252e56] hover:bg-white/5'
             }`}
           >
             All Areas ({TOOLS.length})
@@ -89,8 +89,8 @@ export const ToolsDirectory: React.FC<ToolsDirectoryProps> = ({ onSelectTool }) 
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`px-3 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
                   isSelected
-                    ? 'bg-[#1b433e] text-white border border-[#20b5a6]'
-                    : 'bg-[#091a1f] text-[#9fc7c1] border border-[#1b3d39] hover:bg-white/5'
+                    ? 'bg-[#2a3464] text-white border border-[#9aa8ff]'
+                    : 'bg-[#121830] text-[#aab4dc] border border-[#252e56] hover:bg-white/5'
                 }`}
               >
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
@@ -110,8 +110,8 @@ export const ToolsDirectory: React.FC<ToolsDirectoryProps> = ({ onSelectTool }) 
           return (
             <div
               key={tool.id}
-              className={`bg-[#0f242d] border rounded-2xl p-5 shadow-lg flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-2xl ${
-                isFeatured ? 'border-[#20b5a6]/60 bg-gradient-to-b from-[#11313a] to-[#0f242d]' : 'border-[#1d434c]'
+              className={`bg-[#181f3d] border rounded-2xl p-5 shadow-lg flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-2xl ${
+                isFeatured ? 'border-[#9aa8ff]/60 bg-gradient-to-b from-[#11313a] to-[#181f3d]' : 'border-[#28325c]'
               }`}
             >
               <div>
@@ -120,7 +120,7 @@ export const ToolsDirectory: React.FC<ToolsDirectoryProps> = ({ onSelectTool }) 
                   <div className="flex items-center gap-3">
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-md flex-none"
-                      style={{ backgroundColor: `${cat?.color || '#0e8a7d'}25`, color: cat?.color || '#20b5a6' }}
+                      style={{ backgroundColor: `${cat?.color || '#4f46e5'}25`, color: cat?.color || '#9aa8ff' }}
                     >
                       {getToolIcon(tool.icon)}
                     </div>
@@ -128,40 +128,40 @@ export const ToolsDirectory: React.FC<ToolsDirectoryProps> = ({ onSelectTool }) 
                       <h3 className="text-sm font-bold text-white tracking-tight leading-snug">
                         {tool.title}
                       </h3>
-                      <span className="text-[10px] text-[#9fc7c1] uppercase font-mono font-semibold">
+                      <span className="text-[10px] text-[#aab4dc] uppercase font-mono font-semibold">
                         {tool.type} · {cat?.name}
                       </span>
                     </div>
                   </div>
 
                   {tool.isNew && (
-                    <span className="bg-[#d6a34b] text-[#07161d] text-[9.5px] font-black px-2 py-0.5 rounded tracking-wider uppercase">
+                    <span className="bg-[#f2b233] text-[#0d1224] text-[9.5px] font-black px-2 py-0.5 rounded tracking-wider uppercase">
                       NEW
                     </span>
                   )}
                 </div>
 
                 {/* Description */}
-                <p className="text-xs text-[#c5d8df] mt-3 leading-relaxed">
+                <p className="text-xs text-[#d6dcf5] mt-3 leading-relaxed">
                   {tool.desc}
                 </p>
 
                 {/* Use When Callout */}
-                <div className="mt-3 p-2.5 rounded-lg bg-[#091a1f] border border-[#1b3d39] text-[11px] text-[#9fc7c1] leading-snug">
-                  <b className="text-[#f7dfae]">Use when:</b> {tool.use}
+                <div className="mt-3 p-2.5 rounded-lg bg-[#121830] border border-[#252e56] text-[11px] text-[#aab4dc] leading-snug">
+                  <b className="text-[#ffe3a3]">Use when:</b> {tool.use}
                 </div>
               </div>
 
               {/* Action Link / Button */}
-              <div className="pt-4 mt-4 border-t border-[#1a3840] flex items-center justify-between">
-                <span className="text-[11px] font-mono text-[#7ea19b]">
+              <div className="pt-4 mt-4 border-t border-[#232c52] flex items-center justify-between">
+                <span className="text-[11px] font-mono text-[#8790bd]">
                   {tool.status === 'soon' ? 'Coming Soon' : 'Runs in Browser'}
                 </span>
 
                 <button
                   onClick={() => onSelectTool(tool.id)}
                   disabled={tool.status === 'soon'}
-                  className="bg-[#0e8a7d] hover:bg-[#11a394] disabled:opacity-40 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow transition-transform active:scale-95"
+                  className="bg-[#4f46e5] hover:bg-[#6259f0] disabled:opacity-40 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow transition-transform active:scale-95"
                 >
                   Open Tool
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -173,7 +173,7 @@ export const ToolsDirectory: React.FC<ToolsDirectoryProps> = ({ onSelectTool }) 
       </div>
 
       {filteredTools.length === 0 && (
-        <div className="text-center py-12 border border-dashed border-[#1d434c] rounded-2xl bg-[#0f242d] text-[#9fc7c1] text-xs">
+        <div className="text-center py-12 border border-dashed border-[#28325c] rounded-2xl bg-[#181f3d] text-[#aab4dc] text-xs">
           No tools match &ldquo;{searchQuery}&rdquo;. Try another search term or click &ldquo;All Areas&rdquo;.
         </div>
       )}

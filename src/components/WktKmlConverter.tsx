@@ -67,9 +67,9 @@ export const WktKmlConverter: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#07161d] text-[#edf3fc] p-4 sm:p-6">
+    <div className="min-h-screen bg-[#0d1224] text-[#eef0fb] p-4 sm:p-6">
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="bg-[#0f242d] border border-[#1d434c] rounded-2xl p-6 shadow-xl space-y-4">
+        <div className="bg-[#181f3d] border border-[#28325c] rounded-2xl p-6 shadow-xl space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#7c3aed] to-[#a78bfa] flex items-center justify-center text-white font-black shadow-md">
               <Compass className="w-6 h-6" />
@@ -78,7 +78,7 @@ export const WktKmlConverter: React.FC = () => {
               <h1 className="text-xl font-bold text-white tracking-tight">
                 Bulk WKT &rarr; KML Converter
               </h1>
-              <p className="text-xs text-[#9fc7c1]">
+              <p className="text-xs text-[#aab4dc]">
                 Convert QGIS MULTIPOLYGON (WKT) boundary rows to standard Google Earth KML files
               </p>
             </div>
@@ -86,19 +86,19 @@ export const WktKmlConverter: React.FC = () => {
 
           <div className="space-y-4 pt-2">
             <div>
-              <label className="block text-xs font-semibold text-[#9fc7c1] mb-1">
+              <label className="block text-xs font-semibold text-[#aab4dc] mb-1">
                 KML Placemark / File Name:
               </label>
               <input
                 type="text"
                 value={polygonName}
                 onChange={(e) => setPolygonName(e.target.value)}
-                className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2.5 focus:border-[#a78bfa] font-mono"
+                className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2.5 focus:border-[#a78bfa] font-mono"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#9fc7c1] mb-1">
+              <label className="block text-xs font-semibold text-[#aab4dc] mb-1">
                 Paste WKT (Well-Known Text) String:
               </label>
               <textarea
@@ -106,7 +106,7 @@ export const WktKmlConverter: React.FC = () => {
                 value={wktText}
                 onChange={(e) => setWktText(e.target.value)}
                 placeholder="MULTIPOLYGON (((76.12 31.69, ...)))"
-                className="w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-3 font-mono focus:border-[#a78bfa]"
+                className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-3 font-mono focus:border-[#a78bfa]"
               />
             </div>
 
@@ -119,7 +119,7 @@ export const WktKmlConverter: React.FC = () => {
             </button>
 
             {statusMsg && (
-              <div className="p-3 bg-[#091a1f] border border-[#23534d] text-xs text-[#f7dfae] rounded-lg">
+              <div className="p-3 bg-[#121830] border border-[#2f3a6b] text-xs text-[#ffe3a3] rounded-lg">
                 {statusMsg}
               </div>
             )}

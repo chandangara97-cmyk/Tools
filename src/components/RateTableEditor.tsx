@@ -8,9 +8,9 @@ interface Props {
   onSave: (t: RateTable) => void;
 }
 
-const inp = 'w-full bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg p-2 focus:border-[#20b5a6]';
-const lbl = 'block text-[11px] text-[#9fc7c1] mb-1 font-semibold';
-const card = 'bg-[#0b1d24] border border-[#1d434c] rounded-lg p-3 space-y-2';
+const inp = 'w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2 focus:border-[#9aa8ff]';
+const lbl = 'block text-[11px] text-[#aab4dc] mb-1 font-semibold';
+const card = 'bg-[#12172e] border border-[#28325c] rounded-lg p-3 space-y-2';
 
 const SUGGEST: Record<string, string[]> = {
   zoneF1: ['A', 'B'],
@@ -46,7 +46,7 @@ const MapEditor: React.FC<{
     <div className={card}>
       <div className="flex items-baseline justify-between gap-2">
         <h4 className="text-xs font-bold text-white">{code} {title}</h4>
-        <span className="text-[10px] text-[#7fa6a0]">{hint}</span>
+        <span className="text-[10px] text-[#8790bd]">{hint}</span>
       </div>
       <datalist id={`dl-${id}`}>{SUGGEST[id].map((s) => <option key={s} value={s} />)}</datalist>
       {keys.map((k) => (
@@ -57,11 +57,11 @@ const MapEditor: React.FC<{
         </div>
       ))}
       <div className="grid grid-cols-[1fr_90px_32px] gap-2 items-center">
-        <span className="text-xs text-[#f7dfae] px-1">anything else (default)</span>
+        <span className="text-xs text-[#ffe3a3] px-1">anything else (default)</span>
         <input className={inp} type="number" step="any" value={map.default ?? 1} onChange={(e) => setVal('default', e.target.value)} />
         <span />
       </div>
-      <button type="button" onClick={add} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#20b5a6]"><Plus className="w-3 h-3" /> Add row</button>
+      <button type="button" onClick={add} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#9aa8ff]"><Plus className="w-3 h-3" /> Add row</button>
       <div>
         <label className={lbl}>Bylaw clause for this rule</label>
         <input className={inp} value={clause} placeholder="e.g. Rule 12(3), Schedule II" onChange={(e) => onClause(e.target.value)} />
@@ -106,7 +106,7 @@ export const RateTableEditor: React.FC<Props> = ({ initial, busy, onSave }) => {
 
   return (
     <div className="mt-3 space-y-4">
-      <p className="text-[11px] text-[#9fc7c1]">Type the values from your town's bylaws. Existing assessments keep the table they were made with; new assessments use this one.</p>
+      <p className="text-[11px] text-[#aab4dc]">Type the values from your town's bylaws. Existing assessments keep the table they were made with; new assessments use this one.</p>
 
       <div className={card}>
         <h4 className="text-xs font-bold text-white">Bylaw reference</h4>
@@ -135,21 +135,21 @@ export const RateTableEditor: React.FC<Props> = ({ initial, busy, onSave }) => {
       <div className={card}>
         <div className="flex items-baseline justify-between gap-2">
           <h4 className="text-xs font-bold text-white">F3 Age factor, by age of building</h4>
-          <span className="text-[10px] text-[#7fa6a0]">up to N years old, factor</span>
+          <span className="text-[10px] text-[#8790bd]">up to N years old, factor</span>
         </div>
         {bands.map((b, i) => (
           <div key={i} className="grid grid-cols-[1fr_90px_32px] gap-2 items-center">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-[#9fc7c1] whitespace-nowrap">up to</span>
+              <span className="text-[11px] text-[#aab4dc] whitespace-nowrap">up to</span>
               <input className={inp} type="number" min={0} placeholder="no limit" value={b.maxAge ?? ''} onChange={(e) => setBand(i, { maxAge: e.target.value === '' ? null : Number(e.target.value) })} />
-              <span className="text-[11px] text-[#9fc7c1]">years</span>
+              <span className="text-[11px] text-[#aab4dc]">years</span>
             </div>
             <input className={inp} type="number" step="any" value={b.factor} onChange={(e) => setBand(i, { factor: e.target.value === '' ? 0 : Number(e.target.value) })} />
             <button type="button" disabled={bands.length < 2} onClick={() => set({ ageF3: bands.filter((_, j) => j !== i) })} aria-label="Remove band" className="text-red-300 p-1 disabled:opacity-30"><Trash2 className="w-4 h-4" /></button>
           </div>
         ))}
-        <p className="text-[10px] text-[#7fa6a0]">Leave "years" empty on the last band for buildings older than all the others.</p>
-        <button type="button" onClick={() => set({ ageF3: [...bands, { maxAge: 0, factor: 1 }] })} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#20b5a6]"><Plus className="w-3 h-3" /> Add age band</button>
+        <p className="text-[10px] text-[#8790bd]">Leave "years" empty on the last band for buildings older than all the others.</p>
+        <button type="button" onClick={() => set({ ageF3: [...bands, { maxAge: 0, factor: 1 }] })} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#9aa8ff]"><Plus className="w-3 h-3" /> Add age band</button>
         <div><label className={lbl}>Bylaw clause for this rule</label><input className={inp} value={clause('F3')} onChange={(e) => setClause('F3', e.target.value)} /></div>
       </div>
 
@@ -176,11 +176,11 @@ export const RateTableEditor: React.FC<Props> = ({ initial, busy, onSave }) => {
       <div className={card}>
         <div className="flex items-baseline justify-between gap-2">
           <h4 className="text-xs font-bold text-white">Other charges and deductions from the bylaws</h4>
-          <span className="text-[10px] text-[#7fa6a0]">cess, surcharge, concession, flat fee</span>
+          <span className="text-[10px] text-[#8790bd]">cess, surcharge, concession, flat fee</span>
         </div>
-        {adjs.length === 0 && <p className="text-[11px] text-[#7fa6a0]">None entered.</p>}
+        {adjs.length === 0 && <p className="text-[11px] text-[#8790bd]">None entered.</p>}
         {adjs.map((a, i) => (
-          <div key={i} className="border border-[#1d434c] rounded-lg p-2 space-y-2">
+          <div key={i} className="border border-[#28325c] rounded-lg p-2 space-y-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div><label className={lbl}>Name</label><input className={inp} value={a.name} onChange={(e) => setAdj(i, { name: e.target.value })} /></div>
               <div><label className={lbl}>Bylaw clause</label><input className={inp} value={a.clause || ''} onChange={(e) => setAdj(i, { clause: e.target.value })} /></div>
@@ -210,11 +210,11 @@ export const RateTableEditor: React.FC<Props> = ({ initial, busy, onSave }) => {
             <button type="button" onClick={() => set({ adjustments: adjs.filter((_, j) => j !== i) })} className="inline-flex items-center gap-1 text-[11px] font-bold text-red-300"><Trash2 className="w-3 h-3" /> Remove</button>
           </div>
         ))}
-        <button type="button" onClick={() => set({ adjustments: [...adjs, { name: '', base: 'tax', kind: 'percent', value: 0, appliesToUse: '' }] })} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#20b5a6]"><Plus className="w-3 h-3" /> Add charge or deduction</button>
+        <button type="button" onClick={() => set({ adjustments: [...adjs, { name: '', base: 'tax', kind: 'percent', value: 0, appliesToUse: '' }] })} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#9aa8ff]"><Plus className="w-3 h-3" /> Add charge or deduction</button>
       </div>
 
       {err && <p className="text-xs text-red-300">{err}</p>}
-      <button type="button" disabled={busy} onClick={save} className="bg-[#0e8a7d] disabled:opacity-50 text-white text-xs font-bold px-4 py-2.5 rounded-lg">Save rate table</button>
+      <button type="button" disabled={busy} onClick={save} className="bg-[#4f46e5] disabled:opacity-50 text-white text-xs font-bold px-4 py-2.5 rounded-lg">Save rate table</button>
     </div>
   );
 };

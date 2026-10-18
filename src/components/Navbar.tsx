@@ -15,10 +15,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView, onOpe
   const { isInstallable } = usePWAInstall();
   const { signOut } = useAuth();
   return (
-    <header className="sticky top-0 z-40 bg-[#0e2827]/95 backdrop-blur-md border-b border-[#1b433e] text-white">
+    <header className="sticky top-0 z-40 bg-[#141a36]/95 backdrop-blur-md border-b border-[#2a3464] text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-3">
         <button onClick={() => setActiveView('gis-survey')} className="flex items-center gap-2.5 text-left focus:outline-none">
-          <span className="w-8 h-8 rounded-lg bg-[#c8372a] flex items-center justify-center">
+          <span className="w-8 h-8 rounded-lg bg-[#e5484d] flex items-center justify-center">
             <svg width="20" height="20" viewBox="0 0 30 30" fill="none" aria-hidden="true">
               <path d="M15 6 24 22H6z" stroke="#fff" strokeWidth="2.2" strokeLinejoin="round" />
               <circle cx="15" cy="17" r="2.2" fill="#fff" />
@@ -31,10 +31,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView, onOpe
           {showTools && (
             <>
               <button onClick={() => setActiveView(activeView === 'tools-directory' ? 'gis-survey' : 'tools-directory')}
-                className="text-xs font-bold px-3 py-2 rounded-lg text-[#c5d8df] hover:bg-white/10 flex items-center gap-1.5">
+                className="text-xs font-bold px-3 py-2 rounded-lg text-[#d6dcf5] hover:bg-white/10 flex items-center gap-1.5">
                 <Wrench className="w-4 h-4" /> Tools
               </button>
-              <a href="admin_users.html" className="bg-[#d6a34b]/20 hover:bg-[#d6a34b]/30 border border-[#d6a34b]/50 text-[#f7dfae] text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5">
+              <a href="admin_users.html" className="bg-[#f2b233]/20 hover:bg-[#f2b233]/30 border border-[#f2b233]/50 text-[#ffe3a3] text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5">
                 <Lock className="w-4 h-4" /> Admin
               </a>
             </>
@@ -44,7 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView, onOpe
             <span className="hidden sm:inline">Android app</span>
             {isInstallable && <span className="w-2 h-2 rounded-full bg-white animate-ping" />}
           </button>
-          <button onClick={() => void signOut()} className="text-xs font-bold px-3 py-2 rounded-lg text-[#f4c58a] hover:bg-white/10 flex items-center gap-1.5">
+          <button onClick={() => void signOut()} className="text-xs font-bold px-3 py-2 rounded-lg text-[#ffcf8a] hover:bg-white/10 flex items-center gap-1.5">
             <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Sign out</span>
           </button>
         </div>

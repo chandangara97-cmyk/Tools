@@ -33,11 +33,11 @@ bubblewrap build
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#0f242d] border border-[#1d434c] w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-[#181f3d] border border-[#28325c] w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Header */}
-        <div className="p-5 border-b border-[#1b3d39] flex items-center justify-between bg-[#0b1d24]">
+        <div className="p-5 border-b border-[#252e56] flex items-center justify-between bg-[#12172e]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#10b981] to-[#20b5a6] flex items-center justify-center text-white shadow-md">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#10b981] to-[#9aa8ff] flex items-center justify-center text-white shadow-md">
               <Smartphone className="w-5 h-5" />
             </div>
             <div>
@@ -47,25 +47,25 @@ bubblewrap build
                   Field Ready
                 </span>
               </h2>
-              <p className="text-xs text-[#9fc7c1]">
+              <p className="text-xs text-[#aab4dc]">
                 Full offline support · Home screen app icon · Full-screen standalone mode
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-[#9fc7c1] hover:text-white p-1 rounded-lg hover:bg-white/10"
+            className="text-[#aab4dc] hover:text-white p-1 rounded-lg hover:bg-white/10"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab switch */}
-        <div className="flex border-b border-[#1b3d39] bg-[#091a1f] text-xs font-bold">
+        <div className="flex border-b border-[#252e56] bg-[#121830] text-xs font-bold">
           <button
             onClick={() => setActiveTab('instant')}
             className={`flex-1 py-3 text-center transition-colors flex items-center justify-center gap-2 ${
-              activeTab === 'instant' ? 'border-b-2 border-[#20b5a6] text-[#20b5a6] bg-white/5' : 'text-[#9fc7c1] hover:text-white'
+              activeTab === 'instant' ? 'border-b-2 border-[#9aa8ff] text-[#9aa8ff] bg-white/5' : 'text-[#aab4dc] hover:text-white'
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
@@ -74,7 +74,7 @@ bubblewrap build
           <button
             onClick={() => setActiveTab('apk')}
             className={`flex-1 py-3 text-center transition-colors flex items-center justify-center gap-2 ${
-              activeTab === 'apk' ? 'border-b-2 border-[#20b5a6] text-[#20b5a6] bg-white/5' : 'text-[#9fc7c1] hover:text-white'
+              activeTab === 'apk' ? 'border-b-2 border-[#9aa8ff] text-[#9aa8ff] bg-white/5' : 'text-[#aab4dc] hover:text-white'
             }`}
           >
             <Terminal className="w-3.5 h-3.5" />
@@ -86,14 +86,14 @@ bubblewrap build
         <div className="p-6 overflow-y-auto space-y-5 text-xs">
           {activeTab === 'instant' && (
             <div className="space-y-4">
-              <div className="p-4 bg-[#091a1f] border border-[#23534d] rounded-xl space-y-3">
+              <div className="p-4 bg-[#121830] border border-[#2f3a6b] rounded-xl space-y-3">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#0e8a7d]/30 text-[#20b5a6] flex items-center justify-center font-bold flex-none">
+                  <div className="w-8 h-8 rounded-lg bg-[#4f46e5]/30 text-[#9aa8ff] flex items-center justify-center font-bold flex-none">
                     ✓
                   </div>
                   <div>
                     <h3 className="font-bold text-white text-sm">Direct Android Device Installation</h3>
-                    <p className="text-[#9fc7c1] mt-0.5 leading-relaxed">
+                    <p className="text-[#aab4dc] mt-0.5 leading-relaxed">
                       Installs Scheme Hub 2026 directly onto your Android device as a standalone WebAPK. Launches from your app drawer without browser address bar and works completely offline in remote field areas of Himachal Pradesh.
                     </p>
                   </div>
@@ -118,7 +118,7 @@ bubblewrap build
                 ) : (
                   <div className="space-y-2 pt-1">
                     <p className="text-white font-semibold">How to install in 2 taps on Android Chrome/Firefox:</p>
-                    <ol className="list-decimal list-inside space-y-1 text-[#c5d8df] bg-black/30 p-3 rounded-lg border border-white/5">
+                    <ol className="list-decimal list-inside space-y-1 text-[#d6dcf5] bg-black/30 p-3 rounded-lg border border-white/5">
                       <li>Tap the <strong>three dots menu (⋮)</strong> in top-right of your browser.</li>
                       <li>Select <strong>&ldquo;Install app&rdquo;</strong> or <strong>&ldquo;Add to Home screen&rdquo;</strong>.</li>
                       <li>Tap <strong>Install</strong>. The Scheme Hub 2026 icon will appear in your Android app drawer!</li>
@@ -128,12 +128,12 @@ bubblewrap build
               </div>
 
               {/* Offline & Hardware Features list */}
-              <div className="grid grid-cols-2 gap-3 text-[#9fc7c1]">
-                <div className="p-3 bg-[#091a1f] border border-[#1b3d39] rounded-lg">
+              <div className="grid grid-cols-2 gap-3 text-[#aab4dc]">
+                <div className="p-3 bg-[#121830] border border-[#252e56] rounded-lg">
                   <b className="text-white block mb-0.5">High-Accuracy GPS</b>
                   Uses phone&apos;s GPS hardware chip for high accuracy property tagging.
                 </div>
-                <div className="p-3 bg-[#091a1f] border border-[#1b3d39] rounded-lg">
+                <div className="p-3 bg-[#121830] border border-[#252e56] rounded-lg">
                   <b className="text-white block mb-0.5">100% Offline Storage</b>
                   Local storage caches all 67 towns &amp; ward polygons offline.
                 </div>
@@ -143,12 +143,12 @@ bubblewrap build
 
           {activeTab === 'apk' && (
             <div className="space-y-4">
-              <p className="text-[#c5d8df] leading-relaxed">
+              <p className="text-[#d6dcf5] leading-relaxed">
                 You can generate a signed native <strong>Android APK file (.apk)</strong> or Google Play Store bundle (.aab) directly using Google&apos;s official <strong>Bubblewrap CLI</strong> (Trusted Web Activity standard).
               </p>
 
               <div className="relative">
-                <pre className="bg-[#040d12] text-[#38bdf8] p-4 rounded-xl border border-[#1b3d39] font-mono text-[11px] overflow-x-auto leading-relaxed">
+                <pre className="bg-[#040d12] text-[#38bdf8] p-4 rounded-xl border border-[#252e56] font-mono text-[11px] overflow-x-auto leading-relaxed">
                   {bubblewrapCode}
                 </pre>
                 <button
@@ -160,10 +160,10 @@ bubblewrap build
                 </button>
               </div>
 
-              <div className="p-3 bg-[#091a1f] border border-[#23534d] rounded-lg space-y-1">
-                <span className="text-[#f7dfae] font-bold block">Capacitor APK Alternative:</span>
-                <p className="text-[#9fc7c1]">
-                  You can also wrap this Vite project with <code className="text-[#20b5a6]">npx cap add android &amp;&amp; npx cap run android</code> to generate an Android Studio project with full native Java/Kotlin bindings.
+              <div className="p-3 bg-[#121830] border border-[#2f3a6b] rounded-lg space-y-1">
+                <span className="text-[#ffe3a3] font-bold block">Capacitor APK Alternative:</span>
+                <p className="text-[#aab4dc]">
+                  You can also wrap this Vite project with <code className="text-[#9aa8ff]">npx cap add android &amp;&amp; npx cap run android</code> to generate an Android Studio project with full native Java/Kotlin bindings.
                 </p>
               </div>
             </div>
@@ -171,10 +171,10 @@ bubblewrap build
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-[#1b3d39] bg-[#091a1f] flex justify-end">
+        <div className="p-4 border-t border-[#252e56] bg-[#121830] flex justify-end">
           <button
             onClick={onClose}
-            className="bg-[#142831] hover:bg-[#1b3642] text-white font-semibold px-4 py-2 rounded-lg text-xs border border-[#23534d]"
+            className="bg-[#1d2547] hover:bg-[#232c52] text-white font-semibold px-4 py-2 rounded-lg text-xs border border-[#2f3a6b]"
           >
             Close
           </button>

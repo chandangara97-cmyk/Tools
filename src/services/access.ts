@@ -2,14 +2,14 @@
 import type { Role } from './auth';
 import type { HeadId } from './heads';
 
-export type Tab = 'survey' | 'map-editor' | 'records' | 'assessment' | 'collection' | 'reports' | 'exports';
+export type Tab = 'search' | 'survey' | 'map-editor' | 'records' | 'assessment' | 'collection' | 'reports' | 'exports';
 
 export const ROLE_LABEL: Record<Role, string> = {
   admin: 'ULB admin', supervisor: 'Supervisor', surveyor: 'Data collector',
   assessor: 'Assessor', cashier: 'Cashier', monitor: 'Monitor',
 };
 
-const ALL: Tab[] = ['survey', 'records', 'assessment', 'collection', 'reports', 'map-editor', 'exports'];
+const ALL: Tab[] = ['search', 'collection', 'survey', 'records', 'assessment', 'reports', 'map-editor', 'exports'];
 
 /** Pages this login may open. */
 export function allowedTabs(role: Role | null, head: HeadId | null, isSuper: boolean): Tab[] {
@@ -17,11 +17,11 @@ export function allowedTabs(role: Role | null, head: HeadId | null, isSuper: boo
   switch (role) {
     case 'supervisor':
       // a supervisor tied to water, garbage etc. only works that bill head
-      return head && head !== 'property_tax' ? ['collection'] : ALL;
+      return head && head !== 'property_tax' ? ['search', 'collection'] : ALL;
     case 'surveyor': return ['survey', 'records'];
     case 'assessor': return ['assessment', 'records'];
-    case 'cashier': return ['collection'];
-    case 'monitor': return ['reports', 'collection'];
+    case 'cashier': return ['search', 'collection'];
+    case 'monitor': return ['search', 'reports', 'collection'];
     default: return [];
   }
 }

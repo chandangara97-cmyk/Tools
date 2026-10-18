@@ -28,10 +28,10 @@ export const SyncBar: React.FC<Props> = ({ localOnlyCount, canMigrate, onMigrate
             {s.flushing ? 'Syncing… ' : ''}{s.pending} change{s.pending > 1 ? 's' : ''} waiting to upload
           </span>
         )}
-        <span className="ml-auto text-[#9fc7c1]">
-          {displayName} · <b className="text-[#f7dfae]">{role ? ROLE_LABEL[role] : ''}{head ? ` · ${BILL_NAME[head]}` : ''}</b>
+        <span className="ml-auto text-[#aab4dc]">
+          {displayName} · <b className="text-[#ffe3a3]">{role ? ROLE_LABEL[role] : ''}{head ? ` · ${BILL_NAME[head]}` : ''}</b>
         </span>
-        <button type="button" onClick={() => void signOut()} className="inline-flex items-center gap-1 text-[#20b5a6] font-bold">
+        <button type="button" onClick={() => void signOut()} className="inline-flex items-center gap-1 text-[#9aa8ff] font-bold">
           <LogOut className="w-3 h-3" /> Sign out
         </button>
       </div>
@@ -43,7 +43,7 @@ export const SyncBar: React.FC<Props> = ({ localOnlyCount, canMigrate, onMigrate
       )}
 
       {s.conflicts.map((c) => (
-        <div key={c.id} className="rounded p-2 text-xs bg-[#d6a34b]/20 text-[#f7dfae] border border-[#d6a34b]/40 flex items-start gap-2">
+        <div key={c.id} className="rounded p-2 text-xs bg-[#f2b233]/20 text-[#ffe3a3] border border-[#f2b233]/40 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 flex-none mt-0.5" />
           <div className="flex-1">
             <b>{c.id}</b> ({c.rec.owner}, {c.rec.hno}) was not uploaded. {c.reason}

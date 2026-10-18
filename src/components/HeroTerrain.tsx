@@ -150,7 +150,7 @@ export const HeroTerrain: React.FC = () => {
       // Pin core
       ctx.beginPath();
       ctx.arc(px, py, 5, 0, Math.PI * 2);
-      ctx.fillStyle = '#d6a34b';
+      ctx.fillStyle = '#f2b233';
       ctx.fill();
       ctx.lineWidth = 2;
       ctx.strokeStyle = '#fff';
@@ -212,29 +212,29 @@ export const HeroTerrain: React.FC = () => {
   }, []);
 
   return (
-    <div ref={containerRef} className="relative w-full h-[340px] md:h-[400px] rounded-2xl overflow-hidden border border-[#23534d] shadow-2xl bg-[#091a19]">
+    <div ref={containerRef} className="relative w-full h-[340px] md:h-[400px] rounded-2xl overflow-hidden border border-[#2f3a6b] shadow-2xl bg-[#091a19]">
       <canvas ref={canvasRef} className="w-full h-full block cursor-crosshair" />
 
       {/* Floating Spatial Readout Box */}
       <div className="absolute top-4 right-4 bg-[#0a1f1e]/90 backdrop-blur-md border border-[#22504a] text-white p-3.5 rounded-xl shadow-xl text-xs space-y-1.5 pointer-events-none min-w-[210px]">
-        <div className="flex items-center justify-between text-[#9fc7c1]">
+        <div className="flex items-center justify-between text-[#aab4dc]">
           <span>Spatial Coordinate:</span>
           <b className="text-white font-mono">{positionText}</b>
         </div>
-        <div className="flex items-center justify-between text-[#9fc7c1]">
+        <div className="flex items-center justify-between text-[#aab4dc]">
           <span>Surface Elevation:</span>
-          <b className="text-[#f7dfae] font-mono">{elevationText}</b>
+          <b className="text-[#ffe3a3] font-mono">{elevationText}</b>
         </div>
-        <div className="flex items-center justify-between text-[#9fc7c1]">
+        <div className="flex items-center justify-between text-[#aab4dc]">
           <span>Survey Frame:</span>
-          <b className="text-[#20b5a6] font-semibold">{blockText}</b>
+          <b className="text-[#9aa8ff] font-semibold">{blockText}</b>
         </div>
-        <div className="pt-1.5 border-t border-[#1b3d39] text-[10.5px] text-[#7ea19b] leading-tight">
+        <div className="pt-1.5 border-t border-[#252e56] text-[10.5px] text-[#8790bd] leading-tight">
           Illustrative HP terrain. Move pointer or tap to sample geo-coordinates.
         </div>
       </div>
 
-      <div className="absolute bottom-3 left-3 bg-black/40 backdrop-blur-sm text-[11px] text-[#9fc7c1] px-2.5 py-1 rounded-md border border-white/10 font-mono">
+      <div className="absolute bottom-3 left-3 bg-black/40 backdrop-blur-sm text-[11px] text-[#aab4dc] px-2.5 py-1 rounded-md border border-white/10 font-mono">
         Datum: WGS84 · Topo Contours · Shimla Region
       </div>
     </div>

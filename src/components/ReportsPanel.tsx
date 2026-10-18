@@ -9,10 +9,10 @@ import { esc, money, printHtml } from './CollectionPanel';
 interface Props { townKey: string; townName: string; records: PropertyRecord[]; settings: CollectionSettings; wards: WardFeature[] }
 
 type Status = 'none' | 'paid' | 'partial' | 'unpaid';
-const COLOR: Record<Status, string> = { none: '#6b7f84', paid: '#20b5a6', partial: '#d6a34b', unpaid: '#ef4444' };
+const COLOR: Record<Status, string> = { none: '#7a83ad', paid: '#9aa8ff', partial: '#f2b233', unpaid: '#ef4444' };
 const LABEL: Record<Status, string> = { none: 'no demand', paid: 'paid', partial: 'part paid', unpaid: 'unpaid' };
-const inp = 'bg-[#091a1f] border border-[#23534d] text-white text-xs rounded p-1.5';
-const card = 'bg-[#0f242d] border border-[#1d434c] rounded-xl p-4 shadow-lg';
+const inp = 'bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded p-1.5';
+const card = 'bg-[#181f3d] border border-[#28325c] rounded-xl p-4 shadow-lg';
 const btn = 'inline-flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-40';
 const q = (s: unknown) => `"${String(s ?? '').replace(/"/g, '""')}"`;
 
@@ -132,7 +132,7 @@ export const ReportsPanel: React.FC<Props> = ({ townKey, townName, records, sett
     const s = Math.min((W - 2 * pad) / w, (H - 2 * pad) / h);
     return { W, H, px: (lng: number) => pad + (lng - minLng) * k * s, py: (lat: number) => H - pad - (lat - minLat) * s };
   }, [pts, shown]);
-  const recoveryFill = (v: number | null | undefined) => (v === null || v === undefined ? '#6b7f84' : `hsl(${Math.round(v * 140)}, 70%, 45%)`); // red -> green
+  const recoveryFill = (v: number | null | undefined) => (v === null || v === undefined ? '#7a83ad' : `hsl(${Math.round(v * 140)}, 70%, 45%)`); // red -> green
   const wardPath = (w: WardFeature) => box ? w.rings.map((ring) => 'M' + ring.map(([x, y]) => `${box.px(x).toFixed(1)},${box.py(y).toFixed(1)}`).join('L') + 'Z').join('') : '';
   const wardLabel = (w: WardFeature) => {
     const ring = w.rings[0]; if (!ring?.length || !box) return null;
@@ -145,81 +145,81 @@ export const ReportsPanel: React.FC<Props> = ({ townKey, townName, records, sett
   return (
     <div className="space-y-4">
       <div className={`${card} flex flex-wrap items-end gap-3`}>
-        <label className="text-[11px] text-[#9fc7c1]">Ward<select value={ward} onChange={(e) => setWard(e.target.value)} className={`${inp} block mt-1`}><option value="all">All wards</option>{wards.map((w) => <option key={w}>{w}</option>)}</select></label>
-        <label className="text-[11px] text-[#9fc7c1]">Collected from<input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={`${inp} block mt-1`} /></label>
-        <label className="text-[11px] text-[#9fc7c1]">to<input type="date" value={to} max={today} onChange={(e) => setTo(e.target.value || today)} className={`${inp} block mt-1`} /></label>
-        <p className="text-[11px] text-[#7fa6a0] flex-1 min-w-[200px]">Dues are as on {today}. Collection counts payments by receipt date; reversed receipts are left out.</p>
+        <label className="text-[11px] text-[#aab4dc]">Ward<select value={ward} onChange={(e) => setWard(e.target.value)} className={`${inp} block mt-1`}><option value="all">All wards</option>{wards.map((w) => <option key={w}>{w}</option>)}</select></label>
+        <label className="text-[11px] text-[#aab4dc]">Collected from<input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={`${inp} block mt-1`} /></label>
+        <label className="text-[11px] text-[#aab4dc]">to<input type="date" value={to} max={today} onChange={(e) => setTo(e.target.value || today)} className={`${inp} block mt-1`} /></label>
+        <p className="text-[11px] text-[#8790bd] flex-1 min-w-[200px]">Dues are as on {today}. Collection counts payments by receipt date; reversed receipts are left out.</p>
       </div>
 
       <div className={`${card} space-y-2`}>
-        <div className="flex items-center justify-between"><h3 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider">Ward-wise collection</h3>
-          <button type="button" onClick={wardCsv} disabled={!wardTable.length} className={`${btn} bg-[#142831] text-[#9fc7c1] border border-[#23534d]`}><Download className="w-3.5 h-3.5" /> CSV</button></div>
+        <div className="flex items-center justify-between"><h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider">Ward-wise collection</h3>
+          <button type="button" onClick={wardCsv} disabled={!wardTable.length} className={`${btn} bg-[#1d2547] text-[#aab4dc] border border-[#2f3a6b]`}><Download className="w-3.5 h-3.5" /> CSV</button></div>
         <div className="overflow-x-auto"><table className="w-full text-xs text-left">
-          <thead className="text-[#9fc7c1] border-b border-[#1d434c]"><tr><th className="p-2">Ward</th><th className="p-2 text-right">Props</th><th className="p-2 text-right">Demanded</th><th className="p-2 text-right">Collected</th><th className="p-2 text-right">Rebate</th><th className="p-2 text-right">Outstanding</th><th className="p-2 text-right">Defaulters</th><th className="p-2 text-right">%</th></tr></thead>
+          <thead className="text-[#aab4dc] border-b border-[#28325c]"><tr><th className="p-2">Ward</th><th className="p-2 text-right">Props</th><th className="p-2 text-right">Demanded</th><th className="p-2 text-right">Collected</th><th className="p-2 text-right">Rebate</th><th className="p-2 text-right">Outstanding</th><th className="p-2 text-right">Defaulters</th><th className="p-2 text-right">%</th></tr></thead>
           <tbody>
             {wardTable.map((w) => (
-              <tr key={w.ward} className="border-b border-[#14333b] text-white">
+              <tr key={w.ward} className="border-b border-[#20284b] text-white">
                 <td className="p-2">{w.ward}</td><td className="p-2 text-right">{w.props}</td><td className="p-2 text-right">{money(w.demanded)}</td><td className="p-2 text-right">{money(w.collected)}</td><td className="p-2 text-right">{money(w.rebate)}</td><td className="p-2 text-right">{money(w.due + w.interestDue)}</td><td className="p-2 text-right">{w.defaulters}</td><td className="p-2 text-right">{w.demanded ? ((w.collected / w.demanded) * 100).toFixed(1) : '-'}</td>
               </tr>))}
-            {wardTable.length > 0 && <tr className="font-bold text-[#f7dfae]"><td className="p-2">Total</td><td className="p-2 text-right">{grand.props}</td><td className="p-2 text-right">{money(grand.demanded)}</td><td className="p-2 text-right">{money(grand.collected)}</td><td className="p-2 text-right">{money(grand.rebate)}</td><td className="p-2 text-right">{money(grand.due + grand.interestDue)}</td><td className="p-2 text-right">{grand.defaulters}</td><td className="p-2 text-right">{grand.demanded ? ((grand.collected / grand.demanded) * 100).toFixed(1) : '-'}</td></tr>}
-            {!wardTable.length && <tr><td colSpan={8} className="p-4 text-center text-[#9fc7c1]">No surveyed properties yet.</td></tr>}
+            {wardTable.length > 0 && <tr className="font-bold text-[#ffe3a3]"><td className="p-2">Total</td><td className="p-2 text-right">{grand.props}</td><td className="p-2 text-right">{money(grand.demanded)}</td><td className="p-2 text-right">{money(grand.collected)}</td><td className="p-2 text-right">{money(grand.rebate)}</td><td className="p-2 text-right">{money(grand.due + grand.interestDue)}</td><td className="p-2 text-right">{grand.defaulters}</td><td className="p-2 text-right">{grand.demanded ? ((grand.collected / grand.demanded) * 100).toFixed(1) : '-'}</td></tr>}
+            {!wardTable.length && <tr><td colSpan={8} className="p-4 text-center text-[#aab4dc]">No surveyed properties yet.</td></tr>}
           </tbody></table></div>
       </div>
 
       <div className={`${card} space-y-3`}>
-        <h3 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider">Defaulters {ward === 'all' ? '(all wards)' : `(ward ${ward})`}: {defaulters.length}</h3>
+        <h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider">Defaulters {ward === 'all' ? '(all wards)' : `(ward ${ward})`}: {defaulters.length}</h3>
         <div className="flex flex-wrap items-end gap-2">
-          <label className="text-[11px] text-[#9fc7c1]">Minimum total due (₹)<input type="number" min="0" value={minDue} onChange={(e) => setMinDue(e.target.value)} className={`${inp} block mt-1 w-28`} /></label>
-          <button type="button" onClick={defCsv} disabled={!defaulters.length} className={`${btn} bg-[#142831] text-[#9fc7c1] border border-[#23534d]`}><Download className="w-3.5 h-3.5" /> CSV</button>
-          <button type="button" onClick={() => printPages(defaulters, 'Notice of arrears', false, false)} disabled={!defaulters.length} className={`${btn} bg-[#0e8a7d] text-white`}><Printer className="w-3.5 h-3.5" /> Print notices</button>
-          <button type="button" onClick={() => printPages(defaulters, 'Notice of arrears', false, true)} disabled={!defaulters.length} className={`${btn} bg-[#1b433e] text-[#20b5a6]`}><FileText className="w-3.5 h-3.5" /> Download notices</button>
+          <label className="text-[11px] text-[#aab4dc]">Minimum total due (₹)<input type="number" min="0" value={minDue} onChange={(e) => setMinDue(e.target.value)} className={`${inp} block mt-1 w-28`} /></label>
+          <button type="button" onClick={defCsv} disabled={!defaulters.length} className={`${btn} bg-[#1d2547] text-[#aab4dc] border border-[#2f3a6b]`}><Download className="w-3.5 h-3.5" /> CSV</button>
+          <button type="button" onClick={() => printPages(defaulters, 'Notice of arrears', false, false)} disabled={!defaulters.length} className={`${btn} bg-[#4f46e5] text-white`}><Printer className="w-3.5 h-3.5" /> Print notices</button>
+          <button type="button" onClick={() => printPages(defaulters, 'Notice of arrears', false, true)} disabled={!defaulters.length} className={`${btn} bg-[#2a3464] text-[#9aa8ff]`}><FileText className="w-3.5 h-3.5" /> Download notices</button>
         </div>
-        <label className="text-[11px] text-[#9fc7c1] block">Wording printed on bills and notices (add the notified clause or last date here)
+        <label className="text-[11px] text-[#aab4dc] block">Wording printed on bills and notices (add the notified clause or last date here)
           <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} className={`${inp} w-full mt-1`} /></label>
         <div className="overflow-x-auto max-h-80 overflow-y-auto"><table className="w-full text-xs text-left">
-          <thead className="text-[#9fc7c1] border-b border-[#1d434c] sticky top-0 bg-[#0f242d]"><tr><th className="p-2">Property</th><th className="p-2">Ward</th><th className="p-2 text-right">Overdue</th><th className="p-2 text-right">Total due</th><th className="p-2">Since</th></tr></thead>
+          <thead className="text-[#aab4dc] border-b border-[#28325c] sticky top-0 bg-[#181f3d]"><tr><th className="p-2">Property</th><th className="p-2">Ward</th><th className="p-2 text-right">Overdue</th><th className="p-2 text-right">Total due</th><th className="p-2">Since</th></tr></thead>
           <tbody>
             {defaulters.slice(0, 300).map(({ r, led, overdue }) => (
-              <tr key={r.id} className="border-b border-[#14333b] text-white"><td className="p-2 font-mono">{r.id}<div className="text-[10px] text-[#9fc7c1] font-sans">{r.owner}</div></td><td className="p-2">{r.ward}</td><td className="p-2 text-right">{money(overdue)}</td><td className="p-2 text-right font-bold">{money(led.totalDue)}</td><td className="p-2">{led.rows.find((x) => x.totalDue > 0)?.dueDate}</td></tr>))}
-            {!defaulters.length && <tr><td colSpan={5} className="p-4 text-center text-[#9fc7c1]">No defaulters for this filter.</td></tr>}
+              <tr key={r.id} className="border-b border-[#20284b] text-white"><td className="p-2 font-mono">{r.id}<div className="text-[10px] text-[#aab4dc] font-sans">{r.owner}</div></td><td className="p-2">{r.ward}</td><td className="p-2 text-right">{money(overdue)}</td><td className="p-2 text-right font-bold">{money(led.totalDue)}</td><td className="p-2">{led.rows.find((x) => x.totalDue > 0)?.dueDate}</td></tr>))}
+            {!defaulters.length && <tr><td colSpan={5} className="p-4 text-center text-[#aab4dc]">No defaulters for this filter.</td></tr>}
           </tbody></table>
-          {defaulters.length > 300 && <p className="text-[10px] text-[#7fa6a0]">Showing 300 of {defaulters.length}. CSV has all.</p>}
+          {defaulters.length > 300 && <p className="text-[10px] text-[#8790bd]">Showing 300 of {defaulters.length}. CSV has all.</p>}
         </div>
-        <p className="text-[10px] text-[#7fa6a0]">A defaulter is a property with dues for a year whose due date has passed. Print and download cover at most 200 notices at a time; narrow by ward or raise the minimum.</p>
+        <p className="text-[10px] text-[#8790bd]">A defaulter is a property with dues for a year whose due date has passed. Print and download cover at most 200 notices at a time; narrow by ward or raise the minimum.</p>
       </div>
 
       <div className={`${card} space-y-2`}>
-        <h3 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider">Demand bills</h3>
-        <p className="text-xs text-[#9fc7c1]">{billable.length} propert{billable.length === 1 ? 'y has' : 'ies have'} dues {ward === 'all' ? 'in all wards' : `in ward ${ward}`}. Bills show the year-wise position and any early-payment rebate still open.</p>
+        <h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider">Demand bills</h3>
+        <p className="text-xs text-[#aab4dc]">{billable.length} propert{billable.length === 1 ? 'y has' : 'ies have'} dues {ward === 'all' ? 'in all wards' : `in ward ${ward}`}. Bills show the year-wise position and any early-payment rebate still open.</p>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => printPages(billable, 'Property tax demand bill', true, false)} disabled={!billable.length} className={`${btn} bg-[#0e8a7d] text-white`}><Printer className="w-3.5 h-3.5" /> Print bills</button>
-          <button type="button" onClick={() => printPages(billable, 'Property tax demand bill', true, true)} disabled={!billable.length} className={`${btn} bg-[#1b433e] text-[#20b5a6]`}><FileText className="w-3.5 h-3.5" /> Download bills</button>
+          <button type="button" onClick={() => printPages(billable, 'Property tax demand bill', true, false)} disabled={!billable.length} className={`${btn} bg-[#4f46e5] text-white`}><Printer className="w-3.5 h-3.5" /> Print bills</button>
+          <button type="button" onClick={() => printPages(billable, 'Property tax demand bill', true, true)} disabled={!billable.length} className={`${btn} bg-[#2a3464] text-[#9aa8ff]`}><FileText className="w-3.5 h-3.5" /> Download bills</button>
         </div>
-        {billable.length > 200 && <p className="text-[11px] text-[#f7dfae]">Only the first 200 will be printed; choose a single ward.</p>}
+        {billable.length > 200 && <p className="text-[11px] text-[#ffe3a3]">Only the first 200 will be printed; choose a single ward.</p>}
       </div>
 
       <div className={`${card} space-y-2`}>
-        <h3 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider">Paid / unpaid map {ward === 'all' ? '' : `(ward ${ward})`}</h3>
+        <h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider">Paid / unpaid map {ward === 'all' ? '' : `(ward ${ward})`}</h3>
         <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
-          {counts.map(({ k, n }) => <span key={k} className="px-2 py-1 rounded bg-[#142831] text-white flex items-center gap-1"><i className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: COLOR[k] }} />{LABEL[k]} {n}</span>)}
+          {counts.map(({ k, n }) => <span key={k} className="px-2 py-1 rounded bg-[#1d2547] text-white flex items-center gap-1"><i className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: COLOR[k] }} />{LABEL[k]} {n}</span>)}
         </div>
         {box ? (
           <>
-            <svg viewBox={`0 0 ${box.W} ${box.H}`} className="w-full bg-[#091a1f] rounded-lg border border-[#1d434c]" role="img" aria-label="Ward boundaries with properties coloured by payment status">
+            <svg viewBox={`0 0 ${box.W} ${box.H}`} className="w-full bg-[#121830] rounded-lg border border-[#28325c]" role="img" aria-label="Ward boundaries with properties coloured by payment status">
               {shown.map((w) => (
-                <path key={`b${w.w}`} d={wardPath(w)} fillRule="evenodd" fill={tint ? recoveryFill(wardRecovery[String(w.w)]) : 'none'} fillOpacity={0.22} stroke="#9fc7c1" strokeWidth={1.2} strokeLinejoin="round" />
+                <path key={`b${w.w}`} d={wardPath(w)} fillRule="evenodd" fill={tint ? recoveryFill(wardRecovery[String(w.w)]) : 'none'} fillOpacity={0.22} stroke="#aab4dc" strokeWidth={1.2} strokeLinejoin="round" />
               ))}
               {pts.map(({ x, lat, lng }) => (
-                <circle key={x.r.id} cx={box.px(lng)} cy={box.py(lat)} r={hover === x.r.id ? 7 : 4} fill={COLOR[x.status]} stroke="#091a1f" strokeWidth={1}
+                <circle key={x.r.id} cx={box.px(lng)} cy={box.py(lat)} r={hover === x.r.id ? 7 : 4} fill={COLOR[x.status]} stroke="#121830" strokeWidth={1}
                   onMouseEnter={() => setHover(x.r.id)} onClick={() => setHover(x.r.id)} onMouseLeave={() => setHover(null)} style={{ cursor: 'pointer' }} />
               ))}
-              {shown.map((w) => { const c = wardLabel(w); return c ? <text key={`l${w.w}`} x={c.x} y={c.y} textAnchor="middle" fontSize={13} fontWeight={700} fill="#f7dfae" stroke="#091a1f" strokeWidth={3} paintOrder="stroke" style={{ pointerEvents: 'none' }}>{w.w}</text> : null; })}
+              {shown.map((w) => { const c = wardLabel(w); return c ? <text key={`l${w.w}`} x={c.x} y={c.y} textAnchor="middle" fontSize={13} fontWeight={700} fill="#ffe3a3" stroke="#121830" strokeWidth={3} paintOrder="stroke" style={{ pointerEvents: 'none' }}>{w.w}</text> : null; })}
             </svg>
-            <label className="flex items-center gap-2 text-[11px] text-[#9fc7c1]"><input type="checkbox" checked={tint} onChange={(e) => setTint(e.target.checked)} /> Tint each ward by recovery (red = little of the demand cleared, green = most cleared, grey = no demand)</label>
-            <p className="text-[11px] text-[#cfe6e2] min-h-[2.5em]">{hv ? `${hv.r.id} · ${hv.r.owner} · ${LABEL[hv.status]} · due ${money(hv.led.totalDue)}` : 'Tap a dot for details. North is up; ward numbers are shown on the boundaries. No base map, so it works offline.'}</p>
-            {pts.length < inWard.length && <p className="text-[10px] text-[#7fa6a0]">{inWard.length - pts.length} propert{inWard.length - pts.length === 1 ? 'y' : 'ies'} without GPS are not shown.</p>}
+            <label className="flex items-center gap-2 text-[11px] text-[#aab4dc]"><input type="checkbox" checked={tint} onChange={(e) => setTint(e.target.checked)} /> Tint each ward by recovery (red = little of the demand cleared, green = most cleared, grey = no demand)</label>
+            <p className="text-[11px] text-[#d6dcf5] min-h-[2.5em]">{hv ? `${hv.r.id} · ${hv.r.owner} · ${LABEL[hv.status]} · due ${money(hv.led.totalDue)}` : 'Tap a dot for details. North is up; ward numbers are shown on the boundaries. No base map, so it works offline.'}</p>
+            {pts.length < inWard.length && <p className="text-[10px] text-[#8790bd]">{inWard.length - pts.length} propert{inWard.length - pts.length === 1 ? 'y' : 'ies'} without GPS are not shown.</p>}
           </>
-        ) : <p className="text-xs text-[#9fc7c1]">No ward boundaries or geo-tagged properties for this filter.</p>}
+        ) : <p className="text-xs text-[#aab4dc]">No ward boundaries or geo-tagged properties for this filter.</p>}
       </div>
     </div>
   );
