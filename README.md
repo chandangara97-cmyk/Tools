@@ -1,31 +1,30 @@
-# Scheme Hub 2026 | Field Operations & GIS Suite
+# Ward-wise properties update — files to apply
 
-An unofficial, independent React & TypeScript application built for field survey operations, urban property assessments, and AMRUT-grade GIS ward boundary surveying in Himachal Pradesh.
+## Code files (go to GitHub, in your Tools repo)
+- `database.rules.json` -> replace the file at the repo root
+- `firebase.ts` -> replace `src/firebase.ts`
+- `syncQueue.ts` -> replace `src/services/syncQueue.ts`
 
-## Features
+Commit and push these three. Your existing GitHub Actions workflow
+(`Deploy to GitHub Pages`) builds and redeploys automatically on push to `main`.
 
-### 1. GIS Property Survey & AMRUT Boundary Suite
-- **Town & Ward Database**: Pre-loaded with official ward boundary outlines for 67 urban bodies across Himachal Pradesh (572 wards).
-- **Ward Boundary Digitizer**: Interactive canvas digitizer to draw new ward polygons, inspect and drag vertex nodes, and auto-close boundary rings.
-- **AMRUT Standards & Topology Validation**: Real-time topology checking for self-intersections (bow-tie geometries), ring closure, sliver polygon warnings, and geodesic area/perimeter calculation.
-- **Geodetic Spatial Reference**: Dual WGS84 (EPSG:4326) and Transverse Mercator UTM Zone 43N (EPSG:32643) projection calculations with Ground Control Points (GCP) reference table.
-- **Multi-Format GIS Exports**:
-  - **ESRI Shapefiles (.shp, .shx, .dbf, .prj)**: Standards-compliant binary shapefile package with AMRUT attribute schema (`WARD_NO`, `ULB_NAME`, `AREA_SQKM`, `PERIM_M`).
-  - **OGC KML**: Layered KML with styled polygons and property inspection placemarks.
-  - **AMRUT GeoJSON**: RFC 7946 FeatureCollection with CRS urn metadata.
-- **Property Parcel Enumeration & Geo-Tagging**: Mobile-ready field form for recording owner, house no., land/plinth areas, occupancy, use, and GPS geo-tags with automatic point-in-polygon ward determination.
-- **Municipal Tax Assessment**: Form-A (Assessment Roll) and Form-E (Rateable Value Factors F1 to F5) CSV generators.
+## Data file (goes to Firebase, NOT to GitHub)
+- `properties_nested.json` -> Firebase Console -> Realtime Database ->
+  open the `properties` node -> kebab menu -> Import JSON.
+  This replaces only the `properties` subtree (Bhota, Shimla_MC, Nerwa),
+  nothing else in the database is touched.
 
-### 2. Field Tools & Converters
-- GIS property survey, Bulk WKT to KML and Shapefile to town-wise KML converters (standalone copies are in the `tools/` folder).
-- Survey indices dashboard and advance release calendar.
+Contains:
+- Bhota (ward 1) and Shimla_MC (ward 6): your original 3 real records,
+  re-nested under their ward.
+- Nerwa (ward 4): 14 synthetic demo records — a full mix of homes, shops,
+  and government buildings. Not real survey data; every record is tagged
+  `createdBy: "demo-seed"` and `rem: "Sample/demo record - not real survey data"`
+  so it's easy to find and clear out later.
 
-### 3. Property Tax
-- Assessment, demand, collection, receipts and reports with Firebase sync and role-based users (see `FINAL_SETUP.md`).
-- Admin page for creating user IDs: `admin_users.html` (Admin button on the landing page).
+## Deploy order
+1. Publish the new `database.rules.json` to Realtime Database first.
+2. Push the 3 code files to GitHub (triggers the Pages redeploy).
+3. Import `properties_nested.json` at the `properties` node.
 
-## Development
-
-- Built with React 19, TypeScript, Vite, and Tailwind CSS.
-- Dev server runs on port 3000: `npm run dev`.
-- Production build: `npm run build`.
+Doing the rules first avoids a gap where old-shaped data sits under new rules.

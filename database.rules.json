@@ -16,9 +16,11 @@
     "properties": {
       "$town": {
         ".read": "auth != null && (root.child('users').child(auth.uid).child('ulb').val() === '*' || (root.child('users').child(auth.uid).child('ulb').val() === $town && root.child('ulbs').child($town).child('active').val() === true)) && (root.child('users').child(auth.uid).child('role').exists() && root.child('users').child(auth.uid).child('role').val() !== 'disabled')",
-        "$pid": {
-          ".write": "auth != null && (root.child('users').child(auth.uid).child('ulb').val() === '*' || (root.child('users').child(auth.uid).child('ulb').val() === $town && root.child('ulbs').child($town).child('active').val() === true)) && (((root.child('users').child(auth.uid).child('role').val() === 'surveyor' || root.child('users').child(auth.uid).child('role').val() === 'supervisor' || root.child('users').child(auth.uid).child('role').val() === 'admin') && newData.exists()) || (root.child('users').child(auth.uid).child('role').val() === 'supervisor' || root.child('users').child(auth.uid).child('role').val() === 'admin'))",
-          ".validate": "!newData.exists() || (newData.hasChildren(['id','town','ward','owner','hno']) && newData.child('id').val() === $pid)"
+        "$ward": {
+          "$pid": {
+            ".write": "auth != null && (root.child('users').child(auth.uid).child('ulb').val() === '*' || (root.child('users').child(auth.uid).child('ulb').val() === $town && root.child('ulbs').child($town).child('active').val() === true)) && (((root.child('users').child(auth.uid).child('role').val() === 'surveyor' || root.child('users').child(auth.uid).child('role').val() === 'supervisor' || root.child('users').child(auth.uid).child('role').val() === 'admin') && newData.exists()) || (root.child('users').child(auth.uid).child('role').val() === 'supervisor' || root.child('users').child(auth.uid).child('role').val() === 'admin'))",
+            ".validate": "!newData.exists() || (newData.hasChildren(['id','town','ward','owner','hno']) && newData.child('id').val() === $pid)"
+          }
         }
       }
     },
