@@ -1,0 +1,337 @@
+[
+ {
+  "slug": "Amb",
+  "name": "Amb",
+  "code": "0207007"
+ },
+ {
+  "slug": "Arki",
+  "name": "Arki",
+  "code": "0209001"
+ },
+ {
+  "slug": "Baijnath_paprola",
+  "name": "Baijnath paprola",
+  "code": "0202013"
+ },
+ {
+  "slug": "Bakloh",
+  "name": "Bakloh",
+  "code": ""
+ },
+ {
+  "slug": "Bakloh_Cantt",
+  "name": "Bakloh Cantt",
+  "code": "0201001"
+ },
+ {
+  "slug": "Banjar",
+  "name": "Banjar",
+  "code": "0204001"
+ },
+ {
+  "slug": "Bhota",
+  "name": "Bhota",
+  "code": "0206001"
+ },
+ {
+  "slug": "Bhuntar",
+  "name": "Bhuntar",
+  "code": "0204002"
+ },
+ {
+  "slug": "Bilaspur",
+  "name": "Bilaspur",
+  "code": "0208001"
+ },
+ {
+  "slug": "Chamba",
+  "name": "Chamba",
+  "code": ""
+ },
+ {
+  "slug": "Chaupal",
+  "name": "Chaupal",
+  "code": "0211001"
+ },
+ {
+  "slug": "Chirgaon",
+  "name": "Chirgaon",
+  "code": "0211013"
+ },
+ {
+  "slug": "Chuari",
+  "name": "Chuari",
+  "code": ""
+ },
+ {
+  "slug": "Dagshai",
+  "name": "Dagshai",
+  "code": ""
+ },
+ {
+  "slug": "Dalhousie",
+  "name": "Dalhousie",
+  "code": ""
+ },
+ {
+  "slug": "Dalhousie_cantt",
+  "name": "Dalhousie cantt",
+  "code": "0201005"
+ },
+ {
+  "slug": "Daulatpur",
+  "name": "Daulatpur",
+  "code": ""
+ },
+ {
+  "slug": "Dera_Gopipur",
+  "name": "Dera Gopipur",
+  "code": ""
+ },
+ {
+  "slug": "Dharamshala",
+  "name": "Dharamshala",
+  "code": ""
+ },
+ {
+  "slug": "Gagret",
+  "name": "Gagret",
+  "code": "0207002"
+ },
+ {
+  "slug": "Ghumarwin",
+  "name": "Ghumarwin",
+  "code": "0208002"
+ },
+ {
+  "slug": "Hamirpur",
+  "name": "Hamirpur",
+  "code": "0206002"
+ },
+ {
+  "slug": "Jawalamukhi",
+  "name": "Jawalamukhi",
+  "code": ""
+ },
+ {
+  "slug": "Jawali",
+  "name": "Jawali",
+  "code": "0202011"
+ },
+ {
+  "slug": "Jhakhari",
+  "name": "Jhakhari",
+  "code": ""
+ },
+ {
+  "slug": "Jogindernagar",
+  "name": "Jogindernagar",
+  "code": "0205001"
+ },
+ {
+  "slug": "Jubbal",
+  "name": "Jubbal",
+  "code": "0211002"
+ },
+ {
+  "slug": "Jutogh",
+  "name": "Jutogh",
+  "code": "0211003"
+ },
+ {
+  "slug": "Kangra",
+  "name": "Kangra",
+  "code": "0202004"
+ },
+ {
+  "slug": "Karsog",
+  "name": "Karsog",
+  "code": ""
+ },
+ {
+  "slug": "Kotkhai",
+  "name": "Kotkhai",
+  "code": "0211004"
+ },
+ {
+  "slug": "Kullu",
+  "name": "Kullu",
+  "code": "0204003"
+ },
+ {
+  "slug": "Manali",
+  "name": "Manali",
+  "code": "0204004"
+ },
+ {
+  "slug": "Manali_older",
+  "name": "Manali (older)",
+  "code": ""
+ },
+ {
+  "slug": "Mandi",
+  "name": "Mandi",
+  "code": "0205002"
+ },
+ {
+  "slug": "Mehatpur_Basdehra",
+  "name": "Mehatpur Basdehra",
+  "code": "0207003"
+ },
+ {
+  "slug": "Nadaun",
+  "name": "Nadaun",
+  "code": ""
+ },
+ {
+  "slug": "Nagrota_Bagwan",
+  "name": "Nagrota Bagwan",
+  "code": "0202006"
+ },
+ {
+  "slug": "Nahan",
+  "name": "Nahan",
+  "code": "0210001"
+ },
+ {
+  "slug": "Naina_Devi",
+  "name": "Naina Devi",
+  "code": "0208003"
+ },
+ {
+  "slug": "Nalagarh",
+  "name": "Nalagarh",
+  "code": "0209005"
+ },
+ {
+  "slug": "Narkanda",
+  "name": "Narkanda",
+  "code": "0210005"
+ },
+ {
+  "slug": "Nerchowk",
+  "name": "Nerchowk",
+  "code": "0205007"
+ },
+ {
+  "slug": "Nerwa",
+  "name": "Nerwa",
+  "code": "0211012"
+ },
+ {
+  "slug": "Nirmand",
+  "name": "Nirmand",
+  "code": "0204007"
+ },
+ {
+  "slug": "Nurpur",
+  "name": "Nurpur",
+  "code": ""
+ },
+ {
+  "slug": "Palampur",
+  "name": "Palampur",
+  "code": ""
+ },
+ {
+  "slug": "Paonta_Sahib",
+  "name": "Paonta Sahib",
+  "code": "0210002"
+ },
+ {
+  "slug": "Parwanoo",
+  "name": "Parwanoo",
+  "code": "0209006"
+ },
+ {
+  "slug": "Rajgarh",
+  "name": "Rajgarh",
+  "code": "0210003"
+ },
+ {
+  "slug": "Rampur",
+  "name": "Rampur",
+  "code": ""
+ },
+ {
+  "slug": "Rewalsar",
+  "name": "Rewalsar",
+  "code": "0205003"
+ },
+ {
+  "slug": "Rohru",
+  "name": "Rohru",
+  "code": "0211007"
+ },
+ {
+  "slug": "Sabathu",
+  "name": "Sabathu",
+  "code": "0209007"
+ },
+ {
+  "slug": "Santokhgarh",
+  "name": "Santokhgarh",
+  "code": "0207004"
+ },
+ {
+  "slug": "Sarkaghat",
+  "name": "Sarkaghat",
+  "code": "0205004"
+ },
+ {
+  "slug": "Seoni",
+  "name": "Seoni",
+  "code": "0211008"
+ },
+ {
+  "slug": "Shahpur",
+  "name": "Shahpur",
+  "code": ""
+ },
+ {
+  "slug": "Shimla_MC",
+  "name": "Shimla MC",
+  "code": ""
+ },
+ {
+  "slug": "Solan",
+  "name": "Solan",
+  "code": ""
+ },
+ {
+  "slug": "Sujanpur",
+  "name": "Sujanpur",
+  "code": ""
+ },
+ {
+  "slug": "Sundarnagar",
+  "name": "Sundarnagar",
+  "code": "0205005"
+ },
+ {
+  "slug": "Tahliwal",
+  "name": "Tahliwal",
+  "code": "0207006"
+ },
+ {
+  "slug": "Talai",
+  "name": "Talai",
+  "code": "0208004"
+ },
+ {
+  "slug": "Theog",
+  "name": "Theog",
+  "code": "0211010"
+ },
+ {
+  "slug": "Tira_Sujanpur",
+  "name": "Tira Sujanpur",
+  "code": "0206004"
+ },
+ {
+  "slug": "Una",
+  "name": "Una",
+  "code": ""
+ }
+]

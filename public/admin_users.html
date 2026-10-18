@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Property Tax - ULB &amp; User Admin</title>
+<style>
+  :root { --bg:#0d1224; --card:#181f3d; --line:#2f3a6b; --text:#eef0fb; --mute:#aab4dc; --accent:#4f46e5; --bad:#ff6b6f; --ok:#34d399; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: 'Public Sans', system-ui, sans-serif; background:var(--bg); color:var(--text); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 8px 0 4px; }
+  .sub { color: var(--mute); font-size: 13px; margin-bottom: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  label { display:block; font-size: 13px; color: var(--mute); margin: 10px 0 4px; }
+  input, select { width:100%; padding: 11px; border-radius: 8px; border:1px solid var(--line); background:#0a0e1c; color:var(--text); font-size: 15px; }
+  button { padding: 11px 16px; border:0; border-radius: 8px; background: var(--accent); color:#fff; font-size: 15px; font-weight: 600; cursor:pointer; margin-top: 14px; }
+  button:disabled { opacity:.5; }
+  button.ghost { background: transparent; border:1px solid var(--line); color: var(--mute); }
+  button.small { padding: 6px 10px; font-size: 13px; margin: 0; }
+  .msg { margin-top: 12px; padding: 10px; border-radius: 8px; font-size: 14px; display:none; word-break: break-word; }
+  .msg.ok { display:block; background: rgba(47,182,124,.15); color: var(--ok); }
+  .msg.err { display:block; background: rgba(217,83,79,.15); color: #ff8d89; }
+  .row { display:flex; gap: 10px; align-items:center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .row:first-child { border-top: 0; }
+  .who { min-width: 0; flex: 1; }
+  .who b { display:block; font-size: 15px; }
+  .who span { font-size: 12px; color: var(--mute); word-break: break-all; }
+  .row select { width: auto; padding: 7px; font-size: 14px; }
+  .hidden { display:none; }
+  .grp { margin: 14px 0 2px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #9aa8ff; font-weight: 700; }
+  .tag { display:inline-block; font-size: 11px; padding: 2px 7px; border-radius: 999px; border:1px solid var(--line); color: var(--mute); margin-left: 6px; }
+  table { width:100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th, td { text-align:left; padding: 6px 4px; border-top: 1px solid var(--line); word-break: break-all; }
+  th { color: var(--mute); font-weight: 600; }
+  .chk { display:flex; flex-wrap:wrap; gap:12px; margin-top:6px; font-size:14px; }
+  .chk label { display:flex; align-items:center; gap:6px; margin:0; color: var(--text); }
+  .chk input { width:auto; }
+  .ind { padding-left: 22px; }
+  code { background:#0a0e1c; padding: 2px 6px; border-radius: 4px; font-size: 12px; word-break: break-all; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&family=Zilla+Slab:wght@600;700&display=swap">
+<style>h1,h2,b{font-family:'Zilla Slab',Rockwell,Georgia,serif}</style>
+<link rel="stylesheet" href="hub-theme.css">
+<script src="hub-shell.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>ULB &amp; User Admin</h1>
+  <div class="sub">Each ULB gets its own logins. A login sees only its own ULB.</div>
+
+  <div id="loginCard" class="card">
+    <b>Admin sign-in</b>
+    <label>User ID or email</label>
+    <input id="aEmail" type="text" autocomplete="username" autocapitalize="none">
+    <label>Password</label>
+    <input id="aPass" type="password" autocomplete="current-password">
+    <button id="btnLogin">Sign in</button>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+
+  <div id="denyCard" class="card hidden">
+    <b>No admin access</b>
+    <p id="denyText" style="font-size:14px;color:var(--mute)"></p>
+    <button class="ghost" id="btnOut1">Sign out</button>
+  </div>
+
+  <div id="adminArea" class="hidden">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <span style="font-size:13px;color:var(--mute)">Signed in: <b id="meEmail" style="color:var(--text)"></b> <span class="tag" id="meScope"></span></span>
+        <button class="ghost small" id="btnOut2">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Platform owner only: one-click ULB setup -->
+    <div class="card hidden" id="ulbCard">
+      <b>1. Set up a ULB (one click)</b>
+      <div style="font-size:13px;color:var(--mute);margin-top:4px">Creates the ULB in Firebase with: 1 monitor ID (sees all bill heads), 1 cashier ID, and 1 supervisor ID for each bill head ticked below. Run it again to add a missing ID; existing IDs are never overwritten.</div>
+      <label>Urban body</label>
+      <select id="uPick"></select>
+      <label>Bill heads to monitor</label>
+      <div class="chk" id="headChecks"></div>
+      <button id="btnSetup">Create ULB and IDs</button>
+      <div id="ulbMsg" class="msg"></div>
+      <div class="grp">ULBs</div>
+      <div id="ulbList" style="font-size:14px;color:var(--mute)">Loading...</div>
+    </div>
+
+    <!-- Platform owner only: all towns at once -->
+    <div class="card hidden" id="allCard">
+      <b>1A. Bulk ID maker, town wise (one click)</b>
+      <div style="font-size:13px;color:var(--mute);margin-top:4px">For every town: 1 ULB admin (<code>_ADMIN</code>), 1 supervisor per ticked bill head (<code>_SUP_xx</code>), data collectors under each supervisor (<code>_xx_C01</code>), 1 data approver (<code>_APR</code>), 1 ledger ID (<code>_LDG</code>) and 1 cashier (<code>_CASH</code>). Existing IDs are skipped, so it is safe to run again if it stops. Uses the bill heads ticked in step 1.</div>
+      <label>Towns (tick the ones to create)</label>
+      <div style="display:flex;gap:8px;margin:6px 0"><button type="button" class="ghost small" id="tAll">Select all</button><button type="button" class="ghost small" id="tNone">Clear</button><span id="tCnt" style="font-size:13px;color:var(--mute);align-self:center"></span></div>
+      <div id="townChecks" style="max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px"></div>
+      <label>Data collectors per supervisor</label>
+      <input id="aCount" type="number" min="0" max="20" value="2">
+      <button id="btnAll">Create IDs for selected towns</button>
+      <div id="allMsg" class="msg"></div>
+    </div>
+
+    <div class="card hidden" id="credCard">
+      <b>New IDs and passwords</b>
+      <div style="font-size:13px;color:var(--mute);margin-top:4px">These are also saved town wise in the list below.</div>
+      <div style="overflow-x:auto"><table id="credTable"></table></div>
+      <button id="btnCsv" class="small">Download CSV</button>
+      <button id="btnCopy" class="ghost small" style="margin-left:8px">Copy</button>
+    </div>
+
+    <div class="card">
+      <b>Saved IDs and passwords (town wise)</b>
+      <label>Town</label>
+      <select id="sTown"></select>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <button class="small" id="sCsv" type="button">Download CSV</button>
+        <button class="ghost small" id="sCopy" type="button">Copy</button>
+        <span id="sCnt" style="font-size:13px;color:var(--mute)"></span>
+      </div>
+      <div id="sMsg" class="msg"></div>
+      <div style="overflow-x:auto"><table id="sTable"></table></div>
+    </div>
+
+    <div class="card">
+      <b>2. Add data collectors under a supervisor</b>
+      <label>ULB</label>
+      <select id="cUlb"></select>
+      <label>Supervisor</label>
+      <select id="cSup"></select>
+      <label>How many collectors</label>
+      <input id="cCount" type="number" min="1" max="50" value="1">
+      <button id="btnCollectors">Create collectors</button>
+      <div id="colMsg" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <b>Create a single user ID (other roles)</b>
+      <label>Full name</label>
+      <input id="nName" type="text">
+      <label>ULB</label>
+      <select id="nUlb"></select>
+      <label>User ID (letters and numbers, e.g. BHOTA_CASH1)</label>
+      <input id="nEmail" type="text" autocapitalize="none" autocomplete="off">
+      <label>Password (at least 8 characters)</label>
+      <div style="display:flex;gap:8px">
+        <input id="nPass" type="text" autocomplete="off">
+        <button class="ghost small" id="btnGen" type="button" style="white-space:nowrap">Generate</button>
+      </div>
+      <label>Role</label>
+      <select id="nRole">
+        <option value="monitor">Monitor (read only)</option>
+        <option value="public">General public (dues search only)</option>
+        <option value="supervisor">Supervisor</option>
+        <option value="surveyor">Data collector</option>
+        <option value="assessor">Assessor</option>
+        <option value="cashier">Cashier</option>
+        <option value="admin">ULB admin</option>
+      </select>
+      <button id="btnAdd">Create user</button>
+      <div id="addMsg" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <b>Users</b>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+        <input id="uFilter" placeholder="Filter by ID or name (e.g. nerwa_)" style="flex:1;min-width:160px">
+        <button type="button" class="ghost small" id="uSelVis">Select shown</button>
+        <button type="button" class="ghost small" id="uSelNone">Clear</button>
+        <button type="button" class="small" id="uRemove" style="background:#b42318;color:#fff" disabled>Remove selected (0)</button>
+      </div>
+      <div id="uMsg" class="msg"></div>
+      <div id="userList" style="margin-top:8px;font-size:14px;color:var(--mute)">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { getDatabase, ref, get, set, update, onValue, query, orderByChild, equalTo }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+
+const cfg = {
+  apiKey: "AIzaSyBJw_9j0wP1dY42wfYYDk_3kIMNKZqHujQ",
+  authDomain: "propertytax-1b855.firebaseapp.com",
+  databaseURL: "https://propertytax-1b855-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "propertytax-1b855",
+  appId: "1:1062167049262:web:1270c8199c81addce11bbf"
+};
+
+const app = initializeApp(cfg);
+const auth = getAuth(app);
+const db = getDatabase(app);
+// Second app instance: creating a user signs that user in, so we do it here
+// to keep the admin signed in on the main instance.
+const app2 = initializeApp(cfg, "creator");
+const auth2 = getAuth(app2);
+
+const $ = id => document.getElementById(id);
+const show = (id, on) => $(id).classList.toggle("hidden", !on);
+function msg(id, type, text) { const e = $(id); e.className = "msg " + type; e.textContent = text; }
+const DOMAIN = "propertytax.app";
+function toEmail(v) { v = v.trim().toLowerCase(); return v.includes("@") ? v : v + "@" + DOMAIN; }
+function genPass() {
+  const c = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#";
+  const a = new Uint32Array(10); crypto.getRandomValues(a);
+  return Array.from(a, n => c[n % c.length]).join("");
+}
+$("btnGen").onclick = () => { $("nPass").value = genPass(); };
+
+const ROLES = ["monitor","supervisor","surveyor","assessor","cashier","public","admin","disabled"];
+const ROLE_LABEL = { monitor: "Monitor", supervisor: "Supervisor", surveyor: "Data collector", assessor: "Assessor", cashier: "Cashier", public: "General public", admin: "ULB admin", disabled: "Disabled" };
+const ROLE_ORDER = { admin: 0, monitor: 1, cashier: 2, public: 3, supervisor: 4, assessor: 5, surveyor: 6, disabled: 7 };
+// bill heads: key -> [label, short code used in User IDs]
+const HEADS = { property_tax: ["Property tax", "PT"], water: ["Water", "WTR"], garbage: ["Garbage", "GAR"], sewerage: ["Sewerage", "SWR"], other: ["Other utilities", "OTH"] };
+const DEFAULT_HEADS = ["property_tax", "water", "garbage"];
+for (const [k, [label]] of Object.entries(HEADS)) {
+  const l = document.createElement("label"); const c = document.createElement("input");
+  c.type = "checkbox"; c.value = k; c.checked = DEFAULT_HEADS.includes(k);
+  l.append(c, document.createTextNode(label)); $("headChecks").append(l);
+}
+
+let myUlb = null;          // "*" = platform owner, else the ULB slug
+let ulbs = {};             // registry
+let ulbNames = {};         // slug -> display name
+let allTowns = [];         // from ulb_list.json
+let usersCache = {};       // uid -> user
+const isSuper = () => myUlb === "*";
+const prefixFor = slug => slug.replace(/_/g, "").toUpperCase().slice(0, 10);
+
+$("btnLogin").onclick = async () => {
+  try { await signInWithEmailAndPassword(auth, toEmail($("aEmail").value), $("aPass").value); }
+  catch (e) { msg("loginMsg", "err", e.code || e.message); }
+};
+const doOut = () => signOut(auth);
+$("btnOut1").onclick = doOut; $("btnOut2").onclick = doOut;
+
+let unsubUsers = null, unsubUlbs = null;
+onAuthStateChanged(auth, async (user) => {
+  if (unsubUsers) { unsubUsers(); unsubUsers = null; }
+  if (unsubUlbs) { unsubUlbs(); unsubUlbs = null; }
+  show("loginCard", !user); show("denyCard", false); show("adminArea", false); show("ulbCard", false); show("allCard", false); show("credCard", false);
+  if (!user) return;
+  let role = null; myUlb = null;
+  try {
+    const me = (await get(ref(db, `users/${user.uid}`))).val() || {};
+    role = me.role; myUlb = me.ulb || null;
+  } catch (e) {}
+  if (role !== "admin" || !myUlb) {
+    $("denyText").textContent = role === "admin"
+      ? `Signed in as ${user.email}, but this admin has no ULB. In Firebase Console > Realtime Database set users / ${user.uid} / ulb = * (platform owner) or the ULB name, then sign in again.`
+      : `Signed in as ${user.email}, but this account is not an admin.`;
+    show("denyCard", true); return;
+  }
+  try { allTowns = await (await fetch("ulb_list.json")).json(); } catch (e) { allTowns = []; }
+  for (const t of allTowns) ulbNames[t.slug] = t.name; fillTownChecks();
+
+  $("meEmail").textContent = user.email.split("@")[0];
+  $("meScope").textContent = isSuper() ? "Platform owner: all ULBs" : "ULB admin: " + (ulbNames[myUlb] || myUlb);
+  show("adminArea", true);
+  show("ulbCard", isSuper()); show("allCard", isSuper());
+
+  if (isSuper()) {
+    unsubUlbs = onValue(ref(db, "ulbs"), (snap) => { ulbs = snap.val() || {}; renderUlbs(); fillSelects(); });
+    unsubUsers = onValue(ref(db, "users"), renderUsers);
+  } else {
+    ulbs = { [myUlb]: { name: ulbNames[myUlb] || myUlb, active: true } };
+    fillSelects();
+    unsubUsers = onValue(query(ref(db, "users"), orderByChild("ulb"), equalTo(myUlb)), renderUsers);
+  }
+});
+
+function fillSelects() {
+  const pick = $("uPick"); const keepP = pick.value; pick.innerHTML = "";
+  for (const t of allTowns) {
+    const o = document.createElement("option"); o.value = t.slug;
+    o.textContent = (ulbs[t.slug] ? "\u2713 " : "") + t.name + (t.code ? " (" + t.code + ")" : ""); pick.append(o);
+  }
+  if (keepP) pick.value = keepP;
+  const keys = isSuper() ? Object.keys(ulbs).sort((a, b) => (ulbs[a].name || a).localeCompare(ulbs[b].name || b)) : [myUlb];
+  for (const id of ["nUlb", "cUlb"]) {
+    const sel = $(id); const keep = sel.value; sel.innerHTML = "";
+    for (const k of keys) {
+      const o = document.createElement("option"); o.value = k;
+      o.textContent = (ulbs[k]?.name || ulbNames[k] || k) + (ulbs[k]?.active === false ? " (switched off)" : ""); sel.append(o);
+    }
+    if (id === "nUlb" && isSuper()) { const o = document.createElement("option"); o.value = "*"; o.textContent = "ALL ULBs (platform owner)"; sel.append(o); }
+    if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+    sel.disabled = !isSuper();
+  }
+  fillSupervisors();
+  fillSavedTowns();
+}
+$("cUlb").onchange = fillSupervisors;
+
+function supervisorsOf(ulb) {
+  return Object.entries(usersCache).filter(([, u]) => u.ulb === ulb && u.role === "supervisor")
+    .sort((a, b) => (a[1].name || "").localeCompare(b[1].name || ""));
+}
+function fillSupervisors() {
+  const sel = $("cSup"); const keep = sel.value; sel.innerHTML = "";
+  for (const [uid, u] of supervisorsOf($("cUlb").value || myUlb)) {
+    const o = document.createElement("option"); o.value = uid; o.textContent = u.name || u.email; sel.append(o);
+  }
+  if (!sel.options.length) { const o = document.createElement("option"); o.value = ""; o.textContent = "No supervisor yet. Run step 1 first."; sel.append(o); }
+  if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+}
+
+// ---- creating one login (skips, never overwrites, an existing ID) ----
+async function createLogin({ userId, password, name, role, ulb, head, supervisor }) {
+  try {
+    const cred = await createUserWithEmailAndPassword(auth2, toEmail(userId), password);
+    const rec = { name, email: toEmail(userId), role, ulb, createdAt: Date.now(), createdBy: auth.currentUser.email };
+    if (head) rec.head = head;
+    if (supervisor) rec.supervisor = supervisor;
+    await set(ref(db, `users/${cred.user.uid}`), rec);
+    // keep the ID, password and function town wise so the admin can look them up later
+    if (ulb && ulb !== "*") {
+      try {
+        await set(ref(db, `credentials/${ulb}/${cred.user.uid}`), { userId: toEmail(userId).split("@")[0].toUpperCase(), password, name, role, head: head || null, createdAt: rec.createdAt });
+      } catch (x) {}
+    }
+    await signOut(auth2);
+    usersCache[cred.user.uid] = rec;
+    if (ulb && $("sTown") && $("sTown").value === ulb) { clearTimeout(window.__sT); window.__sT = setTimeout(loadSaved, 600); }
+    return { ok: true, uid: cred.user.uid };
+  } catch (e) {
+    try { await signOut(auth2); } catch (x) {}
+    return { ok: false, code: e.code || e.message };
+  }
+}
+
+let lastCreds = [];
+function showCreds(rows) {
+  lastCreds = rows;
+  const t = $("credTable"); t.innerHTML = "";
+  const head = document.createElement("tr");
+  for (const c of ["ULB", "Role", "User ID", "Password"]) { const th = document.createElement("th"); th.textContent = c; head.append(th); }
+  t.append(head);
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    for (const c of [r.ulbName, r.roleLabel, r.userId, r.password]) { const td = document.createElement("td"); td.textContent = c; tr.append(td); }
+    t.append(tr);
+  }
+  show("credCard", rows.length > 0);
+  if (rows.length) $("credCard").scrollIntoView({ behavior: "smooth" });
+}
+$("btnCsv").onclick = () => {
+  const lines = [["ULB", "Role", "User ID", "Password"], ...lastCreds.map(r => [r.ulbName, r.roleLabel, r.userId, r.password])]
+    .map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(","));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+  a.download = "ulb_logins.csv"; a.click();
+};
+$("btnCopy").onclick = async () => {
+  const txt = lastCreds.map(r => `${r.ulbName} | ${r.roleLabel} | ${r.userId} | ${r.password}`).join("\n");
+  try { await navigator.clipboard.writeText(txt); alert("Copied."); } catch (e) { alert("Copy failed. Use Download CSV."); }
+};
+
+
+// ---- saved IDs and passwords, town wise ----
+let savedRows = [];
+function fillSavedTowns() {
+  const sel = $("sTown"); const keep = sel.value; sel.innerHTML = "";
+  const keys = isSuper() ? Object.keys(ulbs).sort((a, b) => (ulbs[a].name || ulbNames[a] || a).localeCompare(ulbs[b].name || ulbNames[b] || b)) : [myUlb];
+  for (const k of keys) { const o = document.createElement("option"); o.value = k; o.textContent = ulbs[k]?.name || ulbNames[k] || k; sel.append(o); }
+  if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+  if (sel.value) loadSaved();
+}
+async function loadSaved() {
+  const town = $("sTown").value; const t = $("sTable"); t.innerHTML = ""; savedRows = [];
+  if (!town) return;
+  msg("sMsg", "", "Loading...");
+  try {
+    const v = (await get(ref(db, `credentials/${town}`))).val() || {};
+    savedRows = Object.values(v).map(c => ({
+      userId: c.userId, password: c.password,
+      fn: (ROLE_LABEL[c.role] || c.role) + (c.head && HEADS[c.head] ? " (" + HEADS[c.head][0] + ")" : "") + (/_APR$/i.test(c.userId) ? " - data approver" : /_LDG$/i.test(c.userId) ? " - ledger" : ""),
+      role: c.role, name: c.name || "",
+    })).sort((a, b) => (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9) || a.userId.localeCompare(b.userId));
+    const hr = document.createElement("tr");
+    for (const c of ["User ID", "Password", "Function"]) { const th = document.createElement("th"); th.textContent = c; hr.append(th); }
+    t.append(hr);
+    for (const r of savedRows) {
+      const tr = document.createElement("tr");
+      for (const c of [r.userId, r.password, r.fn]) { const td = document.createElement("td"); td.textContent = c; tr.append(td); }
+      t.append(tr);
+    }
+    $("sCnt").textContent = savedRows.length + " ID(s)";
+    msg("sMsg", "", savedRows.length ? "" : "No saved IDs for this town. IDs made before this list existed are not here, because their passwords were never stored.");
+  } catch (e) { msg("sMsg", "err", e.code || e.message); }
+}
+$("sTown").onchange = loadSaved;
+$("sCsv").onclick = () => {
+  const lines = [["Town", "User ID", "Password", "Function"], ...savedRows.map(r => [$("sTown").selectedOptions[0]?.textContent || "", r.userId, r.password, r.fn])]
+    .map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(","));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+  a.download = ($("sTown").value || "town") + "_logins.csv"; a.click();
+};
+$("sCopy").onclick = async () => {
+  const txt = savedRows.map(r => `${r.userId} | ${r.password} | ${r.fn}`).join("\n");
+  try { await navigator.clipboard.writeText(txt); alert("Copied."); } catch (e) { alert("Copy failed. Use Download CSV."); }
+};
+
+// ---- 1. one-click ULB setup ----
+$("btnSetup").onclick = async () => {
+  const slug = $("uPick").value;
+  const t = allTowns.find(x => x.slug === slug);
+  const heads = [...$("headChecks").querySelectorAll("input:checked")].map(c => c.value);
+  if (!t) return msg("ulbMsg", "err", "Choose a ULB.");
+  if (!heads.length) return msg("ulbMsg", "err", "Tick at least one bill head.");
+  $("btnSetup").disabled = true; msg("ulbMsg", "ok", "Working...");
+  const p = prefixFor(slug), rows = [], notes = [];
+  try {
+    const headMap = Object.fromEntries(heads.map(k => [k, HEADS[k][0]]));
+    if (!ulbs[slug]) await set(ref(db, `ulbs/${slug}`), { name: t.name, code: t.code || "", active: true, heads: headMap, createdAt: Date.now() });
+    else await update(ref(db, `ulbs/${slug}`), { heads: { ...(ulbs[slug].heads || {}), ...headMap } });
+
+    const plan = [{ id: `${p}_MON`, name: `${t.name} Monitor`, role: "monitor" }, { id: `${p}_CASH`, name: `${t.name} Cashier`, role: "cashier" }];
+    for (const k of heads) plan.push({ id: `${p}_SUP_${HEADS[k][1]}`, name: `${t.name} ${HEADS[k][0]} Supervisor`, role: "supervisor", head: k });
+    for (const x of plan) {
+      if (x.role === "cashier" && Object.values(usersCache).some(u => u.ulb === slug && u.role === "cashier")) { notes.push(`${x.id}: skipped, this ULB already has a cashier.`); continue; }
+      const pw = genPass();
+      const r = await createLogin({ userId: x.id, password: pw, name: x.name, role: x.role, ulb: slug, head: x.head });
+      if (r.ok) rows.push({ ulbName: t.name, roleLabel: ROLE_LABEL[x.role] + (x.head ? " (" + HEADS[x.head][0] + ")" : ""), userId: x.id, password: pw });
+      else notes.push(`${x.id}: ${r.code === "auth/email-already-in-use" ? "already exists, left as it is" : r.code}`);
+    }
+    showCreds(rows);
+    msg("ulbMsg", "ok", `${t.name}: ${rows.length} ID(s) created.` + (notes.length ? " " + notes.join(" | ") : ""));
+  } catch (e) { msg("ulbMsg", "err", e.code || e.message); }
+  $("btnSetup").disabled = false;
+};
+
+function fillTownChecks() {
+  const box = $("townChecks"); box.textContent = "";
+  for (const t of allTowns) {
+    const l = document.createElement("label"); l.style.cssText = "display:flex;gap:8px;align-items:center;padding:4px 0;margin:0";
+    const c = document.createElement("input"); c.type = "checkbox"; c.value = t.slug; c.checked = true; c.style.width = "auto"; c.onchange = countTowns;
+    l.append(c, document.createTextNode(t.name + (ulbs[t.slug] ? " (set up)" : ""))); box.append(l);
+  }
+  countTowns();
+}
+function countTowns() { $("tCnt").textContent = $("townChecks").querySelectorAll("input:checked").length + " of " + allTowns.length + " selected"; }
+$("tAll").onclick = () => { $("townChecks").querySelectorAll("input").forEach(c => c.checked = true); countTowns(); };
+$("tNone").onclick = () => { $("townChecks").querySelectorAll("input").forEach(c => c.checked = false); countTowns(); };
+
+// ---- 1A. all towns at once ----
+$("btnAll").onclick = async () => {
+  const heads = [...$("headChecks").querySelectorAll("input:checked")].map(c => c.value);
+  const nCol = Math.max(0, Math.min(20, parseInt($("aCount").value, 10) || 0));
+  const picked = new Set([...$("townChecks").querySelectorAll("input:checked")].map(c => c.value));
+  const towns = allTowns.filter(t => picked.has(t.slug));
+  if (!towns.length) return msg("allMsg", "err", "Tick at least one town.");
+  if (!heads.length) return msg("allMsg", "err", "Tick at least one bill head in step 1.");
+  if (!confirm(`Create IDs for ${towns.length} town(s)? About ${4 + heads.length * (1 + nCol)} IDs per town.`)) return;
+  $("btnAll").disabled = true;
+  const rows = []; let made = 0, skipped = 0, stop = "";
+  const byEmail = (id) => Object.entries(usersCache).find(([k, u]) => u.email === toEmail(id));
+  const mk = async (slug, t, id, name, role, head, supervisor) => {
+    const pw = genPass();
+    const r = await createLogin({ userId: id, password: pw, name, role, ulb: slug, head, supervisor });
+    if (r.ok) { made++; rows.push({ ulbName: t.name, roleLabel: ROLE_LABEL[role] + (head ? " (" + HEADS[head][0] + ")" : "") + (id.endsWith("_APR") ? " - data approver" : id.endsWith("_LDG") ? " - ledger" : ""), userId: id, password: pw }); return r.uid; }
+    if (r.code === "auth/email-already-in-use") { skipped++; const e = byEmail(id); return e && e[0]; }
+    stop = `${id}: ${r.code}`; return null;
+  };
+  for (let i = 0; i < towns.length && !stop; i++) {
+    const t = towns[i], slug = t.slug, p = prefixFor(slug);
+    msg("allMsg", "ok", `Working... ${i + 1}/${towns.length} ${t.name}`);
+    try {
+      const headMap = Object.fromEntries(heads.map(k => [k, HEADS[k][0]]));
+      if (!ulbs[slug]) { await set(ref(db, `ulbs/${slug}`), { name: t.name, code: t.code || "", active: true, heads: headMap, createdAt: Date.now() }); ulbs[slug] = { name: t.name, heads: headMap }; }
+      await mk(slug, t, `${p}_ADMIN`, `${t.name} Admin`, "admin");
+      for (const k of heads) {
+        const sup = await mk(slug, t, `${p}_SUP_${HEADS[k][1]}`, `${t.name} ${HEADS[k][0]} Supervisor`, "supervisor", k);
+        if (!sup) break;
+        for (let c = 1; c <= nCol && !stop; c++)
+          await mk(slug, t, `${p}_${HEADS[k][1]}_C${String(c).padStart(2, "0")}`, `${t.name} ${HEADS[k][0]} Collector ${String(c).padStart(2, "0")}`, "surveyor", k, sup);
+      }
+      await mk(slug, t, `${p}_APR`, `${t.name} Data Approver`, "supervisor");
+      await mk(slug, t, `${p}_LDG`, `${t.name} Ledger`, "supervisor");
+      if (!Object.values(usersCache).some(u => u.ulb === slug && u.role === "cashier")) await mk(slug, t, `${p}_CASH`, `${t.name} Cashier`, "cashier");
+    } catch (e) { stop = `${t.name}: ${e.code || e.message}`; }
+    await new Promise(r => setTimeout(r, 200));
+  }
+  showCreds(rows);
+  msg("allMsg", stop ? "err" : "ok", `${made} ID(s) created, ${skipped} already existed.` + (stop ? ` Stopped at ${stop}. Download the CSV, wait a few minutes and run again.` : ""));
+  $("btnAll").disabled = false;
+};
+
+function renderUlbs() {
+  const box = $("ulbList"); const keys = Object.keys(ulbs);
+  if (!keys.length) { box.textContent = "No ULBs yet."; return; }
+  box.innerHTML = "";
+  keys.sort((a, b) => (ulbs[a].name || a).localeCompare(ulbs[b].name || b));
+  for (const k of keys) {
+    const u = ulbs[k];
+    const row = document.createElement("div"); row.className = "row";
+    const who = document.createElement("div"); who.className = "who";
+    const b = document.createElement("b"); b.textContent = u.name || k;
+    const s = document.createElement("span");
+    s.textContent = (u.code ? "Code " + u.code + " | " : "") + (u.active ? "Active" : "Switched off: no login of this ULB can read or write")
+      + (u.heads ? " | " + Object.values(u.heads).join(", ") : "");
+    who.append(b, s);
+    const btn = document.createElement("button"); btn.className = "ghost small"; btn.textContent = u.active ? "Switch off" : "Switch on";
+    btn.onclick = async () => {
+      if (u.active && !confirm(`Switch off ${u.name || k}? All its users lose access until you switch it on again.`)) return;
+      try { await update(ref(db, `ulbs/${k}`), { active: !u.active }); } catch (e) { alert(e.code || e.message); }
+    };
+    row.append(who, btn); box.append(row);
+  }
+}
+
+// ---- 2. data collectors under a supervisor ----
+$("btnCollectors").onclick = async () => {
+  const ulb = isSuper() ? $("cUlb").value : myUlb;
+  const supUid = $("cSup").value;
+  const n = Math.max(1, Math.min(50, parseInt($("cCount").value, 10) || 1));
+  const sup = usersCache[supUid];
+  if (!ulb || !sup) return msg("colMsg", "err", "Choose a ULB and a supervisor. Run step 1 first if none is listed.");
+  const code = HEADS[sup.head]?.[1] || "GEN";
+  const p = prefixFor(ulb);
+  $("btnCollectors").disabled = true; msg("colMsg", "ok", "Working...");
+  const rows = []; let made = 0, i = Object.values(usersCache).filter(u => u.supervisor === supUid).length;
+  for (let tries = 0; made < n && tries < n + 40; tries++) {
+    i++;
+    const userId = `${p}_${code}_C${String(i).padStart(2, "0")}`, pw = genPass();
+    const r = await createLogin({ userId, password: pw, name: `${ulbNames[ulb] || ulb} ${sup.head ? HEADS[sup.head][0] + " " : ""}Collector ${String(i).padStart(2, "0")}`, role: "surveyor", ulb, head: sup.head, supervisor: supUid });
+    if (r.ok) { made++; rows.push({ ulbName: ulbNames[ulb] || ulb, roleLabel: "Data collector under " + (sup.name || "supervisor"), userId, password: pw }); }
+    else if (r.code !== "auth/email-already-in-use") { msg("colMsg", "err", `${userId}: ${r.code}`); break; }
+  }
+  showCreds(rows);
+  if (made) msg("colMsg", "ok", `${made} collector ID(s) created.`);
+  $("btnCollectors").disabled = false;
+};
+
+// ---- single user ----
+$("btnAdd").onclick = async () => {
+  const name = $("nName").value.trim();
+  const uid0 = $("nEmail").value.trim();
+  const ulb = isSuper() ? $("nUlb").value : myUlb;
+  const pass = $("nPass").value;
+  const role = $("nRole").value;
+  if (!ulb) return msg("addMsg", "err", "Choose a ULB. Run step 1 first.");
+  if (!/^[A-Za-z0-9._-]{3,30}$/.test(uid0)) return msg("addMsg", "err", "User ID: 3-30 letters, numbers, dot, dash or underscore.");
+  if (!name) return msg("addMsg", "err", "Enter the full name.");
+  if (pass.length < 8) return msg("addMsg", "err", "Password must be at least 8 characters.");
+  if (ulb === "*" && role !== "admin") return msg("addMsg", "err", "A platform-owner login must have the admin role.");
+  if (role === "cashier" && Object.values(usersCache).some(u => u.ulb === ulb && u.role === "cashier"))
+    return msg("addMsg", "err", "This ULB already has its one cashier ID.");
+  $("btnAdd").disabled = true;
+  const r = await createLogin({ userId: uid0, password: pass, name, role, ulb });
+  if (r.ok) {
+    msg("addMsg", "ok", `Created. ULB: ${ulb === "*" ? "ALL" : (ulbNames[ulb] || ulb)}  |  User ID: ${uid0}  |  Password: ${pass}  |  Role: ${ROLE_LABEL[role]}. Note these down and give them to the user.`);
+    $("nName").value = ""; $("nEmail").value = ""; $("nPass").value = "";
+  } else msg("addMsg", "err", r.code === "auth/email-already-in-use" ? "That User ID is already taken. Choose another." : r.code);
+  $("btnAdd").disabled = false;
+};
+
+// ---- users list: monitor, cashier, supervisors with their collectors under them ----
+const selUids = new Set();
+function updRemoveBtn() { const b = $("uRemove"); b.textContent = `Remove selected (${selUids.size})`; b.disabled = !selUids.size; }
+function userRow(uid, u, indent) {
+  const row = document.createElement("div"); row.className = "row" + (indent ? " ind" : ""); row.dataset.uid = uid;
+  if (uid !== auth.currentUser.uid) {
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.className = "usel"; cb.style.cssText = "width:auto;margin:0";
+    cb.checked = selUids.has(uid);
+    cb.onchange = () => { cb.checked ? selUids.add(uid) : selUids.delete(uid); updRemoveBtn(); };
+    row.prepend(cb);
+  }
+  const who = document.createElement("div"); who.className = "who";
+  const b = document.createElement("b"); b.textContent = u.name || "(no name)";
+  const s = document.createElement("span"); s.textContent = (u.email || uid).replace("@" + DOMAIN, "") + (u.head && HEADS[u.head] ? " | " + HEADS[u.head][0] : "");
+  who.append(b, s);
+  const sel = document.createElement("select");
+  for (const r of ROLES) { const o = document.createElement("option"); o.value = r; o.textContent = ROLE_LABEL[r]; if (u.role === r) o.selected = true; sel.append(o); }
+  sel.onchange = async () => {
+    if (uid === auth.currentUser.uid && sel.value !== "admin" &&
+        !confirm("You are removing your own admin access. Continue?")) { sel.value = "admin"; return; }
+    if (sel.value === "cashier" && Object.entries(usersCache).some(([k, x]) => k !== uid && x.ulb === u.ulb && x.role === "cashier")) {
+      alert("This ULB already has its one cashier ID."); sel.value = u.role; return;
+    }
+    try { await update(ref(db, `users/${uid}`), { role: sel.value }); } catch (e) { alert(e.code || e.message); }
+  };
+  row.append(who, sel);
+  return row;
+}
+
+function renderUsers(snap) {
+  usersCache = snap.val() || {};
+  fillSupervisors();
+  for (const k of [...selUids]) if (!usersCache[k]) selUids.delete(k);
+  updRemoveBtn();
+  const q = $("uFilter").value.trim().toLowerCase();
+  const val = usersCache, box = $("userList"),
+    uids = Object.keys(val).filter(k => !q || ((val[k].email || "") + " " + (val[k].name || "")).toLowerCase().includes(q));
+  if (!uids.length) { box.textContent = "No users yet."; return; }
+  box.innerHTML = "";
+  const groups = {};
+  for (const uid of uids) (groups[val[uid].ulb || "(no ULB)"] ||= []).push(uid);
+  const gkeys = Object.keys(groups).sort((a, b) => (a === "*" ? -1 : b === "*" ? 1 : (ulbNames[a] || a).localeCompare(ulbNames[b] || b)));
+  for (const g of gkeys) {
+    const h = document.createElement("div"); h.className = "grp";
+    const gl = document.createElement("label"); gl.style.cssText = "display:flex;gap:8px;align-items:center;margin:0;cursor:pointer";
+    const gc = document.createElement("input"); gc.type = "checkbox"; gc.style.cssText = "width:auto;margin:0";
+    gc.title = "Select every ID in this group";
+    gc.onchange = () => {
+      for (const uid of groups[g]) { if (uid === auth.currentUser.uid) continue; gc.checked ? selUids.add(uid) : selUids.delete(uid); }
+      box.querySelectorAll(".row").forEach(r => { if (groups[g].includes(r.dataset.uid)) { const c = r.querySelector(".usel"); if (c) c.checked = gc.checked; } });
+      updRemoveBtn();
+    };
+    gl.append(gc, document.createTextNode(g === "*" ? "Platform owner (all ULBs)" : (ulbNames[g] || g)));
+    h.append(gl);
+    box.append(h);
+    const list = groups[g];
+    const isCollector = uid => val[uid].role === "surveyor" && val[uid].supervisor && val[val[uid].supervisor];
+    const top = list.filter(uid => !isCollector(uid)).sort((a, b) =>
+      (ROLE_ORDER[val[a].role] ?? 9) - (ROLE_ORDER[val[b].role] ?? 9) || (val[a].name || "").localeCompare(val[b].name || ""));
+    for (const uid of top) {
+      box.append(userRow(uid, val[uid], false));
+      list.filter(c => isCollector(c) && val[c].supervisor === uid).sort((a, b) => (val[a].name || "").localeCompare(val[b].name || ""))
+        .forEach(c => box.append(userRow(c, val[c], true)));
+    }
+  }
+}
+
+// ---- bulk remove IDs ----
+$("uFilter").oninput = () => renderUsers({ val: () => usersCache });
+$("uSelVis").onclick = () => {
+  $("userList").querySelectorAll(".row").forEach(r => { const c = r.querySelector(".usel"); if (c) { c.checked = true; selUids.add(r.dataset.uid); } });
+  updRemoveBtn();
+};
+$("uSelNone").onclick = () => {
+  selUids.clear(); $("userList").querySelectorAll("input[type=checkbox]").forEach(c => c.checked = false); updRemoveBtn();
+};
+$("uRemove").onclick = async () => {
+  const uids = [...selUids].filter(u => u !== auth.currentUser.uid);
+  if (!uids.length) return;
+  const names = uids.slice(0, 8).map(u => (usersCache[u]?.email || u).replace("@" + DOMAIN, "")).join(", ");
+  if (!confirm(`Remove ${uids.length} ID(s)?\n${names}${uids.length > 8 ? ", ..." : ""}\n\nThey lose all access immediately. This cannot be undone.`)) return;
+  $("uRemove").disabled = true; msg("uMsg", "ok", "Removing...");
+  try {
+    const patch = {}; for (const u of uids) patch[u] = null;
+    await update(ref(db, "users"), patch);          // one atomic multi-delete
+    uids.forEach(u => selUids.delete(u));
+    msg("uMsg", "ok", `${uids.length} ID(s) removed. Their Firebase sign-in accounts still exist (the ID name stays reserved). To free the names, delete them under Authentication > Users in the Firebase Console, or run scripts/delete-auth-users.mjs.`);
+  } catch (e) { msg("uMsg", "err", (e.code || e.message) + (isSuper() ? "" : " (ULB admins need the updated database rules deployed)")); }
+  updRemoveBtn();
+};
+</script>
+</body>
+</html>

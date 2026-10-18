@@ -1,0 +1,10 @@
+{
+  "enabled": false,
+  "description": "Scheduled recurring billing for the existing ledger node. Keep disabled until real property records and approved rates/frequencies have been verified.",
+  "schedule": "daily at 02:15 Asia/Kolkata",
+  "monthlyHeads": ["water", "garbage", "sewerage", "electricity", "other"],
+  "yearlyHeads": ["water", "garbage", "sewerage", "electricity", "other"],
+  "propertyTaxSource": "approved assessments only",
+  "duplicatePrevention": "deterministic demand_<period> ledger entry IDs",
+  "demoRecordsMustBeExcluded": true
+}
