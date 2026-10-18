@@ -3,34 +3,30 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
-  --ink: #05080f;
-  --slip: #0e1524;
-  --rule: #1e2a44;
-  --stamp: #e8b84a;
+  color-scheme: light;
+  --ink: #f4f7fb;
+  --slip: #ffffff;
+  --rule: #e2e8f0;
+  --stamp: #a66b16;
   --due: #ff6b6f;
   --paid: #34d399;
-  --gold: #e8b84a;
-  --gold-soft: #f7df9a;
-  --gold-glow: rgba(232, 184, 74, 0.18);
-  --muted: #7d8ba3;
-  --line: rgba(255, 255, 255, 0.07);
-  --line-strong: rgba(255, 255, 255, 0.13);
-  --surface: rgba(14, 21, 36, 0.78);
-  --surface-solid: #0e1524;
+  --gold: #a66b16;
+  --gold-soft: #fdf0cf;
+  --gold-glow: rgba(166, 107, 22, 0.12);
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --line-strong: #cbd5e1;
+  --surface: rgba(255, 255, 255, 0.94);
+  --surface-solid: #ffffff;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: #05080f;
-  background-image:
-    radial-gradient(ellipse 90% 55% at 12% -8%, rgba(99, 130, 255, 0.13), transparent 52%),
-    radial-gradient(ellipse 70% 45% at 92% 0%, rgba(232, 184, 74, 0.09), transparent 48%),
-    radial-gradient(ellipse 55% 35% at 50% 105%, rgba(140, 100, 255, 0.06), transparent 42%),
-    linear-gradient(180deg, #05080f 0%, #070b14 100%);
+  background-color: #f4f7fb;
+  background-image: linear-gradient(180deg, #f8fafc 0%, #eef3f9 100%);
   background-attachment: fixed;
-  color: #eef2fb;
+  color: #1e293b;
   font-family: 'Outfit', 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -51,7 +47,7 @@ h1, h2, h3, .slab {
   position: relative;
   border-radius: 8px 18px 18px 8px;
   padding-left: 1.7rem !important;
-  background-image: radial-gradient(circle at 0.58rem center, #05080f 0 4.5px, transparent 5px);
+  background-image: radial-gradient(circle at 0.58rem center, #f4f7fb 0 4.5px, transparent 5px);
   background-size: 1.15rem 1.15rem;
   background-repeat: repeat-y;
   background-position: 0 0;
@@ -61,8 +57,8 @@ h1, h2, h3, .slab {
   -webkit-backdrop-filter: blur(16px) saturate(1.2);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.04) inset,
-    0 4px 24px rgba(0, 0, 0, 0.28),
-    0 12px 40px rgba(0, 0, 0, 0.12);
+    0 4px 24px rgba(15, 23, 42, 0.06),
+    0 12px 40px rgba(15, 23, 42, 0.04);
   transition:
     border-color 0.25s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
@@ -73,8 +69,8 @@ h1, h2, h3, .slab {
   transform: translateY(-3px);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 12px 40px rgba(0, 0, 0, 0.4),
-    0 24px 64px rgba(0, 0, 0, 0.2);
+    0 12px 40px rgba(15, 23, 42, 0.10),
+    0 24px 64px rgba(15, 23, 42, 0.06);
 }
 .stub::after {
   content: '';
@@ -116,14 +112,14 @@ h1, h2, h3, .slab {
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.05) inset,
     0 8px 32px rgba(0, 0, 0, 0.32),
-    0 20px 48px rgba(0, 0, 0, 0.12);
+    0 20px 48px rgba(15, 23, 42, 0.04);
 }
 
 /* Premium button */
 .btn-gold {
   background: linear-gradient(165deg, rgba(247, 223, 154, 0.28) 0%, rgba(232, 184, 74, 0.12) 100%);
   border: 1px solid rgba(232, 184, 74, 0.4);
-  color: #f7df9a;
+  color: #80510e;
   border-radius: 12px;
   font-weight: 600;
   transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
@@ -138,7 +134,7 @@ h1, h2, h3, .slab {
 }
 
 :focus-visible {
-  outline: 2px solid #e8b84a;
+  outline: 2px solid #2563eb;
   outline-offset: 3px;
   border-radius: 6px;
 }
@@ -154,14 +150,14 @@ h1, h2, h3, .slab {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(42, 52, 100, 0.7);
+  background: #cbd5e1;
   border-radius: 99px;
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(232, 184, 74, 0.55); }
+::-webkit-scrollbar-thumb:hover { background: #a66b16; }
 
 ::selection {
-  background: rgba(232, 184, 74, 0.28);
-  color: #fff;
+  background: #dbeafe;
+  color: #1e3a8a;
 }
 
 @media print {
@@ -171,3 +167,20 @@ h1, h2, h3, .slab {
     color: #000 !important;
   }
 }
+
+
+/* Scheme Hub 2026 — unified accessible light theme */
+:root{color-scheme:light;--bg:#f4f7fb;--bg-elev:#ffffff;--surface:#ffffff;--surface-solid:#ffffff;--surface2:#f7f9fc;--line:#e2e8f0;--line-strong:#cbd5e1;--text:#1e293b;--muted:#64748b;--faint:#94a3b8;--gold:#a66b16;--gold-soft:#80510e;--gold-dim:#fff4d9;--accent:#2563eb;--accent-glow:rgba(37,99,235,.12);--shadow:0 3px 14px rgba(15,23,42,.06);--shadow-lg:0 14px 36px rgba(15,23,42,.10)}
+html{color-scheme:light;background:#f4f7fb}body{background:#f4f7fb!important;background-image:linear-gradient(180deg,#f8fafc 0%,#eef3f9 100%)!important;color:#1e293b!important}
+/* Neutralise common dark utility palettes without changing layout or behaviour */
+.bg-black,.bg-gray-950,.bg-gray-900,.bg-slate-950,.bg-slate-900,.bg-zinc-950,.bg-zinc-900{background-color:#fff!important}
+.bg-gray-800,.bg-slate-800,.bg-zinc-800{background-color:#f8fafc!important}
+.text-white,.text-gray-100,.text-gray-200,.text-slate-100,.text-slate-200,.text-zinc-100,.text-zinc-200{color:#1e293b!important}
+.text-gray-300,.text-gray-400,.text-slate-300,.text-slate-400,.text-zinc-300,.text-zinc-400{color:#64748b!important}
+.border-gray-700,.border-gray-800,.border-slate-700,.border-slate-800,.border-zinc-700,.border-zinc-800{border-color:#e2e8f0!important}
+input,select,textarea{background-color:#fff;color:#1e293b;border-color:#cbd5e1}input::placeholder,textarea::placeholder{color:#94a3b8}
+button{transition:background-color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid rgba(37,99,235,.35);outline-offset:2px}
+.card,.glass,.panel,.surface,.modal,.dropdown-menu{box-shadow:0 4px 18px rgba(15,23,42,.06)}
+::selection{background:#dbeafe;color:#1e3a8a}::-webkit-scrollbar-thumb{background:#cbd5e1}::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{body{background:#fff!important;color:#111!important;background-image:none!important}}
