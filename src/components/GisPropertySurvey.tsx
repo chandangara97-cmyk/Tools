@@ -9,6 +9,9 @@ import { PhotoCapture, PhotoItem } from './PhotoCapture';
 import { AssessmentPanel } from './AssessmentPanel';
 import { CollectionPanel } from './CollectionPanel';
 import { ReportsPanel } from './ReportsPanel';
+import { WorkMenu, BILL_NAME, Choice } from './WorkMenu';
+import { allowedTabs, allowedHeads, Tab } from '../services/access';
+import { HeadId, useTownHeads } from '../services/heads';
 import { rekeyTowns, townSlug } from '../services/townPath';
 import { useRateTable } from '../services/assessmentStore';
 import { useCollectionSettings } from '../services/collectionStore';
@@ -31,6 +34,7 @@ import {
   PRJ_WGS84_UTM_ZONE_43N,
 } from '../utils/gisUtils';
 import {
+  ArrowLeft,
   MapPin,
   Layers,
   FileSpreadsheet,
@@ -60,17 +64,33 @@ const TOWNS_MAP: Record<string, TownData> = rekeyTowns(townsJson as unknown as R
 const GisPropertySurveyInner: React.FC = () => {
   // Active Survey Sub-Tab
   // Town & Surveyor Config
-  const { role, displayName, ulb, isSuper } = useAuth();
-  // Each role lands on its own tab after login (not everyone on Survey)
-  const [activeTab, setActiveTab] = useState<'survey' | 'map-editor' | 'records' | 'assessment' | 'collection' | 'reports' | 'exports'>(
-    role === 'cashier' ? 'collection'
-    : role === 'assessor' ? 'assessment'
-    : role === 'monitor' ? 'reports'
-    : 'survey'
-  );
+  const { role, displayName, ulb, isSuper, head: userHead } = useAuth();
+  // Every login opens on a menu that lists only what it may do. One-option logins go straight in.
+  const tabs = useMemo(() => allowedTabs(role, userHead, isSuper), [role, userHead, isSuper]);
+  const [activeTab, setActiveTab] = useState<Tab | 'menu'>(() => {
+    const t = allowedTabs(role, userHead, isSuper);
+    if (t.length !== 1) return 'menu';
+    return t[0] !== 'collection' || (!isSuper && role === 'supervisor' && userHead) ? t[0] : 'menu';
+  });
+  const [billHead, setBillHead] = useState<HeadId | null>(() => (!isSuper && role === 'supervisor' && userHead && userHead !== 'property_tax' ? userHead : null));
   // A ULB login is locked to its own town; only the platform owner ("*") can pick any ULB.
   const [selectedTownKey, setSelectedTownKey] = useState<string>(isSuper || !ulb ? townSlug('Bhota') : ulb);
   const [wardNo, setWardNo] = useState<string>('1');
+  const townHeads = useTownHeads(selectedTownKey);
+  const bills = useMemo(() => allowedHeads(role, userHead, isSuper, townHeads), [role, userHead, isSuper, townHeads]);
+  const choose = (c: Choice) => { setBillHead(c.head ?? null); setActiveTab(c.tab); };
+  // a login with a single place to go never needs the menu
+  const singleDest = tabs.length === 1 && (tabs[0] !== 'collection' || bills.length === 1);
+  useEffect(() => {
+    if (activeTab === 'menu' && tabs.length === 1 && tabs[0] === 'collection' && bills.length === 1) choose({ tab: 'collection', head: bills[0] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, tabs, bills]);
+  // a login can never sit on a page it is not allowed to open
+  useEffect(() => { if (activeTab !== 'menu' && !tabs.includes(activeTab)) setActiveTab('menu'); }, [activeTab, tabs]);
+  const PAGE_TITLE: Record<Tab, string> = {
+    survey: 'Property survey', 'map-editor': 'Ward map', records: 'Property records', assessment: 'Assessment',
+    collection: billHead ? BILL_NAME[billHead] : 'Collection', reports: 'Reports & notices', exports: 'GIS exports',
+  };
   const writable = canWriteSurvey(role);
   const deletable = canDeleteSurvey(role);
   const sync = useSyncState();
@@ -918,123 +938,35 @@ const GisPropertySurveyInner: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#07161d] text-[#edf3fc]">
-      {/* Tool Header */}
-      <div className="bg-[#0b242e] border-b border-[#1b3d45] px-4 sm:px-6 py-4">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-[#0e8a7d] to-[#20b5a6] flex items-center justify-center text-white font-black shadow-lg">
-              <span className="text-xl">GIS</span>
+      {/* Slim header: where you are, and a way back to the menu */}
+      <div className="bg-[#0b242e] border-b border-[#1b3d45] px-4 sm:px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 flex-wrap">
+          {activeTab === 'menu' ? (
+            <h1 className="text-lg font-bold text-white">Menu</h1>
+          ) : (
+            <div className="flex items-center gap-3">
+              {!singleDest && (
+                <button type="button" onClick={() => setActiveTab('menu')}
+                  className="inline-flex items-center gap-1.5 bg-[#0e8a7d] hover:bg-[#11a394] text-white text-sm font-bold px-3 py-2 rounded-xl">
+                  <ArrowLeft className="w-4 h-4" /> Menu
+                </button>
+              )}
+              <h1 className="text-lg font-bold text-white">{PAGE_TITLE[activeTab]}</h1>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-                  Property Survey &amp; AMRUT GIS Suite
-                </h1>
-                <span className="bg-[#d6a34b] text-[#07161d] font-bold text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">
-                  AMRUT 2.0 Compliant
-                </span>
-              </div>
-              <p className="text-xs text-[#9fc7c1] mt-0.5">
-                Ward Boundary Digitizer · Property Parcel Enumeration · Topology Validation · Multi-format GIS Deliverables
-              </p>
-            </div>
-          </div>
-
-          {/* Quick Town Selector */}
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-[#9fc7c1] whitespace-nowrap">{isSuper ? 'Selected ULB:' : 'Your ULB:'}</label>
-            {!isSuper ? (
-              <span className="bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg px-3 py-2 font-bold">
-                {currentTown.n} ({currentTown.w?.length || 0} wards)
-              </span>
-            ) : (
+          )}
+          {isSuper ? (
             <select
               value={selectedTownKey}
-              onChange={(e) => {
-                setSelectedTownKey(e.target.value);
-                setWardNo('1');
-                setSelectedWardForEdit('1');
-              }}
+              onChange={(e) => { setSelectedTownKey(e.target.value); setWardNo('1'); setSelectedWardForEdit('1'); }}
               className="bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg px-3 py-2 font-medium focus:outline-none focus:border-[#20b5a6]"
             >
               {Object.entries(visibleTowns).sort((a, b) => a[1].n.localeCompare(b[1].n)).map(([key, t]) => (
-                <option key={key} value={key}>
-                  {t.n} ({t.w?.length || 0} wards)
-                </option>
+                <option key={key} value={key}>{t.n}</option>
               ))}
             </select>
-            )}
-          </div>
-        </div>
-
-        {/* Section navigation: each work area is a separate workspace page */}
-        <div className="max-w-7xl mx-auto mt-4 border-t border-[#16363d] pt-3">
-          <p className="text-[10px] uppercase tracking-[.2em] font-bold text-[#7fa6a0] mb-2">Workspace pages · choose one section at a time</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
-          <button
-            onClick={() => setActiveTab('survey')}
-            className={`min-h-[76px] flex-col items-start justify-center px-3 py-3 rounded-xl border text-left text-[11px] font-bold transition-all flex gap-2 whitespace-normal ${
-              activeTab === 'survey' ? 'bg-[#0e8a7d] text-white border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] text-[#9fc7c1] hover:bg-[#12343a] hover:text-white'
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            1. Property Survey
-          </button>
-          <button
-            onClick={() => setActiveTab('map-editor')}
-            className={`min-h-[76px] flex-col items-start justify-center px-3 py-3 rounded-xl border text-left text-[11px] font-bold transition-all flex gap-2 whitespace-normal ${
-              activeTab === 'map-editor' ? 'bg-[#0e8a7d] text-white border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] text-[#9fc7c1] hover:bg-[#12343a] hover:text-white'
-            }`}
-          >
-            <PenTool className="w-3.5 h-3.5 text-[#f7dfae]" />
-            2. Ward Map &amp; Boundary Editor (GIS)
-          </button>
-          <button
-            onClick={() => setActiveTab('records')}
-            className={`min-h-[76px] flex-col items-start justify-center px-3 py-3 rounded-xl border text-left text-[11px] font-bold transition-all flex gap-2 whitespace-normal ${
-              activeTab === 'records' ? 'bg-[#0e8a7d] text-white border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] text-[#9fc7c1] hover:bg-[#12343a] hover:text-white'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            3. Records ({records.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('assessment')}
-            className={`min-h-[76px] flex-col items-start justify-center px-3 py-3 rounded-xl border text-left text-[11px] font-bold transition-all flex gap-2 whitespace-normal ${
-              activeTab === 'assessment' ? 'bg-[#0e8a7d] text-white border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] text-[#9fc7c1] hover:bg-[#12343a] hover:text-white'
-            }`}
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            4. Assessment &amp; Form A/E
-          </button>
-          <button
-            onClick={() => setActiveTab('collection')}
-            className={`min-h-[76px] flex-col items-start justify-center px-3 py-3 rounded-xl border text-left text-[11px] font-bold transition-all flex gap-2 whitespace-normal ${
-              activeTab === 'collection' ? 'bg-[#0e8a7d] text-white border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] text-[#9fc7c1] hover:bg-[#12343a] hover:text-white'
-            }`}
-          >
-            <Landmark className="w-3.5 h-3.5" />
-            5. Demand &amp; Collection
-          </button>
-          <button
-            onClick={() => setActiveTab('reports')}
-            className={`min-h-[76px] flex-col items-start justify-center px-3 py-3 rounded-xl border text-left text-[11px] font-bold transition-all flex gap-2 whitespace-normal ${
-              activeTab === 'reports' ? 'bg-[#0e8a7d] text-white border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] text-[#9fc7c1] hover:bg-[#12343a] hover:text-white'
-            }`}
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            6. Reports &amp; Notices
-          </button>
-          <button
-            onClick={() => setActiveTab('exports')}
-            className={`min-h-[76px] flex-col items-start justify-center px-3 py-3 rounded-xl border text-left text-[11px] font-bold transition-all flex gap-2 whitespace-normal ${
-              activeTab === 'exports' ? 'bg-[#0e8a7d] text-white border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] text-[#9fc7c1] hover:bg-[#12343a] hover:text-white'
-            }`}
-          >
-            <Download className="w-3.5 h-3.5 text-[#38bdf8]" />
-            7. GIS Deliverables &amp; Exports (SHP/KML)
-          </button>
-          </div>
+          ) : (
+            <span className="bg-[#091a1f] border border-[#23534d] text-white text-xs rounded-lg px-3 py-2 font-bold">{currentTown.n}</span>
+          )}
         </div>
       </div>
 
@@ -1053,6 +985,9 @@ const GisPropertySurveyInner: React.FC = () => {
           }}
           onOpenConflict={(id) => { const r = records.find(x => x.id === id); if (r) handleEditRecord(r); }}
         />
+        {activeTab === 'menu' && (
+          <WorkMenu townName={currentTown.n} tabs={tabs} bills={bills} onChoose={choose} />
+        )}
         {activeTab === 'survey' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Left Column: Form */}
@@ -1764,8 +1699,9 @@ const GisPropertySurveyInner: React.FC = () => {
           />
         )}
 
-        {activeTab === 'collection' && (
+        {activeTab === 'collection' && billHead && (
           <CollectionPanel
+            lockedHead={billHead}
             townKey={selectedTownKey}
             townName={currentTown.n}
             records={records}

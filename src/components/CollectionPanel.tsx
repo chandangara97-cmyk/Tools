@@ -16,6 +16,8 @@ import {
 } from '../services/collectionStore';
 
 interface Props {
+  /** The bill head chosen on the menu. The page works on this head only. */
+  lockedHead: HeadId;
   townKey: string;
   townName: string;
   records: PropertyRecord[];
@@ -61,11 +63,10 @@ export function printHtml(html: string) {
   f.onload = () => { try { f.contentWindow?.focus(); f.contentWindow?.print(); } finally { setTimeout(() => f.remove(), 60000); } };
 }
 
-export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, settings: propertySettings, settingsSaved: propertySaved }) => {
-  const { role, displayName } = useAuth();
+export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName, records, settings: propertySettings, settingsSaved: propertySaved }) => {
+  const { role } = useAuth();
   const heads = useTownHeads(townKey);
-  const [head, setHead] = useState<HeadId>('property_tax');
-  const activeHead: HeadId = heads.includes(head) ? head : 'property_tax';
+  const activeHead: HeadId = lockedHead;
   const other = useHeadSettings(townKey, activeHead);
   const settings = activeHead === 'property_tax' ? propertySettings : other.settings;
   const settingsSaved = activeHead === 'property_tax' ? propertySaved : other.saved;
@@ -156,30 +157,24 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
             {settingsSaved ? 'Collection rules are saved but marked placeholder.' : 'No collection rules saved for this town yet.'}{' '}
             {settings.interestPctPerMonth === null ? 'Interest is not set, so none is charged. ' : ''}
             {settings.rebatePct === 0 ? 'No early-payment rebate is set. ' : ''}
-            An admin must enter the notified due date, interest and rebate rules and mark them approved.
           </span>
         </div>
       )}
 
-      <div className="rounded-2xl border border-[#23534d] bg-gradient-to-r from-[#102d35] via-[#0e282f] to-[#102c2a] p-3 sm:p-4 shadow-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-          <div><p className="text-[10px] uppercase tracking-[.22em] font-bold text-[#20b5a6]">Collection workspace</p><h2 className="text-lg font-extrabold text-white">{headLabel(activeHead)} collection</h2><p className="text-xs text-[#9fc7c1]">Each work area opens as its own page.</p></div>
-          <span className="text-xs text-[#f7dfae] bg-[#d6a34b]/10 border border-[#d6a34b]/30 rounded-full px-3 py-1.5">{townName}</span>
-        </div>
-        <div className="flex flex-wrap gap-2 mb-3" role="tablist" aria-label="Bill head">
-          {HEAD_LIST.filter((h) => heads.includes(h.id)).map((h) => (
-            <button key={h.id} type="button" role="tab" aria-selected={activeHead === h.id} onClick={() => { setHead(h.id); setSel(null); setMsg(''); }}
-              className={`text-xs font-bold px-3 py-1.5 rounded-full border ${activeHead === h.id ? 'bg-[#d6a34b] text-[#2b1d00] border-[#d6a34b]' : 'bg-[#091a1f]/70 text-[#9fc7c1] border-[#23534d] hover:border-[#20b5a6]/70'}`}>{h.label}</button>
-          ))}
-        </div>
-        <nav className="grid grid-cols-2 md:grid-cols-5 gap-2" aria-label="Collection pages">
-          {([{id:'overview',n:'01',title:'Demand overview',sub:'Summary & generation'},{id:'properties',n:'02',title:'Properties & ledger',sub:'Search dues and record payment'},{id:'settings',n:'03',title:'Rules & settings',sub:'Due date, interest, rebate'},...(canSetPayableRates(role) ? [{id:'rates',n:'04',title:'Fixed amounts',sub:'Residential & commercial'} as const] : []),{id:'audit',n:canSetPayableRates(role) ? '05' : '04',title:'Audit trail',sub:'Review recorded actions'}] as const).map((item) => (
-            <button key={item.id} type="button" onClick={() => setCollectionPage(item.id)} className={`text-left rounded-xl border p-3 transition-all ${collectionPage === item.id ? 'bg-[#0e8a7d] border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] hover:border-[#20b5a6]/70 hover:bg-[#12343a]'}`}>
-              <span className={`text-[10px] font-black tracking-widest ${collectionPage === item.id ? 'text-[#f7dfae]' : 'text-[#20b5a6]'}`}>{item.n}</span><span className="block text-xs font-bold text-white mt-1">{item.title}</span><span className="block text-[10px] text-[#c5d8df] mt-1">{item.sub}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
+      <nav className="flex flex-wrap gap-2" aria-label="Collection pages">
+        {([
+          { id: 'overview', title: 'Overview' },
+          { id: 'properties', title: 'Collect payment' },
+          ...(canEditRates(role) ? [{ id: 'settings', title: 'Due date & interest' }] : []),
+          ...(canSetPayableRates(role) ? [{ id: 'rates', title: 'Fixed amounts' }] : []),
+          ...(canSeeAudit(role) ? [{ id: 'audit', title: 'Audit trail' }] : []),
+        ] as { id: 'overview' | 'properties' | 'settings' | 'rates' | 'audit'; title: string }[]).map((item) => (
+          <button key={item.id} type="button" onClick={() => setCollectionPage(item.id)}
+            className={`text-sm font-bold px-4 py-2.5 rounded-xl border transition-all ${collectionPage === item.id ? 'bg-[#0e8a7d] border-[#20b5a6] text-white' : 'bg-[#091a1f]/70 border-[#23534d] text-[#9fc7c1] hover:border-[#20b5a6]/70 hover:text-white'}`}>
+            {item.title}
+          </button>
+        ))}
+      </nav>
 
       {collectionPage === 'overview' && <div className={`${card} space-y-3`}>
         <div className="flex flex-wrap items-center gap-3">
@@ -193,7 +188,7 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
           <div className="bg-[#091a1f] rounded-lg p-3"><span className="text-[#9fc7c1] block">Tax outstanding</span><b className="text-lg font-mono text-white">{money(totals.principal)}</b></div>
           <div className="bg-[#091a1f] rounded-lg p-3"><span className="text-[#9fc7c1] block">Interest outstanding</span><b className="text-lg font-mono text-[#f7dfae]">{money(totals.interest)}</b></div>
           <div className="bg-[#091a1f] rounded-lg p-3"><span className="text-[#9fc7c1] block">Properties with dues</span><b className="text-lg font-mono text-white">{totals.withDues}</b></div>
-          <div className="bg-[#091a1f] rounded-lg p-3"><span className="text-[#9fc7c1] block">Demand raised for {fy}</span><b className="text-lg font-mono text-white">{activeHead === 'property_tax' ? `${alreadyDemanded} / ${approvedCount}` : `${rows.filter(({ entries }) => entries.some((e) => e.id === `demand_${fy}`)).length} / ${fixedTargets.length}`}</b><span className="text-[10px] text-[#7fa6a0]">{activeHead === 'property_tax' ? 'approved assessments with tax' : 'properties with a fixed amount'}</span></div>
+          <div className="bg-[#091a1f] rounded-lg p-3"><span className="text-[#9fc7c1] block">Demand raised for {fy}</span><b className="text-lg font-mono text-white">{activeHead === 'property_tax' ? `${alreadyDemanded} / ${approvedCount}` : `${rows.filter(({ entries }) => entries.some((e) => e.id === `demand_${fy}`)).length} / ${fixedTargets.length}`}</b></div>
         </div>
         <div className="flex flex-wrap gap-2">
           {canManageLedger(role) && activeHead === 'property_tax' && (
@@ -270,9 +265,6 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
           </div>
         </div>
       )}
-      {collectionPage === 'settings' && !canEditRates(role) && <div className={card}><p className="text-sm font-bold text-white">Settings access restricted</p><p className="text-xs text-[#9fc7c1] mt-1">Your role cannot edit collection rules. Contact an administrator.</p></div>}
-      {collectionPage === 'audit' && !canSeeAudit(role) && <div className={card}><p className="text-sm font-bold text-white">Audit access restricted</p><p className="text-xs text-[#9fc7c1] mt-1">Your role cannot view the audit trail.</p></div>}
-      <p className="text-[11px] text-[#7fa6a0]">Signed in as {displayName}. Ledger entries cannot be edited or deleted; mistakes are fixed with a reversal. Needs an internet connection.</p>
     </div>
   );
 };
@@ -494,7 +486,7 @@ const RateRow: React.FC<{ head: HeadId; initial: PayableRates | undefined; busy:
 const RateFiller: React.FC<{ townName: string; heads: HeadId[]; all: Record<string, PayableRates>; busy: boolean; onSave: (h: HeadId, r: { residential: number | null; commercial: number | null }) => void }> = ({ townName, heads, all, busy, onSave }) => (
   <div className={`${card} space-y-3`}>
     <h3 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider">Fixed amounts payable · {townName}</h3>
-    <p className="text-[11px] text-[#9fc7c1]">Filled by hand for this urban body only, separately for each bill head. The cashier sees these amounts against each Residential and Commercial property. Other uses have no fixed amount. Each head is saved on its own.</p>
+    
     {heads.map((h) => <RateRow key={h} head={h} initial={all[h]} busy={busy} onSave={onSave} townName={townName} />)}
     <p className="text-[11px] text-[#7fa6a0]">Changing these does not alter demands already generated; use an adjustment for those. Every change is written to the audit trail.</p>
   </div>

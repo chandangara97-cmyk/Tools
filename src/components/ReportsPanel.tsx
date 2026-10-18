@@ -164,7 +164,6 @@ export const ReportsPanel: React.FC<Props> = ({ townKey, townName, records, sett
             {wardTable.length > 0 && <tr className="font-bold text-[#f7dfae]"><td className="p-2">Total</td><td className="p-2 text-right">{grand.props}</td><td className="p-2 text-right">{money(grand.demanded)}</td><td className="p-2 text-right">{money(grand.collected)}</td><td className="p-2 text-right">{money(grand.rebate)}</td><td className="p-2 text-right">{money(grand.due + grand.interestDue)}</td><td className="p-2 text-right">{grand.defaulters}</td><td className="p-2 text-right">{grand.demanded ? ((grand.collected / grand.demanded) * 100).toFixed(1) : '-'}</td></tr>}
             {!wardTable.length && <tr><td colSpan={8} className="p-4 text-center text-[#9fc7c1]">No surveyed properties yet.</td></tr>}
           </tbody></table></div>
-        <p className="text-[10px] text-[#7fa6a0]">"%" is collected in the chosen period against total demanded, so it is only meaningful when the period covers the whole year.</p>
       </div>
 
       <div className={`${card} space-y-3`}>

@@ -225,7 +225,6 @@ export const AssessmentPanel: React.FC<Props> = ({ townKey, townName, records, r
           {showRates && <RateTableEditor key={rateTable.id + rateTable.status} initial={rateTable} busy={busy} onSave={(t) => void saveRates(t)} />}
         </div>
       )}
-      <p className="text-[11px] text-[#7fa6a0]">Signed in as {displayName}. Assessments are saved to the cloud and need an internet connection.</p>
     </div>
   );
 };

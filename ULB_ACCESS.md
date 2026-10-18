@@ -29,3 +29,18 @@ A login with no `ulb` gets no access. A ULB switched off in `ulbs/<town>/active`
 - The old admin page could not list users under the previous rules. The new page reads users by ULB.
 - Bill heads are recorded on each supervisor and collector (`head`) but not enforced yet. Water and garbage screens do not exist yet; when they are built, the rules will limit each supervisor and collector to their own head.
 - One cashier per ULB is enforced by the admin page, not by the database rules.
+
+## What each login sees after sign-in
+After sign-in the app opens on a menu with big buttons, showing only what that login may do. Pages that a login cannot use are not shown.
+
+| Login | Menu |
+|---|---|
+| Cashier | One button per bill head of the ULB (Property tax, Water, Garbage, Sewerage, Other) |
+| Supervisor tied to one head (e.g. `_SUP_GAR`) | Opens straight into that head only |
+| Supervisor without a head (`_APR`, `_LDG`) | All bill heads, survey, records, assessment, reports, ward map, exports |
+| Data collector | Property survey, Property records |
+| Assessor | Assessment, Property records |
+| Monitor | Reports, plus all bill heads (view only) |
+| ULB admin / owner | Everything |
+
+The head comes from `users/<uid>/head`, which the admin page already writes.

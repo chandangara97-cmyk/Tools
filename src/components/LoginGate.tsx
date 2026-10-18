@@ -25,7 +25,7 @@ export const LoginGate: React.FC<{ children: React.ReactNode }> = ({ children })
       } catch (e) {
         const code = (e as { code?: string }).code || '';
         setErr(code.includes('network') ? 'No internet. First sign-in needs a connection.'
-          : code.includes('too-many') ? 'Too many attempts. Please wait a few minutes.' : 'Wrong Town ID or password.');
+          : code.includes('too-many') ? 'Too many attempts. Please wait a few minutes.' : 'Wrong User ID or password.');
       } finally { setBusy(false); }
     };
     const field = 'w-full h-14 pt-5 pb-1 px-4 rounded-2xl border border-white/15 bg-white/5 text-white text-base outline-none focus:border-[#2dd4bf] focus:ring-4 focus:ring-[#2dd4bf]/15';
@@ -57,12 +57,11 @@ export const LoginGate: React.FC<{ children: React.ReactNode }> = ({ children })
                 <Lock className="w-7 h-7 text-[#04201c]" />
               </div>
               <h1 className="text-3xl font-bold tracking-tight">Scheme Hub 2026</h1>
-              <p className="text-sm text-[#cfe6e2] mt-1">Property survey &amp; collection · Himachal Pradesh</p>
             </div>
             <div className="rounded-3xl border border-white/15 p-5" style={{ background: 'rgba(6,30,32,.68)', backdropFilter: 'blur(20px)', boxShadow: '0 30px 70px rgba(0,0,0,.45)' }}>
-              <h2 className="text-xs font-bold text-[#2dd4bf] uppercase tracking-widest mb-4">Town sign-in</h2>
+              <h2 className="text-xs font-bold text-[#2dd4bf] uppercase tracking-widest mb-4">Sign in</h2>
               <div className="relative mb-3">
-                <label className={lab} htmlFor="gate-id">Town ID (e.g. BHOTA_SUP_PT)</label>
+                <label className={lab} htmlFor="gate-id">User ID</label>
                 <input id="gate-id" type="text" autoComplete="username" autoCapitalize="characters" spellCheck={false} value={userId} onChange={(e) => setUserId(e.target.value)} className={field} />
               </div>
               <div className="relative mb-3">
@@ -83,7 +82,6 @@ export const LoginGate: React.FC<{ children: React.ReactNode }> = ({ children })
               </button>
               <a href={`${import.meta.env.BASE_URL}admin_users.html`} className="block text-center text-sm font-semibold text-[#f4c58a] mt-4">Admin login →</a>
             </div>
-            <p className="text-center text-xs text-[#9bbdb7] mt-4">Accounts are created by the administrator. Independent field survey workspace, not affiliated with any government body.</p>
           </div>
         </div>
       </div>

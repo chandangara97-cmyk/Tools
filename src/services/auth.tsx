@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut as fbSignOut, User } from 'firebase/auth';
 import { ref, get } from 'firebase/database';
 import { auth, db } from '../firebase';
+import { HeadId, HEAD_LIST } from './heads';
 
 /** surveyor = data collector, monitor = read-only view of the whole ULB. */
 export type Role = 'surveyor' | 'supervisor' | 'assessor' | 'cashier' | 'admin' | 'monitor';
@@ -41,6 +42,8 @@ interface AuthState {
   role: Role | null;
   /** The ULB this login belongs to (town slug), "*" for the platform owner, null if none assigned. */
   ulb: string | null;
+  /** The bill head this login is tied to (supervisor / collector of one head), null if it covers all heads. */
+  head: HeadId | null;
   isSuper: boolean;
   displayName: string;
   loading: boolean;
@@ -87,37 +90,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role | null>(null);
   const [ulb, setUlb] = useState<string | null>(null);
+  const [head, setHead] = useState<HeadId | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [deviceBlock, setDeviceBlock] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const apply = (r: Role | null, u: string | null, name: string): boolean => {
+    const apply = (r: Role | null, u: string | null, name: string, h: HeadId | null = null): boolean => {
       const block = guardDevice(u);
       setDeviceBlock(block);
-      if (block) { setRole(null); setUlb(null); setDisplayName(name); return false; }
-      setRole(r); setUlb(u); setDisplayName(name);
+      if (block) { setRole(null); setUlb(null); setHead(null); setDisplayName(name); return false; }
+      setRole(r); setUlb(u); setHead(h); setDisplayName(name);
       return true;
     };
     return onAuthStateChanged(auth, async (u) => {
       setUser(u);
-      if (!u) { setRole(null); setUlb(null); setDisplayName(''); setDeviceBlock(''); setLoading(false); return; }
+      if (!u) { setRole(null); setUlb(null); setHead(null); setDisplayName(''); setDeviceBlock(''); setLoading(false); return; }
       // cached profile first so the app opens offline
       try {
         const c = JSON.parse(localStorage.getItem(cacheKey(u.uid)) || 'null');
-        if (c) apply(c.role, c.ulb ?? null, c.name);
+        if (c) apply(c.role, c.ulb ?? null, c.name, c.head ?? null);
       } catch { /* ignore */ }
       try {
         const snap = await get(ref(db, `users/${u.uid}`));
-        const v = snap.val() as { role?: string; name?: string; ulb?: string } | null;
+        const v = snap.val() as { role?: string; name?: string; ulb?: string; head?: string } | null;
         const r = v?.role && (ROLES as string[]).includes(v.role) ? (v.role as Role) : null;
         const town = v?.ulb && typeof v.ulb === 'string' ? v.ulb : null;
         const name = v?.name || u.displayName || u.email || '';
+        const h = v?.head && HEAD_LIST.some((x) => x.id === v.head) ? (v.head as HeadId) : null;
         // a login without a ULB gets no access at all
-        apply(town ? r : null, town, name);
-        try { localStorage.setItem(cacheKey(u.uid), JSON.stringify({ role: town ? r : null, ulb: town, name })); } catch { /* ignore */ }
+        apply(town ? r : null, town, name, h);
+        try { localStorage.setItem(cacheKey(u.uid), JSON.stringify({ role: town ? r : null, ulb: town, name, head: h })); } catch { /* ignore */ }
       } catch {
-        if (!localStorage.getItem(cacheKey(u.uid))) { setRole(null); setUlb(null); setDisplayName(u.email || ''); }
+        if (!localStorage.getItem(cacheKey(u.uid))) { setRole(null); setUlb(null); setHead(null); setDisplayName(u.email || ''); }
       }
       setLoading(false);
     });
@@ -129,5 +134,5 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = useCallback(async () => { await fbSignOut(auth); }, []);
 
   const isSuper = ulb === ALL_ULBS;
-  return <Ctx.Provider value={{ user, role, ulb, isSuper, displayName, loading, deviceBlock, signIn, signOut }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, role, ulb, head, isSuper, displayName, loading, deviceBlock, signIn, signOut }}>{children}</Ctx.Provider>;
 };

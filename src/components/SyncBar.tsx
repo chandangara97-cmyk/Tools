@@ -1,6 +1,8 @@
 import React from 'react';
 import { LogOut, Cloud, CloudOff, AlertTriangle, UploadCloud } from 'lucide-react';
 import { useAuth } from '../services/auth';
+import { ROLE_LABEL } from '../services/access';
+import { BILL_NAME } from './WorkMenu';
 import { useSyncState, discardConflict } from '../services/syncQueue';
 
 interface Props {
@@ -11,7 +13,7 @@ interface Props {
 }
 
 export const SyncBar: React.FC<Props> = ({ localOnlyCount, canMigrate, onMigrate, onOpenConflict }) => {
-  const { displayName, role, signOut } = useAuth();
+  const { displayName, role, head, signOut } = useAuth();
   const s = useSyncState();
 
   return (
@@ -27,7 +29,7 @@ export const SyncBar: React.FC<Props> = ({ localOnlyCount, canMigrate, onMigrate
           </span>
         )}
         <span className="ml-auto text-[#9fc7c1]">
-          {displayName} · <b className="text-[#f7dfae]">{role}</b>
+          {displayName} · <b className="text-[#f7dfae]">{role ? ROLE_LABEL[role] : ''}{head ? ` · ${BILL_NAME[head]}` : ''}</b>
         </span>
         <button type="button" onClick={() => void signOut()} className="inline-flex items-center gap-1 text-[#20b5a6] font-bold">
           <LogOut className="w-3 h-3" /> Sign out
