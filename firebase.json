@@ -15,9 +15,5 @@
         "destination": "/app/index.html"
       }
     ]
-  },
-  "functions": {
-    "source": "functions",
-    "runtime": "nodejs20"
   }
 }

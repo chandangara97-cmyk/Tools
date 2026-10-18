@@ -1,20 +1,30 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Ward-wise properties update — files to apply
 
-# Run and deploy your AI Studio app
+## Code files (go to GitHub, in your Tools repo)
+- `database.rules.json` -> replace the file at the repo root
+- `firebase.ts` -> replace `src/firebase.ts`
+- `syncQueue.ts` -> replace `src/services/syncQueue.ts`
 
-This contains everything you need to run your app locally.
+Commit and push these three. Your existing GitHub Actions workflow
+(`Deploy to GitHub Pages`) builds and redeploys automatically on push to `main`.
 
-View your app in AI Studio: https://ai.studio/apps/1f03bfc5-dc5c-4636-acd3-9ee546162727
+## Data file (goes to Firebase, NOT to GitHub)
+- `properties_nested.json` -> Firebase Console -> Realtime Database ->
+  open the `properties` node -> kebab menu -> Import JSON.
+  This replaces only the `properties` subtree (Bhota, Shimla_MC, Nerwa),
+  nothing else in the database is touched.
 
-## Run Locally
+Contains:
+- Bhota (ward 1) and Shimla_MC (ward 6): your original 3 real records,
+  re-nested under their ward.
+- Nerwa (ward 4): 14 synthetic demo records — a full mix of homes, shops,
+  and government buildings. Not real survey data; every record is tagged
+  `createdBy: "demo-seed"` and `rem: "Sample/demo record - not real survey data"`
+  so it's easy to find and clear out later.
 
-**Prerequisites:**  Node.js
+## Deploy order
+1. Publish the new `database.rules.json` to Realtime Database first.
+2. Push the 3 code files to GitHub (triggers the Pages redeploy).
+3. Import `properties_nested.json` at the `properties` node.
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Doing the rules first avoids a gap where old-shaped data sits under new rules.

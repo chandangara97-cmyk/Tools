@@ -390,10 +390,10 @@ const PropertyLedger: React.FC<{
             <label className="text-[11px] text-[#aab4dc]">Date<input type="date" max={today} value={date} onChange={(e) => setDate(e.target.value || today)} className={`${inp} w-full mt-1`} /></label>
             <label className="text-[11px] text-[#aab4dc]">Mode
               <select value={mode} onChange={(e) => setMode(e.target.value as PayMode)} className={`${inp} w-full mt-1`}>
-                <option value="cash">Cash</option><option value="upi">UPI</option><option value="cheque">Cheque</option><option value="razorpay">Razorpay (online)</option><option value="other">Other</option>
+                <option value="cash">Cash</option><option value="upi">UPI</option><option value="cheque">Cheque</option><option value="other">Other</option>
               </select>
             </label>
-            {mode !== 'cash' && <label className="text-[11px] text-[#aab4dc]">{mode === 'cheque' ? 'Cheque no.' : mode === 'upi' ? 'UPI txn ID' : mode === 'razorpay' ? 'Razorpay payment ID' : 'Reference'}<input value={refNo} onChange={(e) => setRefNo(e.target.value)} className={`${inp} w-full mt-1`} /></label>}
+            {mode !== 'cash' && <label className="text-[11px] text-[#aab4dc]">{mode === 'cheque' ? 'Cheque no.' : mode === 'upi' ? 'UPI txn ID' : 'Reference'}<input value={refNo} onChange={(e) => setRefNo(e.target.value)} className={`${inp} w-full mt-1`} /></label>}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <label className="text-[11px] text-[#aab4dc]">Paid by (if not the owner)<input value={payer} onChange={(e) => setPayer(e.target.value)} className={`${inp} w-full mt-1`} /></label>

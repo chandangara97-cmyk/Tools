@@ -5,74 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Property Tax - ULB &amp; User Admin</title>
 <style>
-
-  :root {
-    --bg:#05080f; --card:#0e1524; --line:rgba(255,255,255,.07); --text:#eef2fb;
-    --mute:#7d8ba3; --accent:#e8b84a; --gold-soft:#f7df9a; --bad:#ff6b6f; --ok:#34d399;
-  }
+  :root { --bg:#0d1224; --card:#181f3d; --line:#2f3a6b; --text:#eef0fb; --mute:#aab4dc; --accent:#4f46e5; --bad:#ff6b6f; --ok:#34d399; }
   * { box-sizing: border-box; }
-  body {
-    margin:0; font-family: 'Outfit', system-ui, sans-serif; background:var(--bg); color:var(--text);
-    -webkit-font-smoothing:antialiased;
-    background-image:
-      radial-gradient(ellipse 90% 55% at 12% -8%, rgba(99,130,255,.13), transparent 52%),
-      radial-gradient(ellipse 70% 45% at 92% 0%, rgba(232,184,74,.09), transparent 48%),
-      linear-gradient(180deg, #05080f 0%, #05080f 100%);
-    background-attachment: fixed;
-  }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px; }
-  h1 {
-    font-family: 'Instrument Serif', Georgia, serif; font-weight: 400;
-    font-size: 28px; margin: 8px 0 4px; letter-spacing: -0.02em;
-  }
-  h1 em { font-style: italic; color: var(--gold-soft); }
-  .sub { color: var(--mute); font-size: 13px; margin-bottom: 18px; }
-  .card {
-    background: rgba(14,21,36,.78); border: 1px solid var(--line); border-radius: 18px;
-    padding: 18px 20px; margin-bottom: 14px;
-    backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2);
-    box-shadow: 0 8px 32px rgba(0,0,0,.28), 0 1px 0 rgba(255,255,255,.04) inset;
-  }
-  .card h2, .card h3 {
-    font-family: 'Instrument Serif', Georgia, serif; font-weight: 400;
-    font-size: 18px; margin: 0 0 10px; color: var(--gold-soft);
-  }
-  label { display:block; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--gold-soft); margin: 10px 0 4px; }
-  input, select, textarea {
-    width: 100%; padding: 11px 12px; border-radius: 12px;
-    border: 1px solid rgba(255,255,255,.12); background: rgba(10,16,28,.85); color: #fff;
-    font: 14px 'Outfit', system-ui; outline: none;
-  }
-  input:focus, select:focus, textarea:focus {
-    border-color: rgba(232,184,74,.5); box-shadow: 0 0 0 3px rgba(232,184,74,.15);
-  }
-  button, .btn {
-    padding: 11px 16px; border-radius: 12px; border: 0; cursor: pointer;
-    font: 600 13px 'Outfit', system-ui;
-    background: linear-gradient(165deg, #f7df9a, #e8b84a); color: #0a1220;
-    box-shadow: 0 8px 24px rgba(232,184,74,.25);
-  }
-  button.ghost, .btn.ghost {
-    background: transparent; border: 1px solid rgba(232,184,74,.35); color: var(--gold-soft);
-    box-shadow: none;
-  }
-  button.danger { background: rgba(255,107,111,.15); color: #ff8d89; border: 1px solid rgba(255,107,111,.3); box-shadow: none; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { padding: 10px 8px; border-bottom: 1px solid var(--line); text-align: left; }
-  th { color: var(--mute); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
-  .tag { display:inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;
-    border: 1px solid rgba(232,184,74,.35); background: rgba(232,184,74,.12); color: var(--gold-soft); }
-  .ok { color: var(--ok); } .err { color: var(--bad); }
-  a { color: var(--gold-soft); }
-  .topbar {
-    display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
-  }
-  .mark {
-    width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
-    border: 1px solid rgba(232,184,74,.4); background: linear-gradient(145deg, rgba(232,184,74,.28), rgba(232,184,74,.06));
-    color: var(--gold-soft); font-weight: 700; font-size: 12px;
-  }
-
+  body { margin:0; font-family: 'Public Sans', system-ui, sans-serif; background:var(--bg); color:var(--text); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 8px 0 4px; }
+  .sub { color: var(--mute); font-size: 13px; margin-bottom: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  label { display:block; font-size: 13px; color: var(--mute); margin: 10px 0 4px; }
+  input, select { width:100%; padding: 11px; border-radius: 8px; border:1px solid var(--line); background:#0a0e1c; color:var(--text); font-size: 15px; }
+  button { padding: 11px 16px; border:0; border-radius: 8px; background: var(--accent); color:#fff; font-size: 15px; font-weight: 600; cursor:pointer; margin-top: 14px; }
+  button:disabled { opacity:.5; }
+  button.ghost { background: transparent; border:1px solid var(--line); color: var(--mute); }
+  button.small { padding: 6px 10px; font-size: 13px; margin: 0; }
+  .msg { margin-top: 12px; padding: 10px; border-radius: 8px; font-size: 14px; display:none; word-break: break-word; }
+  .msg.ok { display:block; background: rgba(47,182,124,.15); color: var(--ok); }
+  .msg.err { display:block; background: rgba(217,83,79,.15); color: #ff8d89; }
+  .row { display:flex; gap: 10px; align-items:center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .row:first-child { border-top: 0; }
+  .who { min-width: 0; flex: 1; }
+  .who b { display:block; font-size: 15px; }
+  .who span { font-size: 12px; color: var(--mute); word-break: break-all; }
+  .row select { width: auto; padding: 7px; font-size: 14px; }
+  .hidden { display:none; }
+  .grp { margin: 14px 0 2px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #9aa8ff; font-weight: 700; }
+  .tag { display:inline-block; font-size: 11px; padding: 2px 7px; border-radius: 999px; border:1px solid var(--line); color: var(--mute); margin-left: 6px; }
+  table { width:100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th, td { text-align:left; padding: 6px 4px; border-top: 1px solid var(--line); word-break: break-all; }
+  th { color: var(--mute); font-weight: 600; }
+  .chk { display:flex; flex-wrap:wrap; gap:12px; margin-top:6px; font-size:14px; }
+  .chk label { display:flex; align-items:center; gap:6px; margin:0; color: var(--text); }
+  .chk input { width:auto; }
+  .ind { padding-left: 22px; }
+  code { background:#0a0e1c; padding: 2px 6px; border-radius: 4px; font-size: 12px; word-break: break-all; }
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&family=Zilla+Slab:wght@600;700&display=swap">
 <style>h1,h2,b{font-family:'Zilla Slab',Rockwell,Georgia,serif}</style>

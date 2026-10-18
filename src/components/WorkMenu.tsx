@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Building2, Layers, FileSpreadsheet, PenTool, Download, ClipboardCheck, Droplets, Trash2, Waves, Receipt, Home, Zap } from 'lucide-react';
+import { Search, Building2, Layers, FileSpreadsheet, PenTool, Download, ClipboardCheck, Droplets, Trash2, Waves, Receipt, Home } from 'lucide-react';
 import { useAuth } from '../services/auth';
 import { HeadId } from '../services/heads';
 import { ROLE_LABEL, Tab } from '../services/access';
@@ -11,29 +11,26 @@ const BILL_ICON: Record<HeadId, React.ReactNode> = {
   water: <Droplets className="w-7 h-7" />,
   garbage: <Trash2 className="w-7 h-7" />,
   sewerage: <Waves className="w-7 h-7" />,
-  electricity: <Zap className="w-7 h-7" />,
   other: <Receipt className="w-7 h-7" />,
 };
 const BILL_NAME: Record<HeadId, string> = {
-  property_tax: 'Property tax', water: 'Water bill', garbage: 'Garbage bill', sewerage: 'Sewerage bill',
-  electricity: 'Electricity bill', other: 'Other utility bills',
+  property_tax: 'Property tax', water: 'Water bill', garbage: 'Garbage bill', sewerage: 'Sewerage bill', other: 'Other utility bills',
 };
 
 const Tile: React.FC<{ icon: React.ReactNode; title: string; note?: string; onClick: () => void; accent?: boolean }> = ({ icon, title, note, onClick, accent }) => (
   <button type="button" onClick={onClick}
-    className={`stub text-left border p-4 min-h-[112px] flex flex-col justify-between transition-all ${accent ? 'bg-[#e2b04a]/15 border-[#e2b04a]/45 hover:bg-[#e2b04a]/22' : 'bg-[#121a2c]/80 border-white/[0.08] hover:border-[#e2b04a]/30'}`}>
-    <span className={accent ? 'text-[#f5d98a]' : 'text-[#e2b04a]'}>{icon}</span>
+    className={`stub text-left border p-4 min-h-[112px] flex flex-col justify-between transition-colors ${accent ? 'bg-[#4f46e5] border-[#9aa8ff] hover:bg-[#6259f0]' : 'bg-[#181f3d] border-[#2f3a6b] hover:border-[#9aa8ff] hover:bg-[#222b52]'}`}>
+    <span className={accent ? 'text-[#ffe3a3]' : 'text-[#9aa8ff]'}>{icon}</span>
     <span>
-      <span className="block text-base font-bold text-white leading-tight">{title}</span>
-      {note && <span className="block text-[11px] text-[#8b97b0] mt-0.5">{note}</span>}
+      <span className="block text-base font-extrabold text-white leading-tight">{title}</span>
+      {note && <span className="block text-[11px] text-[#d6dcf5] mt-0.5">{note}</span>}
     </span>
   </button>
 );
 
 const Group: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <section>
-    <h3 className="font-serif text-xl text-white mb-2 tracking-tight">{title}</h3>
-
+    <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">{children}</div>
   </section>
 );

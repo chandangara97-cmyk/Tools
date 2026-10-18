@@ -68,3 +68,8 @@ Search dues, open a property, press "Generate bill".
 - "Include the owner's other properties" adds them to the same bill.
 - Print, or download as an HTML file. The bill shows owner, property, each item with due date, tax or charge, interest, total and the total in words, as on the date and time of printing.
 - Bills are not numbered and nothing is saved in the database. It is a statement, not a receipt. Receipts still come from Collect payment.
+
+## Tests
+- `npm run test:collection` and `npm run test:search`: money maths, monthly bills, search, dues across bill heads (42 checks, no browser needed).
+- `npm run test:browser`: opens the search page, collection pages and role menus in a real browser with a fake database and clicks through them (59 checks). One-time setup: `npm i -D playwright && npx playwright install chromium`.
+- `npm run test:all` runs everything. Run it before each release.

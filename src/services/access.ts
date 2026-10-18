@@ -6,7 +6,7 @@ export type Tab = 'search' | 'survey' | 'map-editor' | 'records' | 'assessment' 
 
 export const ROLE_LABEL: Record<Role, string> = {
   admin: 'ULB admin', supervisor: 'Supervisor', surveyor: 'Data collector',
-  assessor: 'Assessor', cashier: 'Cashier', monitor: 'Monitor', citizen: 'Citizen',
+  assessor: 'Assessor', cashier: 'Cashier', monitor: 'Monitor',
 };
 
 const ALL: Tab[] = ['search', 'collection', 'survey', 'records', 'assessment', 'reports', 'map-editor', 'exports'];
@@ -22,7 +22,6 @@ export function allowedTabs(role: Role | null, head: HeadId | null, isSuper: boo
     case 'assessor': return ['assessment', 'records'];
     case 'cashier': return ['search', 'collection'];
     case 'monitor': return ['search', 'reports', 'collection'];
-    case 'citizen': return ['search']; // view own dues + Razorpay checkout only
     default: return [];
   }
 }

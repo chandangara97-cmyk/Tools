@@ -17,7 +17,7 @@
 //   - A payment clears interest first, then principal, oldest financial year first.
 
 export type EntryType = 'demand' | 'payment' | 'rebate' | 'reversal' | 'adjustment';
-export type PayMode = 'cash' | 'upi' | 'cheque' | 'other' | 'razorpay';
+export type PayMode = 'cash' | 'upi' | 'cheque' | 'other';
 
 export interface LedgerEntry {
   id: string;

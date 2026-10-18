@@ -69,7 +69,7 @@ export const BillMaker: React.FC<{ town: string; rows: OwnerRow[]; currentId: st
         <div className="space-y-1">
           <div className="flex gap-3 text-xs font-bold text-[#9aa8ff]">
             <button type="button" onClick={() => setOff({})}>Select all</button>
-            <button type="button" onClick={() => setOff(Object.fromEntries(scope.map((i) => [i.key, true])))}>Clear</button>
+            <button type="button" onClick={() => setOff(Object.fromEntries(all.map((i) => [i.key, true])))}>Clear</button>
           </div>
           {scope.map((i) => (
             <label key={i.key} className="flex items-center gap-3 bg-[#121830] border border-[#252e56] rounded-lg p-2.5 text-sm text-white">
