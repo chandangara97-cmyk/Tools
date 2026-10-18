@@ -144,6 +144,13 @@
 
     <div class="card">
       <b>Users</b>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+        <input id="uFilter" placeholder="Filter by ID or name (e.g. nerwa_)" style="flex:1;min-width:160px">
+        <button type="button" class="ghost small" id="uSelVis">Select shown</button>
+        <button type="button" class="ghost small" id="uSelNone">Clear</button>
+        <button type="button" class="small" id="uRemove" style="background:#b42318;color:#fff" disabled>Remove selected (0)</button>
+      </div>
+      <div id="uMsg" class="msg"></div>
       <div id="userList" style="margin-top:8px;font-size:14px;color:var(--mute)">Loading...</div>
     </div>
   </div>
@@ -480,8 +487,16 @@ $("btnAdd").onclick = async () => {
 };
 
 // ---- users list: monitor, cashier, supervisors with their collectors under them ----
+const selUids = new Set();
+function updRemoveBtn() { const b = $("uRemove"); b.textContent = `Remove selected (${selUids.size})`; b.disabled = !selUids.size; }
 function userRow(uid, u, indent) {
-  const row = document.createElement("div"); row.className = "row" + (indent ? " ind" : "");
+  const row = document.createElement("div"); row.className = "row" + (indent ? " ind" : ""); row.dataset.uid = uid;
+  if (uid !== auth.currentUser.uid) {
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.className = "usel"; cb.style.cssText = "width:auto;margin:0";
+    cb.checked = selUids.has(uid);
+    cb.onchange = () => { cb.checked ? selUids.add(uid) : selUids.delete(uid); updRemoveBtn(); };
+    row.prepend(cb);
+  }
   const who = document.createElement("div"); who.className = "who";
   const b = document.createElement("b"); b.textContent = u.name || "(no name)";
   const s = document.createElement("span"); s.textContent = (u.email || uid).replace("@" + DOMAIN, "") + (u.head && HEADS[u.head] ? " | " + HEADS[u.head][0] : "");
@@ -503,7 +518,11 @@ function userRow(uid, u, indent) {
 function renderUsers(snap) {
   usersCache = snap.val() || {};
   fillSupervisors();
-  const val = usersCache, box = $("userList"), uids = Object.keys(val);
+  for (const k of [...selUids]) if (!usersCache[k]) selUids.delete(k);
+  updRemoveBtn();
+  const q = $("uFilter").value.trim().toLowerCase();
+  const val = usersCache, box = $("userList"),
+    uids = Object.keys(val).filter(k => !q || ((val[k].email || "") + " " + (val[k].name || "")).toLowerCase().includes(q));
   if (!uids.length) { box.textContent = "No users yet."; return; }
   box.innerHTML = "";
   const groups = {};
@@ -511,7 +530,16 @@ function renderUsers(snap) {
   const gkeys = Object.keys(groups).sort((a, b) => (a === "*" ? -1 : b === "*" ? 1 : (ulbNames[a] || a).localeCompare(ulbNames[b] || b)));
   for (const g of gkeys) {
     const h = document.createElement("div"); h.className = "grp";
-    h.textContent = g === "*" ? "Platform owner (all ULBs)" : (ulbNames[g] || g);
+    const gl = document.createElement("label"); gl.style.cssText = "display:flex;gap:8px;align-items:center;margin:0;cursor:pointer";
+    const gc = document.createElement("input"); gc.type = "checkbox"; gc.style.cssText = "width:auto;margin:0";
+    gc.title = "Select every ID in this group";
+    gc.onchange = () => {
+      for (const uid of groups[g]) { if (uid === auth.currentUser.uid) continue; gc.checked ? selUids.add(uid) : selUids.delete(uid); }
+      box.querySelectorAll(".row").forEach(r => { if (groups[g].includes(r.dataset.uid)) { const c = r.querySelector(".usel"); if (c) c.checked = gc.checked; } });
+      updRemoveBtn();
+    };
+    gl.append(gc, document.createTextNode(g === "*" ? "Platform owner (all ULBs)" : (ulbNames[g] || g)));
+    h.append(gl);
     box.append(h);
     const list = groups[g];
     const isCollector = uid => val[uid].role === "surveyor" && val[uid].supervisor && val[val[uid].supervisor];
@@ -524,6 +552,30 @@ function renderUsers(snap) {
     }
   }
 }
+
+// ---- bulk remove IDs ----
+$("uFilter").oninput = () => renderUsers({ val: () => usersCache });
+$("uSelVis").onclick = () => {
+  $("userList").querySelectorAll(".row").forEach(r => { const c = r.querySelector(".usel"); if (c) { c.checked = true; selUids.add(r.dataset.uid); } });
+  updRemoveBtn();
+};
+$("uSelNone").onclick = () => {
+  selUids.clear(); $("userList").querySelectorAll("input[type=checkbox]").forEach(c => c.checked = false); updRemoveBtn();
+};
+$("uRemove").onclick = async () => {
+  const uids = [...selUids].filter(u => u !== auth.currentUser.uid);
+  if (!uids.length) return;
+  const names = uids.slice(0, 8).map(u => (usersCache[u]?.email || u).replace("@" + DOMAIN, "")).join(", ");
+  if (!confirm(`Remove ${uids.length} ID(s)?\n${names}${uids.length > 8 ? ", ..." : ""}\n\nThey lose all access immediately. This cannot be undone.`)) return;
+  $("uRemove").disabled = true; msg("uMsg", "ok", "Removing...");
+  try {
+    const patch = {}; for (const u of uids) patch[u] = null;
+    await update(ref(db, "users"), patch);          // one atomic multi-delete
+    uids.forEach(u => selUids.delete(u));
+    msg("uMsg", "ok", `${uids.length} ID(s) removed. Their Firebase sign-in accounts still exist (the ID name stays reserved). To free the names, delete them under Authentication > Users in the Firebase Console, or run scripts/delete-auth-users.mjs.`);
+  } catch (e) { msg("uMsg", "err", (e.code || e.message) + (isSuper() ? "" : " (ULB admins need the updated database rules deployed)")); }
+  updRemoveBtn();
+};
 </script>
 </body>
 </html>

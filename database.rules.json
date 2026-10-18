@@ -9,7 +9,7 @@
       ],
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || (root.child('users').child(auth.uid).child('role').val() === 'admin' && (root.child('users').child(auth.uid).child('ulb').val() === '*' || data.child('ulb').val() === root.child('users').child(auth.uid).child('ulb').val())))",
-        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && (root.child('users').child(auth.uid).child('ulb').val() === '*' || (newData.child('ulb').val() === root.child('users').child(auth.uid).child('ulb').val() && (!data.exists() || data.child('ulb').val() === root.child('users').child(auth.uid).child('ulb').val())))",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && (root.child('users').child(auth.uid).child('ulb').val() === '*' || (!newData.exists() && data.child('ulb').val() === root.child('users').child(auth.uid).child('ulb').val()) || (newData.child('ulb').val() === root.child('users').child(auth.uid).child('ulb').val() && (!data.exists() || data.child('ulb').val() === root.child('users').child(auth.uid).child('ulb').val())))",
         ".validate": "!newData.exists() || (newData.child('ulb').isString() && newData.child('ulb').val().length > 0 && newData.child('role').isString())"
       }
     },

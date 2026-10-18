@@ -59,10 +59,15 @@ const TOWNS_MAP: Record<string, TownData> = rekeyTowns(townsJson as unknown as R
 
 const GisPropertySurveyInner: React.FC = () => {
   // Active Survey Sub-Tab
-  const [activeTab, setActiveTab] = useState<'survey' | 'map-editor' | 'records' | 'assessment' | 'collection' | 'reports' | 'exports'>('survey');
-
   // Town & Surveyor Config
   const { role, displayName, ulb, isSuper } = useAuth();
+  // Each role lands on its own tab after login (not everyone on Survey)
+  const [activeTab, setActiveTab] = useState<'survey' | 'map-editor' | 'records' | 'assessment' | 'collection' | 'reports' | 'exports'>(
+    role === 'cashier' ? 'collection'
+    : role === 'assessor' ? 'assessment'
+    : role === 'monitor' ? 'reports'
+    : 'survey'
+  );
   // A ULB login is locked to its own town; only the platform owner ("*") can pick any ULB.
   const [selectedTownKey, setSelectedTownKey] = useState<string>(isSuper || !ulb ? townSlug('Bhota') : ulb);
   const [wardNo, setWardNo] = useState<string>('1');

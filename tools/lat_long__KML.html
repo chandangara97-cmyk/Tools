@@ -98,6 +98,10 @@ Supported:
             <option value="timestamp">Timestamp</option>
             <option value="none">No record</option>
           </select>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;">
+            <input type="checkbox" id="removeIds" style="width:auto;margin:0;">
+            Remove record IDs completely (file name + KML data)
+          </label>
         </div>
       </div>
 
@@ -240,6 +244,7 @@ async function convertNow(){
 
   const namingMode = el("naming").value;
   const recFallbackMode = el("recFallback").value;
+  const removeIds = el("removeIds").checked;
 
   const zip = new JSZip();
   let ok = 0, bad = 0;
@@ -262,20 +267,22 @@ async function convertNow(){
       continue;
     }
 
-    let rec = parsed.rec;
-    if(!rec){
+    let rec = removeIds ? "" : parsed.rec;
+    if(!rec && !removeIds){
       if(recFallbackMode === "line") rec = String(i+1);
       else if(recFallbackMode === "timestamp") rec = String(Date.now());
       else rec = ""; // none
     }
 
-    const fname = buildFileName(parsed.b, parsed.w, parsed.iv, parsed.rec, namingMode, rec || "");
+    const fname = removeIds
+      ? buildFileName(parsed.b, parsed.w, parsed.iv, "", namingMode, "none")
+      : buildFileName(parsed.b, parsed.w, parsed.iv, parsed.rec, namingMode, rec || "");
     const placemarkName = fname.replace(/\.kml$/i,"");
 
-    const kml = makeKml(placemarkName, coords, parsed.b, parsed.w, parsed.iv, parsed.rec || rec || "");
+    const kml = makeKml(placemarkName, coords, parsed.b, parsed.w, parsed.iv, removeIds ? "" : (parsed.rec || rec || ""));
     zip.file(fname, kml);
     ok++;
-    log.innerHTML += `<div class="ok">✅ ${escapeXml(fname)} (b=${parsed.b}, w=${parsed.w}, iv=${parsed.iv}${(parsed.rec||rec)?`, rec=${parsed.rec||rec}`:""})</div>`;
+    log.innerHTML += `<div class="ok">✅ ${escapeXml(fname)} (b=${parsed.b}, w=${parsed.w}, iv=${parsed.iv}${(!removeIds && (parsed.rec||rec))?`, rec=${parsed.rec||rec}`:""})</div>`;
   }
 
   if(ok === 0){
