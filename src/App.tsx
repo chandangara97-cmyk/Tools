@@ -37,7 +37,7 @@ export function App() {
     e.preventDefault();
     if (!searchTerm.trim()) { setSearchMessage(searchMode === 'owner' ? 'Enter an owner or structure name to search.' : 'Enter a property or ID number to search.'); return; }
     try { sessionStorage.setItem('schemeHubSearch', JSON.stringify({ mode: searchMode, query: searchTerm.trim() })); } catch { /* storage may be disabled */ }
-    setSearchMessage(`Search prepared for “${searchTerm.trim()}”. Open GIS Property Survey to view matching records.`);
+    setSearchMessage(`Found your search request for “${searchTerm.trim()}”. Matching property records will open side by side.`);
     setActiveView('gis-survey');
   };
   const activeModule = modules.find(m => m.id === activeView);

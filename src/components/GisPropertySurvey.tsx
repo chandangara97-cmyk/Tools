@@ -70,7 +70,7 @@ const GisPropertySurveyInner: React.FC = () => {
   const tabs = useMemo(() => allowedTabs(role, userHead, isSuper), [role, userHead, isSuper]);
   const [activeTab, setActiveTab] = useState<Tab | 'menu'>(() => {
     try {
-      if (sessionStorage.getItem('schemeHubSearch')) return 'search';
+      if (sessionStorage.getItem('schemeHubSearch')) return 'records';
       const launch = sessionStorage.getItem('schemeHubModule');
       if (launch === 'gis-survey') return 'survey';
       if (launch === 'property-tax' || launch === 'garbage' || launch === 'water' || launch === 'other-bills') return 'collection';
@@ -218,7 +218,17 @@ const GisPropertySurveyInner: React.FC = () => {
   const [formMsg, setFormMsg] = useState<{ type: 'ok' | 'err' | 'warn'; text: string } | null>(null);
 
   // Search in records
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('schemeHubSearch');
+      if (saved) {
+        const parsed = JSON.parse(saved) as { query?: string };
+        sessionStorage.removeItem('schemeHubSearch');
+        return String(parsed.query || '');
+      }
+    } catch { /* storage may be disabled or malformed */ }
+    return '';
+  });
 
   // Map Editor State
   const [editorMode, setEditorMode] = useState<'view' | 'draw' | 'edit-vertex'>('view');
@@ -1639,19 +1649,19 @@ const GisPropertySurveyInner: React.FC = () => {
             <div className="bg-[#181f3d] border border-[#28325c] rounded-xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
               <input
                 type="search"
-                placeholder="Search by owner name, house no, UPN or ID..."
+                placeholder="Search owner, structure/activity, property ID, UPN, house no or address..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full sm:w-96 bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg px-3.5 py-2.5 focus:border-[#9aa8ff]"
               />
               <div className="text-xs font-semibold text-[#aab4dc]">
-                Showing {records.filter(r => (r.id + r.owner + r.hno + (r.upn || '')).toLowerCase().includes(searchQuery.toLowerCase())).length} of {records.length} records
+                Showing {records.filter(r => ([r.id, r.owner, r.hno, r.upn || '', r.addr || '', r.act || '', r.town || '', r.ward || ''].join(' ')).toLowerCase().includes(searchQuery.trim().toLowerCase())).length} of {records.length} records
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {records
-                .filter(r => (r.id + r.owner + r.hno + (r.upn || '')).toLowerCase().includes(searchQuery.toLowerCase()))
+                .filter(r => ([r.id, r.owner, r.hno, r.upn || '', r.addr || '', r.act || '', r.town || '', r.ward || ''].join(' ')).toLowerCase().includes(searchQuery.trim().toLowerCase()))
                 .map((r) => (
                   <div key={r.id} className="bg-[#181f3d] border border-[#28325c] rounded-xl p-4 shadow-md space-y-3 flex flex-col justify-between">
                     <div>
@@ -1665,6 +1675,8 @@ const GisPropertySurveyInner: React.FC = () => {
                       <p className="text-xs text-[#aab4dc] mt-0.5">
                         House {r.hno} {r.addr ? `· ${r.addr}` : ''}
                       </p>
+                      {r.act && <p className="text-xs text-[#cbd5e1] mt-1">Structure / activity: {r.act}</p>}
+                      {r.upn && <p className="text-[11px] text-[#8790bd] mt-1 font-mono">UPN: {r.upn}</p>}
 
                       <div className="flex flex-wrap gap-1.5 mt-3">
                         <span className="text-[10px] bg-[#232c52] text-[#9aa8ff] px-2 py-0.5 rounded font-semibold">
