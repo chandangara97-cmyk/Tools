@@ -152,6 +152,38 @@ export async function generateDemands(
   return { created: todo.length, skippedExisting, noTax };
 }
 
+/**
+ * Demand from the town's fixed amounts (Residential / Commercial), for towns that fix the payable amount by hand
+ * instead of computing it from an assessment. One demand per property per year; existing ones are skipped.
+ */
+export async function generateFixedDemands(
+  town: string, fy: string, props: { id: string; use: string }[], rates: { residential: number | null; commercial: number | null },
+  ledgers: Record<string, LedgerEntry[]>,
+): Promise<{ created: number; skippedExisting: number; noRate: number }> {
+  const date = new Date();
+  const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const todo: { id: string; amt: number; use: string }[] = [];
+  let skippedExisting = 0, noRate = 0;
+  for (const p of props) {
+    const amt = p.use === 'Residential' ? rates.residential : p.use === 'Commercial' ? rates.commercial : null;
+    if (amt === null || !(amt > 0)) { noRate++; continue; }
+    if ((ledgers[p.id] || []).some((e) => e.id === `demand_${fy}`)) { skippedExisting++; continue; }
+    todo.push({ id: p.id, amt, use: p.use });
+  }
+  for (let i = 0; i < todo.length; i += 100) {
+    const updates: Record<string, unknown> = {};
+    for (const t of todo.slice(i, i + 100)) {
+      updates[`ledger/${town}/${t.id}/demand_${fy}`] = clean({
+        type: 'demand', fy, amount: t.amt, date: day, at: Date.now(), by: currentUid(), source: 'fixed',
+        note: `Fixed town amount (${t.use})`,
+      });
+    }
+    if (i + 100 >= todo.length) updates[`audit/${town}/${newKey(`audit/${town}`)}`] = auditEntry('demand', `Generated ${todo.length} fixed-amount demand(s) for ${fy}`);
+    await update(ref(db), updates);
+  }
+  return { created: todo.length, skippedExisting, noRate };
+}
+
 /** Extra demand (+) or reduction (-) on a year, e.g. after a re-assessment. */
 export function postAdjustment(town: string, propertyId: string, fy: string, amount: number, reason: string, date: string) {
   if (!reason.trim()) throw new Error('A reason is required.');

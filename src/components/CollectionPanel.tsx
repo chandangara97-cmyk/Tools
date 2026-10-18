@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { AlertTriangle, Printer, Download, Undo2, Receipt, Search, Landmark } from 'lucide-react';
 import type { PropertyRecord } from '../utils/gisUtils';
 import { triggerFileDownload } from '../utils/gisUtils';
-import { useAuth, canCollect, canManageLedger, canSeeAudit, canEditRates } from '../services/auth';
+import { useAuth, canCollect, canManageLedger, canSeeAudit, canEditRates, canSetPayableRates } from '../services/auth';
+import { PayableRates, fixedAmountFor, savePayableRates, usePayableRates, validateRates } from '../services/payableRates';
 import { financialYearOf } from '../services/assessment';
 import { useAssessments } from '../services/assessmentStore';
 import {
@@ -10,7 +11,7 @@ import {
   todayIso, validateSettings, dueDateOf,
 } from '../services/collection';
 import {
-  generateDemands, postAdjustment, postPayment, reverseEntries, saveCollectionSettings, useAudit, useLedgers,
+  generateDemands, generateFixedDemands, postAdjustment, postPayment, reverseEntries, saveCollectionSettings, useAudit, useLedgers,
 } from '../services/collectionStore';
 
 interface Props {
@@ -62,6 +63,7 @@ export function printHtml(html: string) {
 export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, settings, settingsSaved }) => {
   const { role, displayName } = useAuth();
   const ledgers = useLedgers(townKey);
+  const { rates } = usePayableRates(townKey);
   const audit = useAudit(townKey, canSeeAudit(role));
   const today = todayIso();
   const thisFy = financialYearOf(new Date());
@@ -72,7 +74,7 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [collectionPage, setCollectionPage] = useState<'overview' | 'properties' | 'settings' | 'audit'>('overview');
+  const [collectionPage, setCollectionPage] = useState<'overview' | 'properties' | 'settings' | 'rates' | 'audit'>('overview');
 
   const townRecords = useMemo(() => records.filter((r) => r.town === townName), [records, townName]);
   const rows = useMemo(() => townRecords.map((r) => {
@@ -111,6 +113,16 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
     });
   };
 
+  const fixedTargets = useMemo(() => townRecords.filter((r) => (fixedAmountFor(rates, r.use) ?? 0) > 0), [townRecords, rates]);
+  const fixedPending = fixedTargets.filter((r) => !(ledgers[r.id] || []).some((e) => e.id === `demand_${fy}`)).length;
+  const generateFixed = () => {
+    if (!window.confirm(`Generate demand for ${fy} from the fixed amounts (Residential ${rates.residential === null ? 'not set' : money(rates.residential)}, Commercial ${rates.commercial === null ? 'not set' : money(rates.commercial)}) for ${fixedPending} propert${fixedPending === 1 ? 'y' : 'ies'}?\n\nA demand cannot be edited afterwards, only adjusted or reversed.`)) return;
+    void run('Fixed-amount demand', async () => {
+      const r = await generateFixedDemands(townKey, fy, townRecords.map((x) => ({ id: x.id, use: x.use })), rates, ledgers);
+      return `${r.created} created, ${r.skippedExisting} already had one, ${r.noRate} skipped (not Residential/Commercial or no amount set).`;
+    });
+  };
+
   const list = useMemo(() => {
     const t = q.trim().toLowerCase();
     const f = rows.filter(({ r }) => !t || [r.id, r.owner, r.hno, r.ward].some((x) => String(x).toLowerCase().includes(t)));
@@ -146,8 +158,8 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
           <div><p className="text-[10px] uppercase tracking-[.22em] font-bold text-[#20b5a6]">Collection workspace</p><h2 className="text-lg font-extrabold text-white">Property tax collection</h2><p className="text-xs text-[#9fc7c1]">Each work area opens as its own page.</p></div>
           <span className="text-xs text-[#f7dfae] bg-[#d6a34b]/10 border border-[#d6a34b]/30 rounded-full px-3 py-1.5">{townName}</span>
         </div>
-        <nav className="grid grid-cols-2 md:grid-cols-4 gap-2" aria-label="Collection pages">
-          {([{id:'overview',n:'01',title:'Demand overview',sub:'Summary & generation'},{id:'properties',n:'02',title:'Properties & ledger',sub:'Search dues and record payment'},{id:'settings',n:'03',title:'Rules & settings',sub:'Due date, interest, rebate'},{id:'audit',n:'04',title:'Audit trail',sub:'Review recorded actions'}] as const).map((item) => (
+        <nav className="grid grid-cols-2 md:grid-cols-5 gap-2" aria-label="Collection pages">
+          {([{id:'overview',n:'01',title:'Demand overview',sub:'Summary & generation'},{id:'properties',n:'02',title:'Properties & ledger',sub:'Search dues and record payment'},{id:'settings',n:'03',title:'Rules & settings',sub:'Due date, interest, rebate'},...(canSetPayableRates(role) ? [{id:'rates',n:'04',title:'Fixed amounts',sub:'Residential & commercial'} as const] : []),{id:'audit',n:canSetPayableRates(role) ? '05' : '04',title:'Audit trail',sub:'Review recorded actions'}] as const).map((item) => (
             <button key={item.id} type="button" onClick={() => setCollectionPage(item.id)} className={`text-left rounded-xl border p-3 transition-all ${collectionPage === item.id ? 'bg-[#0e8a7d] border-[#20b5a6] shadow-lg shadow-black/20' : 'bg-[#091a1f]/70 border-[#23534d] hover:border-[#20b5a6]/70 hover:bg-[#12343a]'}`}>
               <span className={`text-[10px] font-black tracking-widest ${collectionPage === item.id ? 'text-[#f7dfae]' : 'text-[#20b5a6]'}`}>{item.n}</span><span className="block text-xs font-bold text-white mt-1">{item.title}</span><span className="block text-[10px] text-[#c5d8df] mt-1">{item.sub}</span>
             </button>
@@ -175,6 +187,11 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
               Generate demand for {fy}
             </button>
           )}
+          {canManageLedger(role) && (
+            <button type="button" disabled={busy || fixedPending === 0} onClick={generateFixed} className={`${btn} bg-[#d6a34b] text-[#2b1d00]`}>
+              Generate demand from fixed amounts ({fixedPending})
+            </button>
+          )}
           <button type="button" onClick={exportLedger} disabled={!rows.some(({ led }) => led.rows.length)} className={`${btn} bg-[#142831] text-[#9fc7c1] border border-[#23534d]`}>
             <Download className="w-3.5 h-3.5" /> Ledger summary (CSV)
           </button>
@@ -190,20 +207,21 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead className="text-[#9fc7c1] border-b border-[#1d434c]">
-              <tr><th className="p-2">Property</th><th className="p-2">Ward</th><th className="p-2 text-right">Tax due</th><th className="p-2 text-right">Interest</th><th className="p-2 text-right">Total</th><th className="p-2"></th></tr>
+              <tr><th className="p-2">Property</th><th className="p-2">Ward</th><th className="p-2 text-right">Fixed amount</th><th className="p-2 text-right">Tax due</th><th className="p-2 text-right">Interest</th><th className="p-2 text-right">Total</th><th className="p-2"></th></tr>
             </thead>
             <tbody>
               {list.map(({ r, led }) => (
                 <tr key={r.id} className={`border-b border-[#14333b] text-white ${sel === r.id ? 'bg-[#142831]' : ''}`}>
                   <td className="p-2 font-mono">{r.id}<div className="text-[10px] text-[#9fc7c1] font-sans">{r.owner}</div></td>
                   <td className="p-2">{r.ward}</td>
+                  <td className="p-2 text-right text-[#f7dfae]">{fixedAmountFor(rates, r.use) === null ? '—' : money(fixedAmountFor(rates, r.use) as number)}<div className="text-[10px] text-[#9fc7c1]">{r.use}</div></td>
                   <td className="p-2 text-right">{money(led.principalDue)}</td>
                   <td className="p-2 text-right">{money(led.interestDue)}</td>
                   <td className="p-2 text-right font-bold">{money(led.totalDue)}</td>
                   <td className="p-2"><button type="button" className="text-[#20b5a6] font-bold" onClick={() => setSel(sel === r.id ? null : r.id)}>{sel === r.id ? 'Close' : 'Open'}</button></td>
                 </tr>
               ))}
-              {!list.length && <tr><td colSpan={6} className="p-4 text-center text-[#9fc7c1]">No matching properties.</td></tr>}
+              {!list.length && <tr><td colSpan={7} className="p-4 text-center text-[#9fc7c1]">No matching properties.</td></tr>}
             </tbody>
           </table>
           {rows.length > 100 && <p className="text-[10px] text-[#7fa6a0] mt-1">Showing the 100 highest dues. Search to find others.</p>}
@@ -214,7 +232,7 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
         <PropertyLedger
           key={selected.r.id}
           town={townName} townKey={townKey} rec={selected.r} entries={selected.entries} settings={settings}
-          busy={busy} run={run} role={role}
+          busy={busy} run={run} role={role} fixedAmount={fixedAmountFor(rates, selected.r.use)}
         />
       )}
 
@@ -226,6 +244,8 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
           {showSettings && <SettingsEditor key={JSON.stringify(settings)} initial={settings} busy={busy} onSave={(s) => void run('Collection rules saved', async () => { await saveCollectionSettings(townKey, s); setShowSettings(false); })} />}
         </div>
       )}
+
+      {collectionPage === 'rates' && canSetPayableRates(role) && <RateFiller key={`${rates.residential}-${rates.commercial}`} townName={townName} initial={rates} busy={busy} onSave={(r) => void run('Fixed amounts saved', async () => { await savePayableRates(townKey, r, rates); })} />}
 
       {collectionPage === 'audit' && canSeeAudit(role) && (
         <div className={card}>
@@ -247,7 +267,8 @@ export const CollectionPanel: React.FC<Props> = ({ townKey, townName, records, s
 const PropertyLedger: React.FC<{
   town: string; townKey: string; rec: PropertyRecord; entries: LedgerEntry[]; settings: CollectionSettings;
   busy: boolean; run: (label: string, work: () => Promise<string | void>) => Promise<void>; role: ReturnType<typeof useAuth>['role'];
-}> = ({ town, townKey, rec, entries, settings, busy, run, role }) => {
+  fixedAmount: number | null;
+}> = ({ town, townKey, rec, entries, settings, busy, run, role, fixedAmount }) => {
   const today = todayIso();
   const led = useMemo(() => computeLedger(entries, settings, today), [entries, settings, today]);
   const [amount, setAmount] = useState('');
@@ -364,6 +385,7 @@ const PropertyLedger: React.FC<{
             </label>
           )}
           <div className="flex flex-wrap items-center gap-2">
+            {fixedAmount !== null && <button type="button" onClick={() => setAmount(String(Math.min(fixedAmount, ledAt.totalDue)))} className={`${btn} bg-[#d6a34b] text-[#2b1d00]`}>Fill fixed amount ({money(fixedAmount)} {rec.use})</button>}
             <button type="button" onClick={fillFull} className={`${btn} bg-[#142831] text-[#9fc7c1] border border-[#23534d]`}>Fill full amount</button>
             <button type="button" disabled={busy || !preview?.ok} onClick={() => void submit()} className={`${btn} bg-[#0e8a7d] text-white`}>Record payment</button>
           </div>
@@ -430,6 +452,33 @@ const PropertyLedger: React.FC<{
 };
 
 // ---------------------------------------------------------------------------
+const RateFiller: React.FC<{ townName: string; initial: PayableRates; busy: boolean; onSave: (r: { residential: number | null; commercial: number | null }) => void }> = ({ townName, initial, busy, onSave }) => {
+  const [res, setRes] = useState(initial.residential === null ? '' : String(initial.residential));
+  const [com, setCom] = useState(initial.commercial === null ? '' : String(initial.commercial));
+  const [err, setErr] = useState('');
+  const toNum = (v: string) => (v.trim() === '' ? null : Number(v));
+  const save = () => {
+    const r = { residential: toNum(res), commercial: toNum(com) };
+    const e = validateRates(r);
+    if (e) { setErr(e); return; }
+    if (!window.confirm(`Save fixed amounts for ${townName}?\n\nResidential: ${r.residential === null ? 'not set' : money(r.residential)}\nCommercial: ${r.commercial === null ? 'not set' : money(r.commercial)}\n\nDemands already raised are not changed.`)) return;
+    setErr(''); onSave(r);
+  };
+  return (
+    <div className={`${card} space-y-3`}>
+      <h3 className="text-sm font-bold text-[#20b5a6] uppercase tracking-wider">Fixed amounts payable · {townName}</h3>
+      <p className="text-[11px] text-[#9fc7c1]">Filled by hand for this urban body only. The cashier sees these amounts against each Residential and Commercial property. Other uses have no fixed amount.</p>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <label className="text-[11px] text-[#9fc7c1]">Residential (₹ per property per year)<input type="number" inputMode="decimal" min="0" step="0.01" value={res} onChange={(e) => setRes(e.target.value)} className={`${inp} w-full mt-1`} /></label>
+        <label className="text-[11px] text-[#9fc7c1]">Commercial (₹ per property per year)<input type="number" inputMode="decimal" min="0" step="0.01" value={com} onChange={(e) => setCom(e.target.value)} className={`${inp} w-full mt-1`} /></label>
+      </div>
+      {err && <p className="text-xs text-red-300">{err}</p>}
+      <button type="button" disabled={busy} onClick={save} className={`${btn} bg-[#0e8a7d] text-white`}>Save fixed amounts</button>
+      <p className="text-[11px] text-[#7fa6a0]">Changing these does not alter demands already generated; use an adjustment for those. Every change is written to the audit trail.</p>
+    </div>
+  );
+};
+
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 const SettingsEditor: React.FC<{ initial: CollectionSettings; busy: boolean; onSave: (s: CollectionSettings) => void }> = ({ initial, busy, onSave }) => {

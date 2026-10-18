@@ -35,6 +35,7 @@ export interface LedgerEntry {
   reverses?: string;     // reversal only: id of the cancelled entry
   reason?: string;       // reversal / adjustment: why
   rateTableId?: string;  // demand: which rate table produced the assessment
+  source?: 'fixed';      // demand: raised from the town's fixed Residential / Commercial amount
 }
 
 export interface CollectionSettings {

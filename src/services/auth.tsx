@@ -25,6 +25,8 @@ export const canAssess = (r: Role | null) => r === 'assessor' || r === 'admin';
 export const canApprove = (r: Role | null) => r === 'supervisor' || r === 'admin';
 /** Who may change the rate table. */
 export const canEditRates = (r: Role | null) => r === 'admin';
+/** Who may fill the town's fixed payable amounts (Residential / Commercial). Admin only; the database rules also tie it to the admin's own town. */
+export const canSetPayableRates = (r: Role | null) => r === 'admin';
 /** Who may take payments (create payment entries and receipts). */
 export const canCollect = (r: Role | null) => r === 'cashier' || r === 'admin';
 /** Who may generate demands, post adjustments and reverse ledger entries (kept apart from taking cash). */
