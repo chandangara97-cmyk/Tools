@@ -5,8 +5,8 @@ import { auth, db } from '../firebase';
 import { HeadId, HEAD_LIST } from './heads';
 
 /** surveyor = data collector, monitor = read-only view of the whole ULB. */
-export type Role = 'surveyor' | 'supervisor' | 'assessor' | 'cashier' | 'admin' | 'monitor';
-const ROLES: Role[] = ['surveyor', 'supervisor', 'assessor', 'cashier', 'admin', 'monitor'];
+export type Role = 'surveyor' | 'supervisor' | 'assessor' | 'cashier' | 'admin' | 'monitor' | 'citizen';
+const ROLES: Role[] = ['surveyor', 'supervisor', 'assessor', 'cashier', 'admin', 'monitor', 'citizen'];
 
 /** Every login belongs to ONE ULB (its town slug, e.g. "Bhota"). "*" = platform owner, sees all ULBs. */
 export const ALL_ULBS = '*';
@@ -30,6 +30,8 @@ export const canEditRates = (r: Role | null) => r === 'admin';
 export const canSetPayableRates = (r: Role | null) => r === 'admin';
 /** Who may take payments (create payment entries and receipts). */
 export const canCollect = (r: Role | null) => r === 'cashier' || r === 'admin';
+/** Citizen may only pay their own linked dues online (Razorpay), not staff collection. */
+export const canPayOnline = (r: Role | null) => r === 'citizen' || r === 'cashier' || r === 'admin';
 /** Who may generate demands, post adjustments and reverse ledger entries (kept apart from taking cash). */
 export const canManageLedger = (r: Role | null) => r === 'supervisor' || r === 'admin';
 /** Who may read the audit log. */

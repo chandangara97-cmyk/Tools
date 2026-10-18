@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { db } from '../firebase';
 
-export type HeadId = 'property_tax' | 'water' | 'garbage' | 'sewerage' | 'other';
+export type HeadId = 'property_tax' | 'water' | 'garbage' | 'sewerage' | 'electricity' | 'other';
 export const HEAD_LIST: { id: HeadId; label: string; short: string }[] = [
   { id: 'property_tax', label: 'Property tax', short: 'PT' },
   { id: 'water', label: 'Water', short: 'WTR' },
   { id: 'garbage', label: 'Garbage', short: 'GAR' },
   { id: 'sewerage', label: 'Sewerage', short: 'SWR' },
+  { id: 'electricity', label: 'Electricity', short: 'ELC' },
   { id: 'other', label: 'Other utilities', short: 'OTH' },
 ];
 export const headLabel = (h: HeadId) => HEAD_LIST.find((x) => x.id === h)?.label || h;

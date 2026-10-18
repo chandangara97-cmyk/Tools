@@ -8,21 +8,35 @@ export default {
     extend: {
       colors: {
         navy: {
-          900: '#0d1224',
-          800: '#0b2545',
-          700: '#102b4e',
-          600: '#173a67',
+          950: '#05080f',
+          900: '#080e1a',
+          800: '#121a2c',
+          700: '#1a2438',
+          600: '#243044',
         },
         teal: {
-          accent: '#4f46e5',
+          accent: '#5b8def',
           dark: '#072b27',
           light: '#9aa8ff',
         },
         gold: {
-          DEFAULT: '#f2b233',
-          soft: '#ffe3a3',
-        }
-      }
+          DEFAULT: '#e8b84a',
+          soft: '#f7df9a',
+          dim: 'rgba(226,176,74,0.15)',
+        },
+      },
+      fontFamily: {
+        sans: ['Outfit', 'Public Sans', 'system-ui', 'sans-serif'],
+        serif: ['Instrument Serif', 'Zilla Slab', 'Georgia', 'serif'],
+      },
+      boxShadow: {
+        glass: '0 8px 32px rgba(0,0,0,0.3)',
+        'glass-lg': '0 24px 64px rgba(0,0,0,0.45)',
+      },
+      borderRadius: {
+        '2xl': '1rem',
+        '3xl': '1.25rem',
+      },
     },
   },
   plugins: [],

@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Property Tax - ULB &amp; User Admin</title>
 <style>
-  :root { --bg:#0d1224; --card:#181f3d; --line:#2f3a6b; --text:#eef0fb; --mute:#aab4dc; --accent:#4f46e5; --bad:#ff6b6f; --ok:#34d399; }
+  :root { --bg:#070b14; --card:#121a2c; --line:rgba(255,255,255,.09); --text:#eef2fb; --mute:#8b97b0; --accent:#e2b04a; --bad:#ff6b6f; --ok:#34d399; }
   * { box-sizing: border-box; }
-  body { margin:0; font-family: 'Public Sans', system-ui, sans-serif; background:var(--bg); color:var(--text); }
+  body { margin:0; font-family: 'Outfit', system-ui, sans-serif; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; background-image: radial-gradient(ellipse 70% 40% at 20% -5%, rgba(91,141,239,.1), transparent 50%), radial-gradient(ellipse 50% 30% at 90% 5%, rgba(226,176,74,.06), transparent 45%); background-attachment: fixed; }
   .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
   h1 { font-size: 20px; margin: 8px 0 4px; }
   .sub { color: var(--mute); font-size: 13px; margin-bottom: 16px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .card { background: rgba(18,26,44,.78); border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-bottom: 16px; backdrop-filter: blur(12px); box-shadow: 0 8px 28px rgba(0,0,0,.25); }
   label { display:block; font-size: 13px; color: var(--mute); margin: 10px 0 4px; }
-  input, select { width:100%; padding: 11px; border-radius: 8px; border:1px solid var(--line); background:#0a0e1c; color:var(--text); font-size: 15px; }
-  button { padding: 11px 16px; border:0; border-radius: 8px; background: var(--accent); color:#fff; font-size: 15px; font-weight: 600; cursor:pointer; margin-top: 14px; }
+  input, select { width:100%; padding: 11px 13px; border-radius: 10px; border:1px solid var(--line); background:#0f1628; color:var(--text); font-size: 15px; outline:none; transition: border-color .15s, box-shadow .15s; } input:focus, select:focus { border-color: rgba(226,176,74,.45); box-shadow: 0 0 0 3px rgba(226,176,74,.12); }
+  button { padding: 11px 16px; border:1px solid rgba(226,176,74,.35); border-radius: 10px; background: linear-gradient(180deg,rgba(226,176,74,.25),rgba(226,176,74,.1)); color:#f5d98a; font-size: 14.5px; font-weight: 600; cursor:pointer; margin-top: 14px; transition: transform .15s; } button:hover { transform: translateY(-1px); }
   button:disabled { opacity:.5; }
   button.ghost { background: transparent; border:1px solid var(--line); color: var(--mute); }
   button.small { padding: 6px 10px; font-size: 13px; margin: 0; }
@@ -28,7 +28,7 @@
   .who span { font-size: 12px; color: var(--mute); word-break: break-all; }
   .row select { width: auto; padding: 7px; font-size: 14px; }
   .hidden { display:none; }
-  .grp { margin: 14px 0 2px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #9aa8ff; font-weight: 700; }
+  .grp { margin: 14px 0 2px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #f5d98a; font-weight: 700; }
   .tag { display:inline-block; font-size: 11px; padding: 2px 7px; border-radius: 999px; border:1px solid var(--line); color: var(--mute); margin-left: 6px; }
   table { width:100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
   th, td { text-align:left; padding: 6px 4px; border-top: 1px solid var(--line); word-break: break-all; }
@@ -37,7 +37,7 @@
   .chk label { display:flex; align-items:center; gap:6px; margin:0; color: var(--text); }
   .chk input { width:auto; }
   .ind { padding-left: 22px; }
-  code { background:#0a0e1c; padding: 2px 6px; border-radius: 4px; font-size: 12px; word-break: break-all; }
+  code { background:#0f1628; padding: 2px 6px; border-radius: 4px; font-size: 12px; word-break: break-all; }
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&family=Zilla+Slab:wght@600;700&display=swap">
 <style>h1,h2,b{font-family:'Zilla Slab',Rockwell,Georgia,serif}</style>

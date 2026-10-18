@@ -4,71 +4,170 @@
 
 :root {
   color-scheme: dark;
-  --ink: #0d1224;
-  --slip: #181f3d;
-  --rule: #2f3a6b;
-  --stamp: #f2b233;
+  --ink: #05080f;
+  --slip: #0e1524;
+  --rule: #1e2a44;
+  --stamp: #e8b84a;
   --due: #ff6b6f;
   --paid: #34d399;
+  --gold: #e8b84a;
+  --gold-soft: #f7df9a;
+  --gold-glow: rgba(232, 184, 74, 0.18);
+  --muted: #7d8ba3;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.13);
+  --surface: rgba(14, 21, 36, 0.78);
+  --surface-solid: #0e1524;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: #0d1224;
-  color: #eef0fb;
-  font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background-color: #05080f;
+  background-image:
+    radial-gradient(ellipse 90% 55% at 12% -8%, rgba(99, 130, 255, 0.13), transparent 52%),
+    radial-gradient(ellipse 70% 45% at 92% 0%, rgba(232, 184, 74, 0.09), transparent 48%),
+    radial-gradient(ellipse 55% 35% at 50% 105%, rgba(140, 100, 255, 0.06), transparent 42%),
+    linear-gradient(180deg, #05080f 0%, #070b14 100%);
+  background-attachment: fixed;
+  color: #eef2fb;
+  font-family: 'Outfit', 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.011em;
 }
 
-/* Headings are set like a receipt book: slab serif. Numbers line up in columns. */
+/* Display type — editorial serif */
 h1, h2, h3, .slab {
-  font-family: 'Zilla Slab', Rockwell, 'Roboto Slab', Georgia, serif;
-  letter-spacing: -0.005em;
+  font-family: 'Instrument Serif', 'Zilla Slab', Rockwell, Georgia, serif;
+  letter-spacing: -0.025em;
+  font-weight: 400;
+  text-wrap: balance;
 }
 .num, td, th, b, input, select { font-variant-numeric: tabular-nums; }
 
-/* A stub: the card every menu choice is drawn on. The left edge is perforated like a torn receipt. */
+/* Premium perforated stub cards */
 .stub {
   position: relative;
-  border-radius: 6px 14px 14px 6px;
-  padding-left: 1.6rem !important;
-  background-image: radial-gradient(circle at 0.55rem center, #0d1224 0 4px, transparent 4.5px);
-  background-size: 1.1rem 1.1rem;
+  border-radius: 8px 18px 18px 8px;
+  padding-left: 1.7rem !important;
+  background-image: radial-gradient(circle at 0.58rem center, #05080f 0 4.5px, transparent 5px);
+  background-size: 1.15rem 1.15rem;
   background-repeat: repeat-y;
   background-position: 0 0;
+  border: 1px solid var(--line);
+  background-color: var(--surface);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 4px 24px rgba(0, 0, 0, 0.28),
+    0 12px 40px rgba(0, 0, 0, 0.12);
+  transition:
+    border-color 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.stub:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-3px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    0 24px 64px rgba(0, 0, 0, 0.2);
 }
 .stub::after {
   content: '';
-  position: absolute; top: 8px; bottom: 8px; left: 1.1rem;
-  border-left: 2px dashed rgba(154, 168, 255, .35);
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 1.15rem;
+  border-left: 1.5px dashed rgba(232, 184, 74, 0.32);
   pointer-events: none;
 }
 
-/* The one loud thing: the total liability, struck like a rubber stamp. */
+/* Rubber-stamp totals */
 .stamp {
   display: inline-block;
-  border: 3px solid var(--due);
+  border: 2.5px solid var(--due);
   color: var(--due);
-  border-radius: 10px;
-  padding: .25rem .9rem;
+  border-radius: 8px;
+  padding: 0.28rem 0.95rem;
   transform: rotate(-1.5deg);
-  font-family: 'Zilla Slab', Rockwell, Georgia, serif;
+  font-family: 'Instrument Serif', 'Zilla Slab', Georgia, serif;
   font-weight: 700;
   line-height: 1.1;
-  box-shadow: inset 0 0 0 2px rgba(255, 107, 111, .25);
+  letter-spacing: 0.02em;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 107, 111, 0.2);
 }
-.stamp.clear { border-color: var(--paid); color: var(--paid); box-shadow: inset 0 0 0 2px rgba(52, 211, 153, .25); }
+.stamp.clear {
+  border-color: var(--paid);
+  color: var(--paid);
+  box-shadow: inset 0 0 0 1.5px rgba(52, 211, 153, 0.2);
+}
 
-:focus-visible { outline: 3px solid #ffe3a3; outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+/* Ultra glass surface */
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 8px 32px rgba(0, 0, 0, 0.32),
+    0 20px 48px rgba(0, 0, 0, 0.12);
+}
 
-/* Custom scrollbars */
-::-webkit-scrollbar { width: 7px; height: 7px; }
-::-webkit-scrollbar-track { background: #0a0e1c; }
-::-webkit-scrollbar-thumb { background: #2a3464; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #9aa8ff; }
+/* Premium button */
+.btn-gold {
+  background: linear-gradient(165deg, rgba(247, 223, 154, 0.28) 0%, rgba(232, 184, 74, 0.12) 100%);
+  border: 1px solid rgba(232, 184, 74, 0.4);
+  color: #f7df9a;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.btn-gold:hover {
+  background: linear-gradient(165deg, rgba(247, 223, 154, 0.38) 0%, rgba(232, 184, 74, 0.18) 100%);
+  box-shadow: 0 6px 24px rgba(232, 184, 74, 0.2);
+  transform: translateY(-1px);
+}
+.btn-gold:active {
+  transform: translateY(0);
+}
+
+:focus-visible {
+  outline: 2px solid #e8b84a;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Refined scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(42, 52, 100, 0.7);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(232, 184, 74, 0.55); }
+
+::selection {
+  background: rgba(232, 184, 74, 0.28);
+  color: #fff;
+}
 
 @media print {
-  body { background-color: #fff !important; color: #000 !important; }
+  body {
+    background-color: #fff !important;
+    background-image: none !important;
+    color: #000 !important;
+  }
 }

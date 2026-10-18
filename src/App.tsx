@@ -16,7 +16,8 @@ export function App() {
   const view = showTools ? activeView : 'gis-survey';
 
   return (
-    <div className="min-h-screen bg-[#0d1224] text-[#eef0fb] font-sans antialiased selection:bg-[#4f46e5] selection:text-white">
+    <div className="min-h-screen bg-[#05080f] text-[#eef2fb] font-sans antialiased selection:bg-[#e8b84a]/28 selection:text-white">
+
       <Navbar
         activeView={view}
         setActiveView={setActiveView}

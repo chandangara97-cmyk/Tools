@@ -1,25 +1,29 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GIS Property Survey Tool</title>
+<title>GIS Property Survey · Scheme Hub</title>
+<meta name="theme-color" content="#0a1220">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3f7f6;--card:#fff;--ink:#14232c;--mut:#5b6b77;--line:#d5e3e0;--acc:#0e8a7d;--nav:#0b2a3c;--gold:#e3a72f;--bad:#b91c1c;--warn:#b45309}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1a21;--card:#14262f;--ink:#e6f0ee;--mut:#9db3b0;--line:#25404a;--acc:#27b3a3;--nav:#07161d}}
-:root[data-theme="dark"]{--bg:#0d1a21;--card:#14262f;--ink:#e6f0ee;--mut:#9db3b0;--line:#25404a;--acc:#27b3a3;--nav:#07161d}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f0f4f8;--card:#fff;--ink:#0f1c2a;--mut:#5a6b7d;--line:#d8e2ec;--acc:#0d7377;--nav:#0a1628;--gold:#d4a017;--bad:#b91c1c;--warn:#b45309}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#070b14;--card:#121a2c;--ink:#eef2fb;--mut:#8b97b0;--line:#243044;--acc:#2dd4bf;--nav:#0a1220}}
+:root[data-theme="dark"]{--bg:#070b14;--card:#121a2c;--ink:#eef2fb;--mut:#8b97b0;--line:#243044;--acc:#2dd4bf;--nav:#0a1220}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{background:var(--nav);color:#fff;padding:14px 16px 10px}
-header h1{margin:0;font-size:18px}header small{color:#9fc7c1}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 'Outfit',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+header{background:linear-gradient(135deg,#0a1628 0%,#12243f 100%);color:#fff;padding:16px 18px 12px;border-bottom:2px solid var(--gold)}
+header h1{margin:0;font-size:19px;font-weight:650;letter-spacing:-.02em}header small{color:#9fc7c1}
 nav{display:flex;background:var(--nav);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
 nav button{flex:1;background:none;border:0;border-bottom:3px solid transparent;color:#9fc7c1;padding:11px 4px;font:600 14px inherit;cursor:pointer}
 nav button.on{color:#fff;border-color:var(--gold)}
-main{max-width:720px;margin:0 auto;padding:12px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+main{max-width:760px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.04)}
 h2{font-size:15px;margin:0 0 8px;color:var(--acc)}
 label{display:block;font-size:12px;color:var(--mut);margin:8px 0 3px}
-input,select,textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;transition:border-color .15s}input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
 .r2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-button.b{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:10px 14px;font:600 14px inherit;cursor:pointer}
+button.b{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:11px 16px;font:600 14px inherit;cursor:pointer;transition:opacity .15s}button.b:hover{opacity:.9}
 button.g{background:none;color:var(--acc);border:1px solid var(--acc)}button.d{background:var(--bad)}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .pill{display:inline-block;background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:2px 9px;font-size:12px;margin:2px 4px 0 0}
