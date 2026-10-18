@@ -3,6 +3,7 @@ import { searchRecords, sameOwner, norm, compact } from '../src/services/propert
 import { propertyLiability, rulesApproved, LedgersByHead } from '../src/services/liabilityCalc';
 import { computeLedger, placeholderSettings, isMonthKey, periodLabel, periodStart, dueDateOf, monthKeys, LedgerEntry, CollectionSettings } from '../src/services/collection';
 import { HeadId } from '../src/services/heads';
+import { startTab, allowedTabs } from '../src/services/access';
 
 let passed = 0; let failed = 0;
 function test(name: string, fn: () => void) {
@@ -107,6 +108,15 @@ test('liability: head with missing settings falls back safely', () => {
 test('rules: interest counts only when approved and a rate is set', () => {
   eq([rulesApproved(S), rulesApproved(placeholderSettings()), rulesApproved({ ...S, interestPctPerMonth: null }), rulesApproved(undefined)], [true, false, false, false]);
 });
+
+test('landing: a cashier opens straight on the property search box', () => eq(startTab('cashier', null, false), 'search'));
+test('landing: a cashier tied to one head also lands on search', () => eq(startTab('cashier', 'water', false), 'search'));
+test('landing: other roles keep their usual start', () => {
+  eq(startTab('surveyor', null, false), 'menu'); eq(startTab('admin', null, false), 'menu'); eq(startTab('monitor', null, false), 'menu');
+  eq(startTab('supervisor', null, false), 'menu'); eq(startTab('assessor', null, false), 'menu'); eq(startTab(null, null, false), 'menu');
+});
+test('landing: the owner is never forced to the search page', () => eq(startTab('cashier', null, true), 'menu'));
+test('landing: a cashier can still reach the bill pages from the menu', () => eq(allowedTabs('cashier', null, false), ['search', 'collection']));
 
 console.log(`\n${passed} tests passed${failed ? `, ${failed} FAILED` : ''}`);
 process.exit(failed ? 1 : 0);

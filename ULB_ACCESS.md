@@ -35,7 +35,7 @@ After sign-in the app opens on a menu with big buttons, showing only what that l
 
 | Login | Menu |
 |---|---|
-| Cashier | Search dues, then one button per bill head of the ULB (Property tax, Water, Garbage, Sewerage, Other) |
+| Cashier | Opens straight on the full-page property search box. The Menu button leads to one button per bill head of the ULB (Property tax, Water, Garbage, Sewerage, Other) |
 | Supervisor tied to one head (e.g. `_SUP_GAR`) | Search dues and that head only |
 | Supervisor without a head (`_APR`, `_LDG`) | Search dues, all bill heads, survey, records, assessment, reports, ward map, exports |
 | Data collector | Property survey, Property records |

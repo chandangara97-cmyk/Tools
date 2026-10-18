@@ -31,3 +31,11 @@ export function allowedHeads(role: Role | null, head: HeadId | null, isSuper: bo
   if (!isSuper && role === 'supervisor' && head) return [head];
   return townHeads;
 }
+
+/** The page a login lands on right after signing in. A cashier starts on the property search box. */
+export function startTab(role: Role | null, head: HeadId | null, isSuper: boolean): Tab | 'menu' {
+  const t = allowedTabs(role, head, isSuper);
+  if (!isSuper && role === 'cashier' && t.includes('search')) return 'search';
+  if (t.length !== 1) return 'menu';
+  return t[0] !== 'collection' || (!isSuper && role === 'supervisor' && head) ? t[0] : 'menu';
+}

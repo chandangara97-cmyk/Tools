@@ -12,7 +12,7 @@ import { ReportsPanel } from './ReportsPanel';
 import { WorkMenu, BILL_NAME, Choice } from './WorkMenu';
 import { LiabilitySearch } from './LiabilitySearch';
 import { ErrorBoundary } from './ErrorBoundary';
-import { allowedTabs, allowedHeads, Tab } from '../services/access';
+import { allowedTabs, allowedHeads, startTab, Tab } from '../services/access';
 import { HeadId, useTownHeads } from '../services/heads';
 import { rekeyTowns, townSlug } from '../services/townPath';
 import { useRateTable } from '../services/assessmentStore';
@@ -69,11 +69,7 @@ const GisPropertySurveyInner: React.FC = () => {
   const { role, displayName, ulb, isSuper, head: userHead } = useAuth();
   // Every login opens on a menu that lists only what it may do. One-option logins go straight in.
   const tabs = useMemo(() => allowedTabs(role, userHead, isSuper), [role, userHead, isSuper]);
-  const [activeTab, setActiveTab] = useState<Tab | 'menu'>(() => {
-    const t = allowedTabs(role, userHead, isSuper);
-    if (t.length !== 1) return 'menu';
-    return t[0] !== 'collection' || (!isSuper && role === 'supervisor' && userHead) ? t[0] : 'menu';
-  });
+  const [activeTab, setActiveTab] = useState<Tab | 'menu'>(() => startTab(role, userHead, isSuper));
   const [billHead, setBillHead] = useState<HeadId | null>(() => (!isSuper && role === 'supervisor' && userHead && userHead !== 'property_tax' ? userHead : null));
   // A ULB login is locked to its own town; only the platform owner ("*") can pick any ULB.
   const [selectedTownKey, setSelectedTownKey] = useState<string>(isSuper || !ulb ? townSlug('Bhota') : ulb);
