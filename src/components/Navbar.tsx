@@ -9,9 +9,11 @@ interface NavbarProps {
   onOpenAndroidModal: () => void;
   /** Field tools and the admin page are only for the platform owner and ULB admins. */
   showTools: boolean;
+  /** Cashier / general public: brand and Sign out only. */
+  minimal?: boolean;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView, onOpenAndroidModal, showTools }) => {
+export const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView, onOpenAndroidModal, showTools, minimal = false }) => {
   const { isInstallable } = usePWAInstall();
   const { signOut } = useAuth();
   return (
@@ -39,11 +41,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView, onOpe
               </a>
             </>
           )}
-          <button onClick={onOpenAndroidModal} className="text-[#10b981] bg-[#10b981]/15 text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5" title="Install Android app">
+          {!minimal && <button onClick={onOpenAndroidModal} className="text-[#10b981] bg-[#10b981]/15 text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5" title="Install Android app">
             <Smartphone className="w-4 h-4" />
             <span className="hidden sm:inline">Android app</span>
             {isInstallable && <span className="w-2 h-2 rounded-full bg-white animate-ping" />}
-          </button>
+          </button>}
           <button onClick={() => void signOut()} className="text-xs font-bold px-3 py-2 rounded-lg text-[#ffcf8a] hover:bg-white/10 flex items-center gap-1.5">
             <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Sign out</span>
           </button>

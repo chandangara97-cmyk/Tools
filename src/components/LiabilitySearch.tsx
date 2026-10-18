@@ -10,13 +10,13 @@ import { BILL_NAME } from './WorkMenu';
 import { money } from './CollectionPanel';
 import { BillMaker } from './BillMaker';
 
-interface Props { townKey: string; townName: string; records: PropertyRecord[]; heads: HeadId[] }
+interface Props { townKey: string; townName: string; records: PropertyRecord[]; heads: HeadId[]; /** Cashier / general public: the box fills the screen and is the only thing on it. */ fullScreen?: boolean }
 
 const none = (n: number) => n <= 0.004;
 const tone = (l: PropertyLiability) => (!l.heads.length ? 'text-[#8790bd]' : none(l.total) ? 'text-[#34d399]' : 'text-[#ff6b6f]');
 
 /** One box: type a property ID or owner. The slip shows what is owed on the property and by its owner. */
-export const LiabilitySearch: React.FC<Props> = ({ townKey, townName, records, heads }) => {
+export const LiabilitySearch: React.FC<Props> = ({ townKey, townName, records, heads, fullScreen = false }) => {
   const { role } = useAuth();
   const { ledgers, status } = useAllLedgers(townKey);
   const { settings, ready: settingsReady } = useAllSettings(townKey);
@@ -52,14 +52,22 @@ export const LiabilitySearch: React.FC<Props> = ({ townKey, townName, records, h
     </span>
   );
 
+  const idle = fullScreen && !q.trim();
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
+    <div className={fullScreen ? `min-h-[calc(100vh-3.5rem)] w-full px-4 sm:px-10 py-6 flex flex-col ${idle ? 'justify-center' : ''}` : ''}>
+    <div className={`${fullScreen ? 'w-full max-w-4xl mx-auto' : 'max-w-2xl mx-auto'} space-y-4`}>
+      {idle && (
+        <div className="text-center mb-2">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white">Property dues</h1>
+          <p className="text-sm text-[#aab4dc] mt-1">{townName}</p>
+        </div>
+      )}
       <div className="relative">
         <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[#9aa8ff] pointer-events-none" />
         <input
           autoFocus value={q} onChange={(e) => search(e.target.value)} inputMode="search" autoComplete="off" spellCheck={false}
           placeholder="Property ID or owner name" aria-label="Property ID or owner name"
-          className="w-full h-14 pl-12 pr-12 rounded-2xl bg-[#181f3d] border-2 border-[#2f3a6b] focus:border-[#9aa8ff] outline-none text-lg text-white placeholder:text-[#8790bd]"
+          className={`w-full ${fullScreen ? 'h-16 text-base sm:text-xl' : 'h-14 text-lg'} pl-12 pr-12 rounded-2xl bg-[#181f3d] border-2 border-[#2f3a6b] focus:border-[#9aa8ff] outline-none text-white placeholder:text-[#8790bd]`}
         />
         {q && <button type="button" aria-label="Clear" onClick={() => search('')} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 grid place-items-center text-[#aab4dc]"><X className="w-5 h-5" /></button>}
       </div>
@@ -162,6 +170,7 @@ export const LiabilitySearch: React.FC<Props> = ({ townKey, townName, records, h
           )}
         </div>
       )}
+    </div>
     </div>
   );
 };

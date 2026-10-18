@@ -12,7 +12,7 @@ npm run build               # expect: built, no errors
 2. Authentication > Users > add every staff member. Copy each **UID**.
 3. Realtime Database > Data > add for each user:
    `users/<UID>/role` and `users/<UID>/name`
-   Roles: `admin` (you, first), `surveyor`, `assessor`, `supervisor`, `cashier`.
+   Roles: `admin` (you, first), `surveyor`, `assessor`, `supervisor`, `cashier`, `public` (general public). `cashier` and `public` open on a full-screen search box and nothing else.
    Keep duties apart: assessor drafts, supervisor approves and reverses, cashier takes cash.
 4. Only now deploy the rules (before step 3 nobody can read anything):
    `firebase deploy --only database`

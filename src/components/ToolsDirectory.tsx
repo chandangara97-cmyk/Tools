@@ -111,7 +111,7 @@ export const ToolsDirectory: React.FC<ToolsDirectoryProps> = ({ onSelectTool }) 
             <div
               key={tool.id}
               className={`bg-[#181f3d] border rounded-2xl p-5 shadow-lg flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-2xl ${
-                isFeatured ? 'border-[#9aa8ff]/60 bg-gradient-to-b from-[#11313a] to-[#181f3d]' : 'border-[#28325c]'
+                isFeatured ? 'border-[#9aa8ff]/60 bg-gradient-to-b from-[#1d2547] to-[#181f3d]' : 'border-[#28325c]'
               }`}
             >
               <div>

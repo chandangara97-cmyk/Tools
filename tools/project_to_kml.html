@@ -13,12 +13,12 @@
 
 <style>
 :root{
-  --bg:#020617;
-  --panel:#0b1222;
-  --card:#0f172a;
-  --border:#22304a;
-  --accent:#38bdf8;
-  --green:#10b981;
+  --bg:#0d1224;
+  --panel:#121830;
+  --card:#181f3d;
+  --border:#2f3a6b;
+  --accent:#9aa8ff;
+  --green:#4f46e5;
   --red:#fb7185;
   --text:#e5e7eb;
   --muted:#94a3b8;
@@ -29,8 +29,8 @@ body{
   font-family:system-ui,Segoe UI,Roboto,Arial;
   color:var(--text);
   background:
-    radial-gradient(900px 420px at 15% 10%, rgba(56,189,248,.14), transparent 60%),
-    radial-gradient(900px 420px at 85% 20%, rgba(167,139,250,.12), transparent 60%),
+    radial-gradient(900px 420px at 15% 10%, rgba(165,180,255,.14), transparent 60%),
+    radial-gradient(900px 420px at 85% 20%, rgba(79,70,229,.12), transparent 60%),
     var(--bg);
 }
 .wrap{max-width:1200px;margin:auto;padding:18px}
@@ -38,7 +38,7 @@ h1{margin:0;font-size:22px;font-weight:900}
 p{margin:6px 0 0;color:var(--muted);font-size:13px}
 
 .card{
-  background:linear-gradient(180deg,#0f172a,#0b1222);
+  background:linear-gradient(180deg,#181f3d,#121830);
   border:1px solid var(--border);
   border-radius:16px;
   padding:16px;
@@ -58,7 +58,7 @@ input,select{
   padding:10px 12px;
   border-radius:12px;
   border:1px solid var(--border);
-  background:#020617;
+  background:#0d1224;
   color:var(--text);
 }
 
@@ -85,12 +85,12 @@ button{
   cursor:pointer;
 }
 .primary{
-  background:linear-gradient(180deg,#38bdf8,#0ea5e9);
-  color:#020617;
+  background:linear-gradient(180deg,#9aa8ff,#4f46e5);
+  color:#0d1224;
 }
 .success{
-  background:linear-gradient(180deg,#10b981,#059669);
-  color:#020617;
+  background:linear-gradient(180deg,#4f46e5,#4338ca);
+  color:#0d1224;
 }
 .success:disabled{
   opacity:.45;
@@ -99,7 +99,7 @@ button{
 
 .console{
   margin-top:12px;
-  background:#000;
+  background:#121830;
   border-radius:14px;
   padding:12px;
   height:220px;
@@ -118,6 +118,8 @@ button{
   font-size:12px;
 }
 </style>
+<link rel="stylesheet" href="../hub-theme.css">
+<script src="../hub-shell.js" defer></script>
 </head>
 
 <body>

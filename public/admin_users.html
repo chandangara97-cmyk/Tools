@@ -41,6 +41,8 @@
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&family=Zilla+Slab:wght@600;700&display=swap">
 <style>h1,h2,b{font-family:'Zilla Slab',Rockwell,Georgia,serif}</style>
+<link rel="stylesheet" href="hub-theme.css">
+<script src="hub-shell.js" defer></script>
 </head>
 <body>
 <div class="wrap">
@@ -147,6 +149,7 @@
       <label>Role</label>
       <select id="nRole">
         <option value="monitor">Monitor (read only)</option>
+        <option value="public">General public (dues search only)</option>
         <option value="supervisor">Supervisor</option>
         <option value="surveyor">Data collector</option>
         <option value="assessor">Assessor</option>
@@ -206,9 +209,9 @@ function genPass() {
 }
 $("btnGen").onclick = () => { $("nPass").value = genPass(); };
 
-const ROLES = ["monitor","supervisor","surveyor","assessor","cashier","admin","disabled"];
-const ROLE_LABEL = { monitor: "Monitor", supervisor: "Supervisor", surveyor: "Data collector", assessor: "Assessor", cashier: "Cashier", admin: "ULB admin", disabled: "Disabled" };
-const ROLE_ORDER = { admin: 0, monitor: 1, cashier: 2, supervisor: 3, assessor: 4, surveyor: 5, disabled: 6 };
+const ROLES = ["monitor","supervisor","surveyor","assessor","cashier","public","admin","disabled"];
+const ROLE_LABEL = { monitor: "Monitor", supervisor: "Supervisor", surveyor: "Data collector", assessor: "Assessor", cashier: "Cashier", public: "General public", admin: "ULB admin", disabled: "Disabled" };
+const ROLE_ORDER = { admin: 0, monitor: 1, cashier: 2, public: 3, supervisor: 4, assessor: 5, surveyor: 6, disabled: 7 };
 // bill heads: key -> [label, short code used in User IDs]
 const HEADS = { property_tax: ["Property tax", "PT"], water: ["Water", "WTR"], garbage: ["Garbage", "GAR"], sewerage: ["Sewerage", "SWR"], other: ["Other utilities", "OTH"] };
 const DEFAULT_HEADS = ["property_tax", "water", "garbage"];

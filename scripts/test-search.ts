@@ -3,7 +3,7 @@ import { searchRecords, sameOwner, norm, compact } from '../src/services/propert
 import { propertyLiability, rulesApproved, LedgersByHead } from '../src/services/liabilityCalc';
 import { computeLedger, placeholderSettings, isMonthKey, periodLabel, periodStart, dueDateOf, monthKeys, LedgerEntry, CollectionSettings } from '../src/services/collection';
 import { HeadId } from '../src/services/heads';
-import { startTab, allowedTabs } from '../src/services/access';
+import { startTab, allowedTabs, isSearchOnly } from '../src/services/access';
 
 let passed = 0; let failed = 0;
 function test(name: string, fn: () => void) {
@@ -116,7 +116,13 @@ test('landing: other roles keep their usual start', () => {
   eq(startTab('supervisor', null, false), 'menu'); eq(startTab('assessor', null, false), 'menu'); eq(startTab(null, null, false), 'menu');
 });
 test('landing: the owner is never forced to the search page', () => eq(startTab('cashier', null, true), 'menu'));
-test('landing: a cashier can still reach the bill pages from the menu', () => eq(allowedTabs('cashier', null, false), ['search', 'collection']));
+test('search-only: cashier and general public may open the search box and nothing else', () => {
+  eq(allowedTabs('cashier', null, false), ['search']); eq(allowedTabs('cashier', 'water', false), ['search']); eq(allowedTabs('public', null, false), ['search']);
+});
+test('search-only: general public lands on search; the flag covers only those two roles', () => {
+  eq(startTab('public', null, false), 'search');
+  eq([isSearchOnly('cashier', false), isSearchOnly('public', false), isSearchOnly('supervisor', false), isSearchOnly('admin', false), isSearchOnly('cashier', true), isSearchOnly(null, false)], [true, true, false, false, false, false]);
+});
 
 console.log(`\n${passed} tests passed${failed ? `, ${failed} FAILED` : ''}`);
 process.exit(failed ? 1 : 0);

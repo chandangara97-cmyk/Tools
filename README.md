@@ -25,8 +25,22 @@ Rules live in `database.rules.json`. Never loosen them to make a write work.
 
 ## Roles
 
-`admin`, `surveyor`, `assessor`, `supervisor`, `cashier`. Assessor drafts, supervisor
-approves and reverses, cashier takes cash.
+`admin`, `surveyor`, `assessor`, `supervisor`, `monitor`, `cashier`, `public`.
+Assessor drafts, supervisor approves and reverses.
+
+**`cashier` and `public` see one thing only: a full-screen property search box** (no menu,
+no tabs, no tools). The cashier makes the bill from the search result. Create a general-public
+login in the admin console with role "General public". It can read the town's property and
+dues data through the existing database rules, so give that login only to people who may see
+owner names and dues. Both roles go straight into the app from the landing page.
+The role-to-page map is one function: `allowedTabs` in `src/services/access.ts`.
+
+## One theme, one layout
+
+The whole product uses one indigo palette and one header (brand bar, then page).
+- React app: `src/index.css`, `tailwind.config.js`, `Navbar.tsx`.
+- Standalone pages (landing, admin, tools): link `public/hub-theme.css` last in `<head>` and
+  `public/hub-shell.js`. Change colours in `hub-theme.css` only; do not add a new palette to a page.
 
 ## Docs
 

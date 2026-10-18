@@ -4,9 +4,9 @@ import { ref, get } from 'firebase/database';
 import { auth, db } from '../firebase';
 import { HeadId, HEAD_LIST } from './heads';
 
-/** surveyor = data collector, monitor = read-only view of the whole ULB. */
-export type Role = 'surveyor' | 'supervisor' | 'assessor' | 'cashier' | 'admin' | 'monitor';
-const ROLES: Role[] = ['surveyor', 'supervisor', 'assessor', 'cashier', 'admin', 'monitor'];
+/** surveyor = data collector, monitor = read-only view of the whole ULB, public = general public (dues search only). */
+export type Role = 'surveyor' | 'supervisor' | 'assessor' | 'cashier' | 'admin' | 'monitor' | 'public';
+const ROLES: Role[] = ['surveyor', 'supervisor', 'assessor', 'cashier', 'admin', 'monitor', 'public'];
 
 /** Every login belongs to ONE ULB (its town slug, e.g. "Bhota"). "*" = platform owner, sees all ULBs. */
 export const ALL_ULBS = '*';

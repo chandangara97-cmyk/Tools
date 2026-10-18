@@ -212,11 +212,11 @@ export const HeroTerrain: React.FC = () => {
   }, []);
 
   return (
-    <div ref={containerRef} className="relative w-full h-[340px] md:h-[400px] rounded-2xl overflow-hidden border border-[#2f3a6b] shadow-2xl bg-[#091a19]">
+    <div ref={containerRef} className="relative w-full h-[340px] md:h-[400px] rounded-2xl overflow-hidden border border-[#2f3a6b] shadow-2xl bg-[#0d1224]">
       <canvas ref={canvasRef} className="w-full h-full block cursor-crosshair" />
 
       {/* Floating Spatial Readout Box */}
-      <div className="absolute top-4 right-4 bg-[#0a1f1e]/90 backdrop-blur-md border border-[#22504a] text-white p-3.5 rounded-xl shadow-xl text-xs space-y-1.5 pointer-events-none min-w-[210px]">
+      <div className="absolute top-4 right-4 bg-[#121830]/90 backdrop-blur-md border border-[#2f3a6b] text-white p-3.5 rounded-xl shadow-xl text-xs space-y-1.5 pointer-events-none min-w-[210px]">
         <div className="flex items-center justify-between text-[#aab4dc]">
           <span>Spatial Coordinate:</span>
           <b className="text-white font-mono">{positionText}</b>

@@ -5,12 +5,14 @@ import { ToolsDirectory } from './components/ToolsDirectory';
 import { WktKmlConverter } from './components/WktKmlConverter';
 import { AndroidAppModal } from './components/AndroidAppModal';
 import { useAuth } from './services/auth';
+import { isSearchOnly } from './services/access';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 export function App() {
   const { role, isSuper } = useAuth();
   // Field tools (KML converters) are for the platform owner and ULB admins only.
   const showTools = isSuper || role === 'admin';
+  const minimal = isSearchOnly(role, isSuper);
   const [activeView, setActiveView] = useState<string>('gis-survey');
   const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
 
@@ -23,8 +25,9 @@ export function App() {
         setActiveView={setActiveView}
         onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
         showTools={showTools}
+        minimal={minimal}
       />
-      <AndroidAppModal isOpen={isAndroidModalOpen} onClose={() => setIsAndroidModalOpen(false)} />
+      {!minimal && <AndroidAppModal isOpen={isAndroidModalOpen} onClose={() => setIsAndroidModalOpen(false)} />}
 
       <ErrorBoundary resetKey={view} onBack={() => setActiveView('gis-survey')}>
       {view === 'gis-survey' && <GisPropertySurvey />}

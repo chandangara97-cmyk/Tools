@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b2e33">
+<meta name="theme-color" content="#0d1030">
 <title>Scheme Hub 2026 · Sign in</title>
 <style>
-:root{--ink:#eaf5f3;--mute:#9bbdb7;--acc:#2dd4bf;--acc2:#0e8a7d;--warm:#f4c58a;--line:rgba(255,255,255,.16)}
+:root{--ink:#eef0fb;--mute:#aab4dc;--acc:#a5b4ff;--acc2:#4f46e5;--warm:#ffcf8a;--line:rgba(255,255,255,.16)}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%}
-body{font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:#0b2e33;overflow-x:hidden}
+body{font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:#0d1030;overflow-x:hidden}
 .scene{position:fixed;inset:0;width:100%;height:100%;z-index:0}
 .cloud{position:fixed;z-index:0;height:46px;border-radius:50px;background:rgba(255,255,255,.12);filter:blur(10px);animation:dr 60s linear infinite}
 @keyframes dr{from{transform:translateX(-30vw)}to{transform:translateX(130vw)}}
@@ -16,27 +16,27 @@ padding:max(22px,env(safe-area-inset-top)) 20px max(26px,env(safe-area-inset-bot
 .badge{display:inline-flex;gap:8px;align-items:center;padding:7px 14px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.08);font-size:13px;color:var(--warm)}
 .badge i{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc)}
 h1{font-size:clamp(32px,6vw,52px);line-height:1.05;margin:16px 0 12px;letter-spacing:-.03em}
-h1 em{font-style:normal;background:linear-gradient(90deg,#5eead4,var(--warm));-webkit-background-clip:text;background-clip:text;color:transparent}
-.lead{color:#cfe6e2;max-width:520px;margin:0 0 22px}
+h1 em{font-style:normal;background:linear-gradient(90deg,#c7d0ff,var(--warm));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{color:#d6dcf5;max-width:520px;margin:0 0 22px}
 .stats{display:flex;gap:12px;flex-wrap:wrap}
-.st{padding:12px 16px;border-radius:14px;background:rgba(6,30,32,.45);border:1px solid var(--line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.st{padding:12px 16px;border-radius:14px;background:rgba(13,16,40,.45);border:1px solid var(--line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .st b{display:block;font-size:22px}.st span{font-size:12px;color:var(--mute)}
-.card{background:rgba(6,30,32,.68);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 30px 70px rgba(0,0,0,.45)}
+.card{background:rgba(13,16,40,.68);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 30px 70px rgba(0,0,0,.45)}
 .seg{position:relative;display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:14px;background:rgba(255,255,255,.07);margin-bottom:18px}
-.seg::before{content:"";position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:11px;background:linear-gradient(135deg,#5eead4,var(--acc));transition:.25s}
+.seg::before{content:"";position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:11px;background:linear-gradient(135deg,#c7d0ff,var(--acc));transition:.25s}
 .seg.admin::before{transform:translateX(100%)}
 .seg button{position:relative;z-index:1;height:42px;border:0;background:none;font-size:15px;font-weight:600;color:var(--mute);cursor:pointer;display:flex;gap:7px;align-items:center;justify-content:center}
-.seg button.on{color:#04201c}
+.seg button.on{color:#0e1230}
 .note{font-size:13px;color:var(--mute);margin:-6px 2px 14px;min-height:20px}
 .f{position:relative;margin-bottom:14px}
 .f input{width:100%;height:56px;padding:22px 46px 6px 16px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);font-size:16px;outline:0;transition:.2s}
-.f input:focus{border-color:var(--acc);box-shadow:0 0 0 4px rgba(45,212,191,.16)}
+.f input:focus{border-color:var(--acc);box-shadow:0 0 0 4px rgba(165,180,255,.16)}
 .f label{position:absolute;left:16px;top:17px;color:var(--mute);font-size:15px;pointer-events:none;transition:.18s;transform-origin:left}
 .f input:focus+label,.f input:not(:placeholder-shown)+label{transform:translateY(-10px) scale(.78);color:var(--acc)}
 .eye{position:absolute;right:6px;top:8px;width:40px;height:40px;border:0;background:none;color:var(--mute);cursor:pointer}
 .rem{display:flex;gap:8px;align-items:center;color:var(--mute);font-size:14px;margin:0 2px 12px}
 .rem input{accent-color:var(--acc);width:17px;height:17px}
-button.go{width:100%;height:54px;border:0;border-radius:14px;font-size:17px;font-weight:700;color:#04201c;cursor:pointer;background:linear-gradient(135deg,#5eead4,var(--acc));box-shadow:0 10px 26px rgba(45,212,191,.3)}
+button.go{width:100%;height:54px;border:0;border-radius:14px;font-size:17px;font-weight:700;color:#0e1230;cursor:pointer;background:linear-gradient(135deg,#c7d0ff,var(--acc));box-shadow:0 10px 26px rgba(165,180,255,.3)}
 button.go:active{transform:scale(.98)}button.go[disabled]{opacity:.7}
 .err{min-height:20px;margin:10px 2px 0;color:#ffb4a8;font-size:14px;text-align:center}
 .shake{animation:sh .35s}@keyframes sh{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
@@ -45,29 +45,31 @@ button.go:active{transform:scale(.98)}button.go[disabled]{opacity:.7}
 .town{font-size:28px;font-weight:700;margin:2px 0;letter-spacing:-.02em}
 .role{color:var(--mute);font-size:14px;margin-bottom:14px}
 a.tile{display:flex;align-items:center;gap:14px;padding:14px 16px;margin-top:10px;border-radius:16px;text-decoration:none;color:var(--ink);background:rgba(255,255,255,.07);border:1px solid var(--line)}
-a.tile.pri{background:linear-gradient(135deg,rgba(45,212,191,.22),rgba(14,138,125,.2));border-color:rgba(45,212,191,.5)}
+a.tile.pri{background:linear-gradient(135deg,rgba(165,180,255,.22),rgba(79,70,229,.2));border-color:rgba(165,180,255,.5)}
 a.tile b{display:block}a.tile small{color:var(--mute);font-size:13px}
-.ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:rgba(45,212,191,.14);color:var(--acc);flex:none}
+.ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:rgba(165,180,255,.14);color:var(--acc);flex:none}
 .out{width:100%;margin-top:14px;background:none;border:0;color:var(--mute);font-size:14px;cursor:pointer;padding:10px}
 .foot{grid-column:1/-1;text-align:center;font-size:12px;color:var(--mute)}
-</style></head><body>
+</style><link rel="stylesheet" href="app/hub-theme.css">
+<script src="app/hub-shell.js" defer></script>
+</head><body>
 <svg class="scene" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
 <defs>
-<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#071f2b"/><stop offset=".45" stop-color="#14545a"/><stop offset=".72" stop-color="#d9946a"/><stop offset="1" stop-color="#f4c58a"/></linearGradient>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1030"/><stop offset=".45" stop-color="#2b2f78"/><stop offset=".72" stop-color="#d9946a"/><stop offset="1" stop-color="#ffcf8a"/></linearGradient>
 <radialGradient id="sun" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff2cf"/><stop offset=".25" stop-color="#ffd08a" stop-opacity=".8"/><stop offset="1" stop-color="#ffb070" stop-opacity="0"/></radialGradient>
-<linearGradient id="m1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fb7c4"/><stop offset="1" stop-color="#3f7a86"/></linearGradient>
-<linearGradient id="m2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f6f73"/><stop offset="1" stop-color="#14444a"/></linearGradient>
-<linearGradient id="m3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14403f"/><stop offset="1" stop-color="#082524"/></linearGradient>
+<linearGradient id="m1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa3e0"/><stop offset="1" stop-color="#4a4f9c"/></linearGradient>
+<linearGradient id="m2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#343a86"/><stop offset="1" stop-color="#1b2058"/></linearGradient>
+<linearGradient id="m3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#141845"/><stop offset="1" stop-color="#0a0d2b"/></linearGradient>
 <path id="pine" d="M0-34l9 15h-5l8 13h-6l9 14H-15l9-14h-6l8-13h-5z"/>
 </defs>
 <rect width="1200" height="800" fill="url(#sky)"/>
 <circle cx="880" cy="470" r="230" fill="url(#sun)"/>
 <path d="M0 520l110-130 80 70 120-170 100 150 90-80 140 200 120-120 110 90 150-170 180 190v240H0z" fill="url(#m1)" opacity=".85"/>
-<path d="M300 290l-50 80 40-20 25 30 20-40 30 25z M690 330l-40 60 35-15 25 25 20-35z M1020 350l-35 55 30-10 25 20 15-30z" fill="#eaf6f8" opacity=".9"/>
+<path d="M300 290l-50 80 40-20 25 30 20-40 30 25z M690 330l-40 60 35-15 25 25 20-35z M1020 350l-35 55 30-10 25 20 15-30z" fill="#eef0fb" opacity=".9"/>
 <path d="M0 600l140-110 110 80 150-130 140 120 130-90 150 130 120-80 140 90 120-60v320H0z" fill="url(#m2)"/>
 <path d="M0 690l160-80 120 50 170-90 150 80 160-60 140 70 140-50 160 60v220H0z" fill="url(#m3)"/>
-<g fill="#06201f"><use href="#pine" x="60" y="760"/><use href="#pine" x="130" y="775" transform="translate(0 0) scale(1)"/><use href="#pine" x="215" y="750"/><use href="#pine" x="900" y="765"/><use href="#pine" x="975" y="750"/><use href="#pine" x="1060" y="772"/><use href="#pine" x="1140" y="755"/><use href="#pine" x="330" y="785"/><use href="#pine" x="770" y="790"/></g>
-<rect y="780" width="1200" height="20" fill="#051a19"/>
+<g fill="#0d1030"><use href="#pine" x="60" y="760"/><use href="#pine" x="130" y="775" transform="translate(0 0) scale(1)"/><use href="#pine" x="215" y="750"/><use href="#pine" x="900" y="765"/><use href="#pine" x="975" y="750"/><use href="#pine" x="1060" y="772"/><use href="#pine" x="1140" y="755"/><use href="#pine" x="330" y="785"/><use href="#pine" x="770" y="790"/></g>
+<rect y="780" width="1200" height="20" fill="#0a0d2b"/>
 </svg>
 <div class="cloud" style="top:10%;width:240px"></div><div class="cloud" style="top:22%;width:170px;animation-delay:-25s"></div>
 
@@ -108,7 +110,7 @@ const APP_URL="app/"; /* where the survey & collection app lives */
 const app=initializeApp({apiKey:"AIzaSyBJw_9j0wP1dY42wfYYDk_3kIMNKZqHujQ",authDomain:"propertytax-1b855.firebaseapp.com",databaseURL:"https://propertytax-1b855-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"propertytax-1b855",appId:"1:1062167049262:web:1270c8199c81addce11bbf"});
 const auth=getAuth(app),db=getDatabase(app),$=i=>document.getElementById(i);
 const email=v=>{v=v.trim().toLowerCase();return v.includes("@")?v:v+"@propertytax.app"};
-const LABEL={admin:"Admin",supervisor:"Supervisor / approver / ledger",surveyor:"Data collector",assessor:"Assessor",cashier:"Cashier",monitor:"Monitor"};
+const LABEL={admin:"Admin",supervisor:"Supervisor / approver / ledger",surveyor:"Data collector",assessor:"Assessor",cashier:"Cashier",monitor:"Monitor",public:"General public"};
 let mode="town",manual=false;
 const KEY=()=>"hub_id_"+mode;
 function setMode(m){mode=m;$("seg").classList.toggle("admin",m==="admin");$("bT").classList.toggle("on",m==="town");$("bA").classList.toggle("on",m==="admin");
@@ -135,6 +137,8 @@ onAuthStateChanged(auth,async u=>{
     if(me.ulb!=="*"){const x=(await get(ref(db,"ulbs/"+me.ulb))).val();
       if(x&&x.active===false){await signOut(auth);fail("This town is switched off.");return}
       name=(x&&x.name)||me.ulb.replace(/_/g," ")}
+    /* cashier and general public see only the full-screen search box: go straight in */
+    if(me.ulb!=="*"&&(me.role==="cashier"||me.role==="public")){location.replace(APP_URL);return}
     $("hi").textContent=manual?"Welcome":"Welcome back";$("t").textContent=name;
     $("r").textContent=(me.name?me.name+" · ":"")+(LABEL[me.role]||me.role);
     $("app").href=APP_URL;$("adm").classList.toggle("hide",me.role!=="admin");

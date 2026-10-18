@@ -12,7 +12,7 @@ import { ReportsPanel } from './ReportsPanel';
 import { WorkMenu, BILL_NAME, Choice } from './WorkMenu';
 import { LiabilitySearch } from './LiabilitySearch';
 import { ErrorBoundary } from './ErrorBoundary';
-import { allowedTabs, allowedHeads, startTab, Tab } from '../services/access';
+import { allowedTabs, allowedHeads, startTab, isSearchOnly, Tab } from '../services/access';
 import { HeadId, useTownHeads } from '../services/heads';
 import { rekeyTowns, townSlug } from '../services/townPath';
 import { useRateTable } from '../services/assessmentStore';
@@ -69,6 +69,8 @@ const GisPropertySurveyInner: React.FC = () => {
   const { role, displayName, ulb, isSuper, head: userHead } = useAuth();
   // Every login opens on a menu that lists only what it may do. One-option logins go straight in.
   const tabs = useMemo(() => allowedTabs(role, userHead, isSuper), [role, userHead, isSuper]);
+  // cashier and general public: the full-screen search box and nothing else
+  const searchOnly = isSearchOnly(role, isSuper);
   const [activeTab, setActiveTab] = useState<Tab | 'menu'>(() => startTab(role, userHead, isSuper));
   const [billHead, setBillHead] = useState<HeadId | null>(() => (!isSuper && role === 'supervisor' && userHead && userHead !== 'property_tax' ? userHead : null));
   // A ULB login is locked to its own town; only the platform owner ("*") can pick any ULB.
@@ -514,7 +516,7 @@ const GisPropertySurveyInner: React.FC = () => {
     ctx.clearRect(0, 0, width, height);
 
     // Dark GIS Map Base
-    ctx.fillStyle = '#0a1a1f';
+    ctx.fillStyle = '#0d1224';
     ctx.fillRect(0, 0, width, height);
 
     // Subtle coordinate grid lines
@@ -936,8 +938,9 @@ const GisPropertySurveyInner: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#0d1224] text-[#eef0fb]">
-      {/* Slim header: where you are, and a way back to the menu */}
-      <div className="bg-[#151b36] border-b border-[#1b3d45] px-4 sm:px-6 py-3">
+      {/* Slim header: where you are, and a way back to the menu (not shown to search-only logins) */}
+      {!searchOnly && (
+      <div className="bg-[#141a36] border-b border-[#2f3a6b] px-4 sm:px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 flex-wrap">
           {activeTab === 'menu' ? (
             <h1 className="text-lg font-bold text-white">Menu</h1>
@@ -968,8 +971,10 @@ const GisPropertySurveyInner: React.FC = () => {
         </div>
       </div>
 
+      )}
+
       {/* Main Workspace Content */}
-      <div className="max-w-7xl mx-auto p-4 sm:p-6">
+      <div className={searchOnly ? 'w-full' : 'max-w-7xl mx-auto p-4 sm:p-6'}>
         {/* ==================================================== */}
         {/* TAB 1: PROPERTY SURVEY FORM */}
         {/* ==================================================== */}
@@ -990,7 +995,7 @@ const GisPropertySurveyInner: React.FC = () => {
           <WorkMenu townName={currentTown.n} tabs={tabs} bills={bills} onChoose={choose} />
         )}
         {activeTab === 'search' && (
-          <LiabilitySearch townKey={selectedTownKey} townName={currentTown.n} records={records} heads={bills} />
+          <LiabilitySearch townKey={selectedTownKey} townName={currentTown.n} records={records} heads={bills} fullScreen={searchOnly} />
         )}
         {activeTab === 'survey' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

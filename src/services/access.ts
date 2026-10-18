@@ -6,7 +6,7 @@ export type Tab = 'search' | 'survey' | 'map-editor' | 'records' | 'assessment' 
 
 export const ROLE_LABEL: Record<Role, string> = {
   admin: 'ULB admin', supervisor: 'Supervisor', surveyor: 'Data collector',
-  assessor: 'Assessor', cashier: 'Cashier', monitor: 'Monitor',
+  assessor: 'Assessor', cashier: 'Cashier', monitor: 'Monitor', public: 'General public',
 };
 
 const ALL: Tab[] = ['search', 'collection', 'survey', 'records', 'assessment', 'reports', 'map-editor', 'exports'];
@@ -20,7 +20,9 @@ export function allowedTabs(role: Role | null, head: HeadId | null, isSuper: boo
       return head && head !== 'property_tax' ? ['search', 'collection'] : ALL;
     case 'surveyor': return ['survey', 'records'];
     case 'assessor': return ['assessment', 'records'];
-    case 'cashier': return ['search', 'collection'];
+    // cashier and general public see one thing only: the full-screen search box (the bill is made from there)
+    case 'cashier':
+    case 'public': return ['search'];
     case 'monitor': return ['search', 'reports', 'collection'];
     default: return [];
   }
@@ -32,10 +34,13 @@ export function allowedHeads(role: Role | null, head: HeadId | null, isSuper: bo
   return townHeads;
 }
 
-/** The page a login lands on right after signing in. A cashier starts on the property search box. */
+/** Cashier and general public get a bare full-screen search box: no menu, no header controls, nothing else. */
+export const isSearchOnly = (role: Role | null, isSuper: boolean) => !isSuper && (role === 'cashier' || role === 'public');
+
+/** The page a login lands on right after signing in. Search-only logins start (and stay) on the search box. */
 export function startTab(role: Role | null, head: HeadId | null, isSuper: boolean): Tab | 'menu' {
   const t = allowedTabs(role, head, isSuper);
-  if (!isSuper && role === 'cashier' && t.includes('search')) return 'search';
+  if (isSearchOnly(role, isSuper) && t.includes('search')) return 'search';
   if (t.length !== 1) return 'menu';
   return t[0] !== 'collection' || (!isSuper && role === 'supervisor' && head) ? t[0] : 'menu';
 }
