@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Download, Printer, FileText } from 'lucide-react';
 import type { PropertyRecord, WardFeature } from '../utils/gisUtils';
 import { triggerFileDownload } from '../utils/gisUtils';
-import { CollectionSettings, LedgerEntry, LedgerResult, computeLedger, todayIso } from '../services/collection';
+import { CollectionSettings, LedgerEntry, LedgerResult, computeLedger, todayIso, periodLabel } from '../services/collection';
 import { useLedgers } from '../services/collectionStore';
 import { esc, money, printHtml } from './CollectionPanel';
 
@@ -29,7 +29,7 @@ function pageHtml(o: { town: string; title: string; row: Row; today: string; tex
   const { town, title, row, today, text, rebate } = o;
   const { r, led } = row;
   const body = led.rows.filter((x) => x.totalDue > 0 || x.demand > 0).map((x) =>
-    `<tr><td>${esc(x.fy)}</td><td>${esc(x.dueDate)}</td><td class="r">${money(x.demand + x.adjustments)}</td><td class="r">${money(x.rebate)}</td><td class="r">${money(x.paidPrincipal + x.paidInterest)}</td><td class="r">${money(x.principalDue)}</td><td class="r">${money(x.interestDue)}</td><td class="r">${money(x.totalDue)}</td></tr>`).join('');
+    `<tr><td>${esc(periodLabel(x.fy))}</td><td>${esc(x.dueDate)}</td><td class="r">${money(x.demand + x.adjustments)}</td><td class="r">${money(x.rebate)}</td><td class="r">${money(x.paidPrincipal + x.paidInterest)}</td><td class="r">${money(x.principalDue)}</td><td class="r">${money(x.interestDue)}</td><td class="r">${money(x.totalDue)}</td></tr>`).join('');
   const avail = rebate ? led.rows.filter((x) => x.rebateAvailable > 0) : [];
   return `<div class="pg"><h1>${esc(town)}</h1><h2>${esc(title)}</h2>
 <table class="kv"><tr><td>Date</td><td><b>${esc(today)}</b></td><td>Property ID</td><td><b>${esc(r.id)}</b></td></tr>

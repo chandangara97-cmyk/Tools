@@ -98,8 +98,35 @@ function dateInFy(fy: string, month: number, day: number): string {
   const start = parseInt(fy.slice(0, 4), 10);
   return clampDay(month >= 4 ? start : start + 1, month, day);
 }
-export const dueDateOf = (fy: string, s: CollectionSettings) => dateInFy(fy, s.dueMonth, s.dueDay);
-export const rebateLastDateOf = (fy: string, s: CollectionSettings) => dateInFy(fy, s.rebateMonth, s.rebateDay);
+// A billing period is a financial year ("2026-27") or, for monthly bills, a calendar month ("2026-10").
+// A month key is told apart from a year key because a year's second part is the next year's last two digits.
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export function isMonthKey(k: string): boolean {
+  if (!/^\d{4}-\d{2}$/.test(k)) return false;
+  const y = parseInt(k.slice(0, 4), 10), m = parseInt(k.slice(5), 10);
+  return m >= 1 && m <= 12 && m !== (y + 1) % 100;
+}
+/** "2026-10" -> "Oct 2026"; a financial year stays as it is. */
+export const periodLabel = (k: string) => (isMonthKey(k) ? `${MONTH_NAMES[parseInt(k.slice(5), 10) - 1]} ${k.slice(0, 4)}` : k);
+/** First day of a period: 1 April for a year, the 1st for a month. */
+export const periodStart = (k: string) => (isMonthKey(k) ? `${k}-01` : `${k.slice(0, 4)}-04-01`);
+export const comparePeriods = (a: string, b: string) => periodStart(a).localeCompare(periodStart(b)) || a.localeCompare(b);
+/** Month keys from `back` months ago to `ahead` months ahead of today, newest first. */
+export function monthKeys(back = 11, ahead = 1): string[] {
+  const n = new Date(); const out: string[] = [];
+  for (let i = ahead; i >= -back; i--) { const d = new Date(n.getFullYear(), n.getMonth() + i, 1); out.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}`); }
+  return out;
+}
+
+export const dueDateOf = (fy: string, s: CollectionSettings) => {
+  if (isMonthKey(fy)) { // a month's bill falls due on the due day of the following month
+    const y = parseInt(fy.slice(0, 4), 10), m = parseInt(fy.slice(5), 10);
+    return m === 12 ? clampDay(y + 1, 1, s.dueDay) : clampDay(y, m + 1, s.dueDay);
+  }
+  return dateInFy(fy, s.dueMonth, s.dueDay);
+};
+/** Monthly bills carry no early-payment rebate. */
+export const rebateLastDateOf = (fy: string, s: CollectionSettings) => (isMonthKey(fy) ? '' : dateInFy(fy, s.rebateMonth, s.rebateDay));
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -145,7 +172,7 @@ export function computeLedger(entries: LedgerEntry[], s: CollectionSettings, asO
   const evs: Ev[] = active.map((e) => ({ date: e.date, ord: ORD[e.type], at: e.at, id: e.id, fy: e.fy, e }));
 
   const rate = s.interestPctPerMonth ?? 0;
-  const fys = [...new Set(active.map((e) => e.fy))].sort();
+  const fys = [...new Set(active.map((e) => e.fy))].sort(comparePeriods);
   if (rate > 0) {
     for (const fy of fys) {
       const due = dueDateOf(fy, s);
@@ -180,7 +207,7 @@ export function computeLedger(entries: LedgerEntry[], s: CollectionSettings, asO
       let rem = e.amount;
       paidTotal = r2(paidTotal + e.amount);
       const alloc: PaymentAlloc = { entryId: e.id, parts: [], unallocated: 0 };
-      for (const fy of Object.keys(st).sort()) {
+      for (const fy of Object.keys(st).sort(comparePeriods)) {
         if (rem <= 0) break;
         const y = st[fy];
         const pi = Math.min(y.I, rem); rem = r2(rem - pi);
@@ -198,7 +225,7 @@ export function computeLedger(entries: LedgerEntry[], s: CollectionSettings, asO
   }
 
   const rebateLimit = (fy: string) => rebateLastDateOf(fy, s);
-  const rows: FyRow[] = Object.keys(st).sort().map((fy) => {
+  const rows: FyRow[] = Object.keys(st).sort(comparePeriods).map((fy) => {
     const y = st[fy];
     const avail = s.rebatePct > 0 && asOf <= rebateLimit(fy) && y.rebate === 0 && y.P > 0
       ? Math.min(y.P, r2(((y.demand + y.adj) * s.rebatePct) / 100)) : 0;

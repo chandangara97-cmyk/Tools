@@ -53,3 +53,18 @@ When the admin page creates an ID, it also saves the User ID, password and funct
 
 ## Search dues
 Type a property ID, part of an owner's name, house number or UPN. The result shows the total liability on that property across every bill head (tax or charge, interest, due) as on today, and the total liability of the owner across all properties surveyed under the same owner name. A login only sees the bill heads it may open. No new database rules are needed; it reads the existing ledger.
+
+## Monthly bills and manual dues
+- **Monthly charging:** admin, Demand & Collection, Fixed amounts. For water, garbage, sewerage and other bills pick "Charged every month". The Residential and Commercial amounts then mean rupees per month. Property tax stays yearly. Deploy the updated rules (`firebase deploy --only database`) so the new `frequency` field is accepted.
+- **Raising a month:** open that bill's collection page, Overview, choose the month, press "Generate <month> bills". One demand per property per month; existing ones are skipped.
+- **Due date and interest:** a month's bill falls due on the due day (set in Due date & interest) of the following month. Interest per month and grace days work as before. Monthly bills carry no early-payment rebate.
+- **Update dues (admin only):** pick a property, then Add charge or arrears, or Reduce or waive, for any year or month, with an effective date and a reason. It is saved as an adjustment, so it is audited and can be reversed from Collect payment. Use it to enter old arrears when moving from a paper register.
+- The database rules still let a supervisor post adjustments; only the admin screen is limited to admins.
+
+## Generate bill (cashier, supervisor, admin)
+Search dues, open a property, press "Generate bill".
+- **Full bill:** everything due on the property across all bill heads.
+- **Customer's choice:** tick only the bills and months the customer asks for. The total updates as you tick.
+- "Include the owner's other properties" adds them to the same bill.
+- Print, or download as an HTML file. The bill shows owner, property, each item with due date, tax or charge, interest, total and the total in words, as on the date and time of printing.
+- Bills are not numbered and nothing is saved in the database. It is a statement, not a receipt. Receipts still come from Collect payment.

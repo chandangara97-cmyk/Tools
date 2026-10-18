@@ -4,12 +4,12 @@ import type { PropertyRecord } from '../utils/gisUtils';
 import { triggerFileDownload } from '../utils/gisUtils';
 import { useAuth, canCollect, canManageLedger, canSeeAudit, canEditRates, canSetPayableRates } from '../services/auth';
 import { HeadId, HEAD_LIST, headLabel, useTownHeads } from '../services/heads';
-import { PayableRates, fixedAmountFor, savePayableRates, usePayableRates, validateRates } from '../services/payableRates';
+import { PayableRates, fixedAmountFor, isMonthly, savePayableRates, usePayableRates, validateRates } from '../services/payableRates';
 import { financialYearOf } from '../services/assessment';
 import { useAssessments } from '../services/assessmentStore';
 import {
   CollectionSettings, LedgerEntry, PayMode, computeLedger, previewPayment, quoteFull, rupeesInWords,
-  todayIso, validateSettings, dueDateOf,
+  todayIso, validateSettings, dueDateOf, periodLabel, periodStart, monthKeys,
 } from '../services/collection';
 import {
   generateDemands, generateFixedDemands, postAdjustment, postPayment, reverseEntries, saveHeadSettings, useAudit, useHeadSettings, useLedgers,
@@ -36,7 +36,7 @@ function receiptHtml(o: {
   parts: { fy: string; interest: number; principal: number }[]; balanceAfter: number;
 }) {
   const { head, town, rec, pay, rebate, cancelled, parts, balanceAfter } = o;
-  const rows = parts.map((p) => `<tr><td>${esc(p.fy)}</td><td class="r">${money(p.principal)}</td><td class="r">${money(p.interest)}</td></tr>`).join('');
+  const rows = parts.map((p) => `<tr><td>${esc(periodLabel(p.fy))}</td><td class="r">${money(p.principal)}</td><td class="r">${money(p.interest)}</td></tr>`).join('');
   return `<!doctype html><html><head><meta charset="utf-8"><title>Receipt ${esc(pay.receiptNo)}</title>
 <style>body{font-family:Arial,sans-serif;font-size:13px;margin:24px;color:#111}h1{font-size:18px;margin:0}h2{font-size:14px;margin:2px 0 14px}
 table{border-collapse:collapse;width:100%;margin:8px 0}td,th{border:1px solid #999;padding:5px 8px;text-align:left}.r{text-align:right}
@@ -77,13 +77,17 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
   const today = todayIso();
   const thisFy = financialYearOf(new Date());
   const [fy, setFy] = useState(thisFy);
+  const [month, setMonth] = useState(monthKeys(0, 0)[0]);
+  // monthly bills (water, garbage...) are raised per month; everything else per financial year
+  const monthly = isMonthly(activeHead, ratesAll[activeHead]);
+  const period = monthly ? month : fy;
   const assessments = useAssessments(townKey, fy);
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [collectionPage, setCollectionPage] = useState<'overview' | 'properties' | 'settings' | 'rates' | 'audit'>('overview');
+  const [collectionPage, setCollectionPage] = useState<'overview' | 'properties' | 'update' | 'settings' | 'rates' | 'audit'>('overview');
 
   const townRecords = useMemo(() => records.filter((r) => r.town === townName), [records, townName]);
   const rows = useMemo(() => townRecords.map((r) => {
@@ -123,11 +127,11 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
   };
 
   const fixedTargets = useMemo(() => townRecords.filter((r) => (fixedAmountFor(rates, r.use) ?? 0) > 0), [townRecords, rates]);
-  const fixedPending = fixedTargets.filter((r) => !(ledgers[r.id] || []).some((e) => e.id === `demand_${fy}`)).length;
+  const fixedPending = fixedTargets.filter((r) => !(ledgers[r.id] || []).some((e) => e.id === `demand_${period}`)).length;
   const generateFixed = () => {
-    if (!window.confirm(`Generate ${headLabel(activeHead)} demand for ${fy} from the fixed amounts (Residential ${rates.residential === null ? 'not set' : money(rates.residential)}, Commercial ${rates.commercial === null ? 'not set' : money(rates.commercial)}) for ${fixedPending} propert${fixedPending === 1 ? 'y' : 'ies'}?\n\nA demand cannot be edited afterwards, only adjusted or reversed.`)) return;
+    if (!window.confirm(`Generate ${headLabel(activeHead)} demand for ${periodLabel(period)} from the fixed amounts${monthly ? ' (charged per month)' : ''} (Residential ${rates.residential === null ? 'not set' : money(rates.residential)}, Commercial ${rates.commercial === null ? 'not set' : money(rates.commercial)}) for ${fixedPending} propert${fixedPending === 1 ? 'y' : 'ies'}?\n\nA demand cannot be edited afterwards, only adjusted or reversed.`)) return;
     void run('Fixed-amount demand', async () => {
-      const r = await generateFixedDemands(townKey, fy, townRecords.map((x) => ({ id: x.id, use: x.use })), rates, ledgers, activeHead);
+      const r = await generateFixedDemands(townKey, period, townRecords.map((x) => ({ id: x.id, use: x.use })), rates, ledgers, activeHead);
       return `${r.created} created, ${r.skippedExisting} already had one, ${r.noRate} skipped (not Residential/Commercial or no amount set).`;
     });
   };
@@ -165,10 +169,11 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
         {([
           { id: 'overview', title: 'Overview' },
           { id: 'properties', title: 'Collect payment' },
+          ...(canSetPayableRates(role) ? [{ id: 'update', title: 'Update dues' }] : []),
           ...(canEditRates(role) ? [{ id: 'settings', title: 'Due date & interest' }] : []),
           ...(canSetPayableRates(role) ? [{ id: 'rates', title: 'Fixed amounts' }] : []),
           ...(canSeeAudit(role) ? [{ id: 'audit', title: 'Audit trail' }] : []),
-        ] as { id: 'overview' | 'properties' | 'settings' | 'rates' | 'audit'; title: string }[]).map((item) => (
+        ] as { id: 'overview' | 'properties' | 'update' | 'settings' | 'rates' | 'audit'; title: string }[]).map((item) => (
           <button key={item.id} type="button" onClick={() => setCollectionPage(item.id)}
             className={`text-sm font-bold px-4 py-2.5 rounded-xl border transition-all ${collectionPage === item.id ? 'bg-[#4f46e5] border-[#9aa8ff] text-white' : 'bg-[#121830]/70 border-[#2f3a6b] text-[#aab4dc] hover:border-[#9aa8ff]/70 hover:text-white'}`}>
             {item.title}
@@ -179,16 +184,22 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
       {collectionPage === 'overview' && <div className={`${card} space-y-3`}>
         <div className="flex flex-wrap items-center gap-3">
           <h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider flex items-center gap-2"><Landmark className="w-4 h-4" /> {headLabel(activeHead)} · demand &amp; collection</h3>
-          <select value={fy} onChange={(e) => setFy(e.target.value)} className={inp}>
-            {[-1, 0, 1].map((d) => { const y = parseInt(thisFy.slice(0, 4), 10) + d; const l = `${y}-${String((y + 1) % 100).padStart(2, '0')}`; return <option key={l} value={l}>{l}</option>; })}
-          </select>
-          <span className="text-[11px] text-[#aab4dc]">Due date for {fy}: {dueDateOf(fy, settings)}</span>
+          {monthly ? (
+            <select value={month} onChange={(e) => setMonth(e.target.value)} className={inp} aria-label="Billing month">
+              {monthKeys(11, 1).map((k) => <option key={k} value={k}>{periodLabel(k)}</option>)}
+            </select>
+          ) : (
+            <select value={fy} onChange={(e) => setFy(e.target.value)} className={inp} aria-label="Financial year">
+              {[-1, 0, 1].map((d) => { const y = parseInt(thisFy.slice(0, 4), 10) + d; const l = `${y}-${String((y + 1) % 100).padStart(2, '0')}`; return <option key={l} value={l}>{l}</option>; })}
+            </select>
+          )}
+          <span className="text-[11px] text-[#aab4dc]">Due date for {periodLabel(period)}: {dueDateOf(period, settings)}</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
           <div className="bg-[#121830] rounded-lg p-3"><span className="text-[#aab4dc] block">Tax outstanding</span><b className="text-lg font-mono text-white">{money(totals.principal)}</b></div>
           <div className="bg-[#121830] rounded-lg p-3"><span className="text-[#aab4dc] block">Interest outstanding</span><b className="text-lg font-mono text-[#ffe3a3]">{money(totals.interest)}</b></div>
           <div className="bg-[#121830] rounded-lg p-3"><span className="text-[#aab4dc] block">Properties with dues</span><b className="text-lg font-mono text-white">{totals.withDues}</b></div>
-          <div className="bg-[#121830] rounded-lg p-3"><span className="text-[#aab4dc] block">Demand raised for {fy}</span><b className="text-lg font-mono text-white">{activeHead === 'property_tax' ? `${alreadyDemanded} / ${approvedCount}` : `${rows.filter(({ entries }) => entries.some((e) => e.id === `demand_${fy}`)).length} / ${fixedTargets.length}`}</b></div>
+          <div className="bg-[#121830] rounded-lg p-3"><span className="text-[#aab4dc] block">Demand raised for {periodLabel(period)}</span><b className="text-lg font-mono text-white">{activeHead === 'property_tax' ? `${alreadyDemanded} / ${approvedCount}` : `${rows.filter(({ entries }) => entries.some((e) => e.id === `demand_${period}`)).length} / ${fixedTargets.length}`}</b></div>
         </div>
         <div className="flex flex-wrap gap-2">
           {canManageLedger(role) && activeHead === 'property_tax' && (
@@ -198,7 +209,7 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
           )}
           {canManageLedger(role) && (
             <button type="button" disabled={busy || fixedPending === 0} onClick={generateFixed} className={`${btn} bg-[#f2b233] text-[#2b1d00]`}>
-              Generate demand from fixed amounts ({fixedPending})
+              {monthly ? `Generate ${periodLabel(period)} bills` : 'Generate demand from fixed amounts'} ({fixedPending})
             </button>
           )}
           <button type="button" onClick={exportLedger} disabled={!rows.some(({ led }) => led.rows.length)} className={`${btn} bg-[#1d2547] text-[#aab4dc] border border-[#2f3a6b]`}>
@@ -243,6 +254,10 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
           town={townName} townKey={townKey} rec={selected.r} entries={selected.entries} settings={settings}
           busy={busy} run={run} role={role} head={activeHead} fixedAmount={fixedAmountFor(rates, selected.r.use)}
         />
+      )}
+
+      {collectionPage === 'update' && canSetPayableRates(role) && (
+        <ManualDues townKey={townKey} head={activeHead} monthly={monthly} rows={rows} busy={busy} run={run} />
       )}
 
       {collectionPage === 'settings' && canEditRates(role) && (
@@ -352,7 +367,7 @@ const PropertyLedger: React.FC<{
           <tbody>
             {led.rows.map((x) => (
               <tr key={x.fy} className="border-b border-[#20284b] text-white">
-                <td className="p-2">{x.fy}</td><td className="p-2">{x.dueDate}</td>
+                <td className="p-2">{periodLabel(x.fy)}</td><td className="p-2">{x.dueDate}</td>
                 <td className="p-2 text-right">{money(x.demand + x.adjustments)}</td>
                 <td className="p-2 text-right">{money(x.rebate)}</td>
                 <td className="p-2 text-right">{money(x.paidPrincipal + x.paidInterest)}</td>
@@ -398,7 +413,7 @@ const PropertyLedger: React.FC<{
           {preview && !preview.ok && <p className="text-[11px] text-red-300">{preview.error}</p>}
           {preview?.ok && (
             <div className="text-[11px] text-[#d6dcf5] font-mono">
-              {preview.allocation?.parts.map((p) => <div key={p.fy}>{p.fy}: interest {money(p.interest)}, tax {money(p.principal)}</div>)}
+              {preview.allocation?.parts.map((p) => <div key={p.fy}>{periodLabel(p.fy)}: interest {money(p.interest)}, tax {money(p.principal)}</div>)}
               {preview.rebate > 0 && <div>Rebate {money(preview.rebate)} will be posted with this payment.</div>}
               <div>Balance after: {money(preview.result?.totalDue || 0)}</div>
             </div>
@@ -410,7 +425,7 @@ const PropertyLedger: React.FC<{
         <details className="bg-[#121830] rounded-lg p-3">
           <summary className="text-xs font-bold text-[#aab4dc] cursor-pointer">Adjust a year's demand (e.g. after re-assessment)</summary>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
-            <label className="text-[11px] text-[#aab4dc]">Year<select value={adjFy} onChange={(e) => setAdjFy(e.target.value)} className={`${inp} w-full mt-1`}>{led.rows.map((x) => <option key={x.fy}>{x.fy}</option>)}</select></label>
+            <label className="text-[11px] text-[#aab4dc]">Year<select value={adjFy} onChange={(e) => setAdjFy(e.target.value)} className={`${inp} w-full mt-1`}>{led.rows.map((x) => <option key={x.fy} value={x.fy}>{periodLabel(x.fy)}</option>)}</select></label>
             <label className="text-[11px] text-[#aab4dc]">Amount (+ more, − less)<input type="number" step="0.01" value={adjAmt} onChange={(e) => setAdjAmt(e.target.value)} className={`${inp} w-full mt-1`} /></label>
             <label className="text-[11px] text-[#aab4dc] col-span-2">Reason<input value={adjWhy} onChange={(e) => setAdjWhy(e.target.value)} className={`${inp} w-full mt-1`} /></label>
           </div>
@@ -429,7 +444,7 @@ const PropertyLedger: React.FC<{
                 <tr key={e.id} className={`border-b border-[#20284b] ${isCancelled || e.type === 'reversal' ? 'text-[#8790bd]' : 'text-white'}`}>
                   <td className="p-2">{e.date}</td>
                   <td className={`p-2 ${isCancelled ? 'line-through' : ''}`}>{e.type}</td>
-                  <td className="p-2">{e.fy}</td>
+                  <td className="p-2">{periodLabel(e.fy)}</td>
                   <td className={`p-2 text-right ${isCancelled ? 'line-through' : ''}`}>{money(e.amount)}</td>
                   <td className="p-2 text-[11px]">
                     {e.receiptNo && <span className="font-mono">{e.receiptNo}</span>} {e.mode ? `${e.mode}${e.ref ? ' ' + e.ref : ''}` : ''} {e.reason ? `· ${e.reason}` : ''} {e.note ? `· ${e.note}` : ''}
@@ -458,32 +473,127 @@ const PropertyLedger: React.FC<{
 };
 
 // ---------------------------------------------------------------------------
-const RateRow: React.FC<{ head: HeadId; initial: PayableRates | undefined; busy: boolean; onSave: (h: HeadId, r: { residential: number | null; commercial: number | null }) => void; townName: string }> = ({ head, initial, busy, onSave, townName }) => {
+type RowSet = { r: PropertyRecord; entries: LedgerEntry[]; led: ReturnType<typeof computeLedger> }[];
+
+/** Admin only: add a charge or arrears, or reduce or waive dues, on any property and any period. Posted as an adjustment, so it is audited and can be reversed. */
+const ManualDues: React.FC<{ townKey: string; head: HeadId; monthly: boolean; rows: RowSet; busy: boolean; run: (label: string, work: () => Promise<string | void>) => Promise<void> }> = ({ townKey, head, monthly, rows, busy, run }) => {
+  const [q, setQ] = useState('');
+  const [pid, setPid] = useState<string | null>(null);
+  const [mode, setMode] = useState<'add' | 'cut'>('add');
+  const thisFy = financialYearOf(new Date());
+  const fyOptions = useMemo(() => Array.from({ length: 12 }, (_, i) => { const y = parseInt(thisFy.slice(0, 4), 10) - i + 1; return `${y}-${String((y + 1) % 100).padStart(2, '0')}`; }), [thisFy]);
+  const [period, setPeriod] = useState(monthly ? monthKeys(0, 0)[0] : thisFy);
+  const [amount, setAmount] = useState('');
+  const [date, setDate] = useState(periodStart(monthly ? monthKeys(0, 0)[0] : thisFy));
+  const [why, setWhy] = useState('');
+
+  const found = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    if (t.length < 2) return [];
+    return rows.filter(({ r }) => `${r.id} ${r.owner} ${r.hno}`.toLowerCase().includes(t)).slice(0, 8);
+  }, [q, rows]);
+  const cur = pid ? rows.find(({ r }) => r.id === pid) : undefined;
+  const choosePeriod = (k: string) => { setPeriod(k); setDate(periodStart(k)); };
+  const amt = Math.abs(parseFloat(amount));
+  const signed = mode === 'add' ? amt : -amt;
+  const ok = !!cur && amt > 0 && isFinite(amt) && why.trim().length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(date);
+
+  const submit = () => {
+    if (!cur) return;
+    if (!window.confirm(`${mode === 'add' ? 'Add' : 'Reduce'} ${money(amt)} on ${headLabel(head)} for ${periodLabel(period)}?\n\nOwner: ${cur.r.owner}\nProperty: ${cur.r.id}\nEffective date: ${date}\nReason: ${why.trim()}\n\nIt is recorded in the audit trail. A mistake can be reversed from Collect payment.`)) return;
+    void run('Dues updated', async () => {
+      await postAdjustment(townKey, cur.r.id, period, signed, why.trim(), date, head);
+      setAmount(''); setWhy('');
+    });
+  };
+  const fld = `${inp} w-full mt-1`;
+
+  return (
+    <div className={`${card} space-y-4`}>
+      <h3 className="text-lg font-bold text-white">Update dues of {headLabel(head)}</h3>
+      <label className="text-[11px] text-[#aab4dc] block">Property ID or owner
+        <input value={q} onChange={(e) => { setQ(e.target.value); setPid(null); }} className={fld} placeholder="Type at least 2 letters" />
+      </label>
+      {!cur && found.map(({ r, led }) => (
+        <button key={r.id} type="button" onClick={() => setPid(r.id)} className="stub w-full text-left bg-[#121830] border border-[#2f3a6b] hover:border-[#9aa8ff] p-3 flex justify-between gap-3">
+          <span className="min-w-0"><span className="block font-bold text-white truncate">{r.owner}</span><span className="block text-xs text-[#aab4dc]">{r.id} · Ward {r.ward}</span></span>
+          <span className="slab font-bold text-[#ff6b6f] whitespace-nowrap">{money(led.totalDue)}</span>
+        </button>
+      ))}
+      {cur && (
+        <>
+          <div className="bg-[#121830] rounded-lg p-3 text-sm">
+            <b className="text-white">{cur.r.owner}</b> <span className="text-[#aab4dc]">· {cur.r.id}</span>
+            <div className="mt-1 text-[#aab4dc]">Due now on {headLabel(head)}: <b className="text-[#ff6b6f]">{money(cur.led.totalDue)}</b></div>
+            {cur.led.rows.length > 0 && (
+              <div className="mt-2 overflow-x-auto"><table className="w-full text-xs"><tbody>
+                {cur.led.rows.map((x) => <tr key={x.fy} className="border-t border-[#252e56]"><td className="py-1">{periodLabel(x.fy)}</td><td className="text-right">{money(x.principalDue + x.interestDue)}</td></tr>)}
+              </tbody></table></div>
+            )}
+          </div>
+          <div className="flex gap-2">
+            {([['add', 'Add charge or arrears'], ['cut', 'Reduce or waive']] as const).map(([m, label]) => (
+              <button key={m} type="button" onClick={() => setMode(m)} aria-pressed={mode === m}
+                className={`flex-1 text-sm font-bold px-3 py-2.5 rounded-xl border ${mode === m ? 'bg-[#4f46e5] border-[#9aa8ff] text-white' : 'bg-[#0d1224] border-[#2f3a6b] text-[#aab4dc]'}`}>{label}</button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="text-[11px] text-[#aab4dc]">{monthly ? 'Month' : 'Financial year'}
+              {monthly
+                ? <input type="month" value={period} onChange={(e) => e.target.value && choosePeriod(e.target.value)} className={fld} />
+                : <select value={period} onChange={(e) => choosePeriod(e.target.value)} className={fld}>{fyOptions.map((k) => <option key={k}>{k}</option>)}</select>}
+            </label>
+            <label className="text-[11px] text-[#aab4dc]">Amount (₹)<input type="number" inputMode="decimal" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className={fld} /></label>
+            <label className="text-[11px] text-[#aab4dc]">Effective date<input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={fld} /></label>
+            <label className="text-[11px] text-[#aab4dc]">Reason<input value={why} onChange={(e) => setWhy(e.target.value)} className={fld} placeholder="For example: arrears from old register" /></label>
+          </div>
+          <p className="text-[11px] text-[#8790bd]">Interest on an added amount runs from the due date of its period when the effective date is on or before it. For arrears of an earlier period, keep the date at the start of that period.</p>
+          <button type="button" disabled={busy || !ok} onClick={submit} className={`${btn} bg-[#f2b233] text-[#2b1d00]`}>{mode === 'add' ? 'Add to dues' : 'Reduce dues'}</button>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+const RateRow: React.FC<{ head: HeadId; initial: PayableRates | undefined; busy: boolean; onSave: (h: HeadId, r: { residential: number | null; commercial: number | null; frequency: 'yearly' | 'monthly' }) => void; townName: string }> = ({ head, initial, busy, onSave, townName }) => {
   const [res, setRes] = useState(initial?.residential == null ? '' : String(initial.residential));
   const [com, setCom] = useState(initial?.commercial == null ? '' : String(initial.commercial));
   const [err, setErr] = useState('');
+  const [freq, setFreq] = useState<'yearly' | 'monthly'>(head !== 'property_tax' && initial?.frequency === 'monthly' ? 'monthly' : 'yearly');
+  const per = freq === 'monthly' ? 'month' : 'year';
   const toNum = (v: string) => (v.trim() === '' ? null : Number(v));
   const save = () => {
-    const r = { residential: toNum(res), commercial: toNum(com) };
+    const r = { residential: toNum(res), commercial: toNum(com), frequency: freq };
     const e = validateRates(r);
     if (e) { setErr(e); return; }
-    if (!window.confirm(`Save ${headLabel(head)} fixed amounts for ${townName}?\n\nResidential: ${r.residential === null ? 'not set' : money(r.residential)}\nCommercial: ${r.commercial === null ? 'not set' : money(r.commercial)}\n\nDemands already raised are not changed.`)) return;
+    if (!window.confirm(`Save ${headLabel(head)} fixed amounts for ${townName}?\n\nResidential: ${r.residential === null ? 'not set' : money(r.residential)}\nCommercial: ${r.commercial === null ? 'not set' : money(r.commercial)}\nCharged: ${freq === 'monthly' ? 'every month' : 'once a year'}\n\nDemands already raised are not changed.`)) return;
     setErr(''); onSave(head, r);
   };
   return (
     <div className="bg-[#121830] rounded-lg p-3 space-y-2">
       <h4 className="text-xs font-bold text-[#ffe3a3] uppercase tracking-wider">{headLabel(head)}</h4>
       <div className="grid sm:grid-cols-2 gap-3">
-        <label className="text-[11px] text-[#aab4dc]">Residential (₹ per property per year)<input type="number" inputMode="decimal" min="0" step="0.01" value={res} onChange={(e) => setRes(e.target.value)} className={`${inp} w-full mt-1`} /></label>
-        <label className="text-[11px] text-[#aab4dc]">Commercial (₹ per property per year)<input type="number" inputMode="decimal" min="0" step="0.01" value={com} onChange={(e) => setCom(e.target.value)} className={`${inp} w-full mt-1`} /></label>
+        <label className="text-[11px] text-[#aab4dc]">Residential (₹ per property per {per})<input type="number" inputMode="decimal" min="0" step="0.01" value={res} onChange={(e) => setRes(e.target.value)} className={`${inp} w-full mt-1`} /></label>
+        <label className="text-[11px] text-[#aab4dc]">Commercial (₹ per property per {per})<input type="number" inputMode="decimal" min="0" step="0.01" value={com} onChange={(e) => setCom(e.target.value)} className={`${inp} w-full mt-1`} /></label>
       </div>
+      {head !== 'property_tax' && (
+        <fieldset className="flex gap-2" aria-label="How often this bill is charged">
+          {(['yearly', 'monthly'] as const).map((f) => (
+            <button key={f} type="button" onClick={() => setFreq(f)} aria-pressed={freq === f}
+              className={`text-sm font-bold px-4 py-2 rounded-xl border ${freq === f ? 'bg-[#4f46e5] border-[#9aa8ff] text-white' : 'bg-[#0d1224] border-[#2f3a6b] text-[#aab4dc]'}`}>
+              {f === 'monthly' ? 'Charged every month' : 'Charged once a year'}
+            </button>
+          ))}
+        </fieldset>
+      )}
       {err && <p className="text-xs text-red-300">{err}</p>}
       <button type="button" disabled={busy} onClick={save} className={`${btn} bg-[#4f46e5] text-white`}>Save {headLabel(head)} amounts</button>
     </div>
   );
 };
 
-const RateFiller: React.FC<{ townName: string; heads: HeadId[]; all: Record<string, PayableRates>; busy: boolean; onSave: (h: HeadId, r: { residential: number | null; commercial: number | null }) => void }> = ({ townName, heads, all, busy, onSave }) => (
+const RateFiller: React.FC<{ townName: string; heads: HeadId[]; all: Record<string, PayableRates>; busy: boolean; onSave: (h: HeadId, r: { residential: number | null; commercial: number | null; frequency: 'yearly' | 'monthly' }) => void }> = ({ townName, heads, all, busy, onSave }) => (
   <div className={`${card} space-y-3`}>
     <h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider">Fixed amounts payable · {townName}</h3>
     

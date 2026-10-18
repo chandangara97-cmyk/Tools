@@ -44,7 +44,8 @@ export function useAllSettings(townKey: string): Record<HeadId, CollectionSettin
   return s;
 }
 
-export interface HeadLiability { head: HeadId; principal: number; interest: number; total: number; billed: boolean }
+export interface PeriodDue { fy: string; dueDate: string; principal: number; interest: number; total: number }
+export interface HeadLiability { head: HeadId; principal: number; interest: number; total: number; billed: boolean; periods: PeriodDue[] }
 export interface PropertyLiability { propertyId: string; heads: HeadLiability[]; total: number }
 
 /** Dues of one property under the given bill heads. Heads with no demand are left out. */
@@ -56,7 +57,10 @@ export function propertyLiability(
     const entries = ledgers[h]?.[pid] || [];
     if (!entries.length) continue;
     const l = computeLedger(entries, settings[h], asOf);
-    out.push({ head: h, principal: l.principalDue, interest: l.interestDue, total: l.totalDue, billed: entries.some((e) => e.type === 'demand') });
+    out.push({
+      head: h, principal: l.principalDue, interest: l.interestDue, total: l.totalDue, billed: entries.some((e) => e.type === 'demand'),
+      periods: l.rows.filter((r) => r.totalDue > 0.004).map((r) => ({ fy: r.fy, dueDate: r.dueDate, principal: r.principalDue, interest: r.interestDue, total: r.totalDue })),
+    });
   }
   return { propertyId: pid, heads: out, total: out.reduce((a, x) => a + x.total, 0) };
 }

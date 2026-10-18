@@ -6,6 +6,8 @@ import { todayIso } from '../services/collection';
 import { useAllLedgers, useAllSettings, propertyLiability } from '../services/liability';
 import { BILL_NAME } from './WorkMenu';
 import { money } from './CollectionPanel';
+import { BillMaker } from './BillMaker';
+import { useAuth, canCollect, canManageLedger } from '../services/auth';
 
 interface Props { townKey: string; townName: string; records: PropertyRecord[]; heads: HeadId[] }
 
@@ -19,6 +21,9 @@ export const LiabilitySearch: React.FC<Props> = ({ townKey, townName, records, h
   const today = todayIso();
   const [q, setQ] = useState('');
   const [picked, setPicked] = useState<string | null>(null);
+  const [billing, setBilling] = useState(false);
+  const { role } = useAuth();
+  const canBill = canCollect(role) || canManageLedger(role);
 
   const town = useMemo(() => records.filter((r) => r.town === townName), [records, townName]);
   const byId = useMemo(() => new Map(town.map((r) => [r.id, r])), [town]);
@@ -50,7 +55,7 @@ export const LiabilitySearch: React.FC<Props> = ({ townKey, townName, records, h
       <div className="relative">
         <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[#9aa8ff]" />
         <input
-          autoFocus value={q} onChange={(e) => { setQ(e.target.value); setPicked(null); }}
+          autoFocus value={q} onChange={(e) => { setQ(e.target.value); setPicked(null); setBilling(false); }}
           placeholder="Property ID or owner name" aria-label="Property ID or owner name"
           className="w-full h-14 pl-12 pr-12 rounded-2xl bg-[#181f3d] border-2 border-[#2f3a6b] focus:border-[#9aa8ff] outline-none text-lg text-white placeholder:text-[#8790bd]"
         />
@@ -121,7 +126,9 @@ export const LiabilitySearch: React.FC<Props> = ({ townKey, townName, records, h
               </table>
             </div>
             <p className="text-[11px] text-[#8790bd]">As on {today}.</p>
+            {canBill && !billing && <button type="button" onClick={() => setBilling(true)} className="text-sm font-bold px-4 py-2.5 rounded-xl bg-[#f2b233] text-[#2b1d00]">Generate bill</button>}
           </div>
+          {canBill && billing && <BillMaker key={rec.id} town={townName} rows={ownerRows} currentId={rec.id} onClose={() => setBilling(false)} />}
 
           {ownerRows.length > 1 && (
             <div className="space-y-2">
