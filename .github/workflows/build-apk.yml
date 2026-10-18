@@ -1,9 +1,9 @@
 name: Build Android APK
 
 on:
-  workflow_dispatch: {}     # run by hand: Actions tab > Build Android APK > Run workflow
+  workflow_dispatch: {}
   push:
-    tags: ["v*"]            # or push a tag like v1.0.0
+    tags: ["v*"]
 
 jobs:
   apk:
