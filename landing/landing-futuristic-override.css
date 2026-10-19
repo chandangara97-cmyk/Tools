@@ -1,0 +1,91 @@
+/* Optional override for landing/index.html — link AFTER its inline <style>
+   or paste the rules at the end of the landing page's <style> block. */
+
+:root {
+  --ink: #e8f0ff;
+  --mute: #8da2c4;
+  --acc: #9bb8ff;
+  --acc2: #477dff;
+  --warm: #25d6c5;
+  --line: rgba(137, 164, 211, 0.18);
+}
+
+body {
+  background: #0a1020 !important;
+  background-image:
+    radial-gradient(ellipse at 12% -10%, rgba(46, 91, 190, 0.28), transparent 38rem),
+    radial-gradient(ellipse at 95% 0%, rgba(18, 195, 188, 0.1), transparent 32rem) !important;
+  color: #e8f0ff !important;
+}
+
+.badge {
+  border-color: rgba(137, 164, 211, 0.22) !important;
+  background: rgba(71, 125, 255, 0.1) !important;
+  color: #9bb8ff !important;
+}
+.badge i {
+  background: #25d6c5 !important;
+  box-shadow: 0 0 12px #25d6c5 !important;
+}
+
+h1 em {
+  background: linear-gradient(90deg, #9bb8ff, #25d6c5) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+.lead { color: #c8d6ef !important; }
+
+.st, .card {
+  background: rgba(17, 26, 45, 0.78) !important;
+  border: 1px solid rgba(137, 164, 211, 0.18) !important;
+  border-radius: 22px !important;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35), inset 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.seg {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-radius: 14px !important;
+}
+.seg::before {
+  background: linear-gradient(135deg, #4f8cff, #25d6c5) !important;
+}
+
+.f input {
+  background: #0b1324 !important;
+  border: 1px solid #2b3c59 !important;
+  border-radius: 12px !important;
+  color: #fff !important;
+}
+.f input:focus {
+  border-color: #477dff !important;
+  box-shadow: 0 0 0 4px rgba(71, 125, 255, 0.18) !important;
+}
+
+.go, button.go {
+  background: linear-gradient(135deg, #4f8cff, #25d6c5) !important;
+  color: #0a1020 !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  font-weight: 700;
+  box-shadow: 0 10px 26px rgba(71, 125, 255, 0.28) !important;
+}
+
+.tile {
+  border-radius: 16px !important;
+  border: 1px solid rgba(137, 164, 211, 0.18) !important;
+  background: rgba(17, 26, 45, 0.7) !important;
+}
+.tile:hover {
+  border-color: rgba(106, 151, 255, 0.4) !important;
+  transform: translateY(-2px);
+}
+
+.tile.pri {
+  background: linear-gradient(135deg, rgba(79, 140, 255, 0.18), rgba(37, 214, 197, 0.1)) !important;
+  border-color: rgba(106, 151, 255, 0.35) !important;
+}
+
+.foot { color: #7a8eab !important; }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Smartphone, Lock, LogOut, Wrench } from 'lucide-react';
+import { Smartphone, Lock, LogOut, Wrench, Command, ChevronDown } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { useAuth } from '../services/auth';
 
@@ -13,52 +13,100 @@ interface NavbarProps {
   minimal?: boolean;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeView, setActiveView, onOpenAndroidModal, showTools, minimal = false }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  activeView,
+  setActiveView,
+  onOpenAndroidModal,
+  showTools,
+  minimal = false,
+}) => {
   const { isInstallable } = usePWAInstall();
-  const { signOut } = useAuth();
+  const { signOut, role, displayName } = useAuth();
+
   return (
-    <header className="scheme-navbar sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 text-slate-800 shadow-sm">
-      <style>{`
-        .scheme-navbar { background:rgba(255,255,255,.94) !important; border-color:#d9e5f1 !important; box-shadow:0 5px 22px rgba(25,55,90,.07) !important; }
-        .scheme-navbar > div { min-height:64px; }
-        .scheme-navbar button,.scheme-navbar a { border-radius:11px; }
-        .scheme-navbar button:hover,.scheme-navbar a:hover { background:#edf4fc !important; color:#1f5595 !important; }
-        .scheme-navbar button:first-child span:first-child { background:linear-gradient(135deg,#164e8c,#3479c8) !important; box-shadow:0 4px 12px rgba(36,89,169,.2); }
-        @media(max-width:480px){ .scheme-navbar > div { padding-inline:12px; gap:8px; } .scheme-navbar .font-bold.text-base { font-size:13px; } }
-      `}</style>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-3">
-        <button onClick={() => setActiveView('gis-survey')} className="flex items-center gap-2.5 text-left focus:outline-none">
-          <span className="w-8 h-8 rounded-lg bg-blue-700 flex items-center justify-center">
-            <svg width="20" height="20" viewBox="0 0 30 30" fill="none" aria-hidden="true">
-              <path d="M15 6 24 22H6z" stroke="#fff" strokeWidth="2.2" strokeLinejoin="round" />
-              <circle cx="15" cy="17" r="2.2" fill="#fff" />
-            </svg>
+    <header className="scheme-navbar sticky top-0 z-40 border-b text-slate-100">
+      <div className="max-w-[1600px] mx-auto min-h-[72px] px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => setActiveView('gis-survey')}
+          className="flex items-center gap-3 text-left rounded-xl focus:outline-none shrink-0"
+          aria-label="Go to Scheme Hub home"
+        >
+          <span className="hub-brand-mark w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0">
+            <Command className="w-5 h-5" strokeWidth={2.4} />
           </span>
-          <span className="font-bold text-base tracking-tight">Scheme Hub 2026</span>
+          <span className="flex flex-col leading-tight">
+            <span className="hub-brand-name text-[15px] sm:text-base font-extrabold tracking-tight">
+              Scheme Hub <span className="text-cyan-300">2026</span>
+            </span>
+            <span className="hub-brand-subtitle text-[10px] uppercase tracking-[.19em] mt-1">
+              Civic operations platform
+            </span>
+          </span>
         </button>
 
-        <div className="flex items-center gap-2">
+        <nav aria-label="Main navigation" className="flex items-center justify-end gap-1.5 sm:gap-2 min-w-0">
           {showTools && (
             <>
-              <button onClick={() => setActiveView(activeView === 'tools-directory' ? 'gis-survey' : 'tools-directory')}
-                className="text-xs font-bold px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center gap-1.5">
-                <Wrench className="w-4 h-4" /> Tools
+              <button
+                type="button"
+                onClick={() => setActiveView(activeView === 'tools-directory' ? 'gis-survey' : 'tools-directory')}
+                className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold ${
+                  activeView === 'tools-directory'
+                    ? 'hub-nav-active border-blue-400/30'
+                    : 'border-transparent text-slate-300 hover:text-white'
+                }`}
+                aria-current={activeView === 'tools-directory' ? 'page' : undefined}
+              >
+                <Wrench className="w-4 h-4" />
+                <span className="hidden sm:inline">Tools directory</span>
+                <span className="sm:hidden">Tools</span>
               </button>
-              <a href="admin_users.html" className="bg-[#f2b233]/20 hover:bg-[#f2b233]/30 border border-[#f2b233]/50 text-[#ffe3a3] text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5">
-                <Lock className="w-4 h-4" /> Admin
+              <a
+                href="admin_users.html"
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2.5 text-xs font-bold text-amber-100 hover:border-amber-200/40"
+              >
+                <Lock className="w-4 h-4" />
+                <span>Admin</span>
               </a>
             </>
           )}
-          {!minimal && <button onClick={onOpenAndroidModal} className="text-[#10b981] bg-[#10b981]/15 text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5" title="Install Android app">
-            <Smartphone className="w-4 h-4" />
-            <span className="hidden sm:inline">Android app</span>
-            {isInstallable && <span className="w-2 h-2 rounded-full bg-white animate-ping" />}
-          </button>}
-          <button onClick={() => void signOut()} className="text-xs font-bold px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center gap-1.5">
-            <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Sign out</span>
+
+          {!minimal && (
+            <button
+              type="button"
+              onClick={onOpenAndroidModal}
+              className="relative inline-flex items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2.5 text-xs font-bold text-cyan-100 hover:border-cyan-200/40"
+              title="Install Android app"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span className="hidden md:inline">Install app</span>
+              {isInstallable && <span className="w-2 h-2 rounded-full bg-cyan-300 animate-pulse" />}
+            </button>
+          )}
+
+          <div className="hidden lg:flex items-center gap-2 border-l border-white/10 pl-3 ml-1">
+            <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-teal-300 text-slate-950 text-xs font-black flex items-center justify-center">
+              {(displayName || role || 'U').trim().slice(0, 1).toUpperCase()}
+            </span>
+            <span className="max-w-32 min-w-0">
+              <span className="block text-xs font-bold text-slate-100 truncate">{displayName || 'Signed in user'}</span>
+              <span className="block text-[10px] text-slate-400 capitalize truncate">{role || 'account'}</span>
+            </span>
+            <ChevronDown className="w-3 h-3 text-slate-500" />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2.5 text-xs font-bold text-slate-300 hover:border-rose-300/30 hover:text-rose-100"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Sign out</span>
           </button>
-        </div>
+        </nav>
       </div>
+      <div className="h-px bg-gradient-to-r from-transparent via-blue-400/40 to-transparent" />
     </header>
   );
 };

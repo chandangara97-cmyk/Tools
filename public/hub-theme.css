@@ -1,66 +1,280 @@
-@import url("https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=Zilla+Slab:wght@500;600;700&display=swap");
-/* Scheme Hub 2026: the ONE theme for every standalone page (landing, admin, tools).
-   Same colours, font and header as the React app (src/index.css, Navbar).
-   Link it LAST in <head>; it re-points each page's own CSS variables to the shared palette. */
-:root{
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+/* Scheme Hub 2026 — Futuristic theme for every standalone page
+   (landing, admin, tools). Matches the React app redesign
+   (src/index.css + Navbar). Link this LAST in <head>. */
+
+:root {
   color-scheme: dark;
-  /* shared palette */
-  --hub-bg:#0d1224; --hub-bar:#141a36; --hub-surface:#181f3d; --hub-field:#121830;
-  --hub-line:#2f3a6b; --hub-text:#eef0fb; --hub-mute:#aab4dc; --hub-accent:#4f46e5;
-  --hub-accent-lt:#9aa8ff; --hub-gold:#f2b233; --hub-gold-soft:#ffe3a3; --hub-good:#34d399; --hub-bad:#ff6b6f;
-  --hub-font:'Public Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-  --hub-slab:'Zilla Slab',Rockwell,'Roboto Slab',Georgia,serif;
+
+  /* Core command-centre palette (aligned with React redesign) */
+  --hub-bg: #0a1020;
+  --hub-bar: #09101f;
+  --hub-surface: #111a2d;
+  --hub-field: #0b1324;
+  --hub-line: rgba(137, 164, 211, 0.18);
+  --hub-line-solid: #2b3c59;
+  --hub-text: #e8f0ff;
+  --hub-mute: #8da2c4;
+  --hub-accent: #477dff;
+  --hub-accent-2: #25d6c5;
+  --hub-accent-lt: #9bb8ff;
+  --hub-gold: #f2b233;
+  --hub-gold-soft: #ffe3a3;
+  --hub-good: #34d399;
+  --hub-bad: #ff6b6f;
+  --hub-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* admin_users.html */
-  --ink:var(--hub-bg); --card:var(--hub-surface); --line:var(--hub-line); --mute:var(--hub-mute);
-  --acc:var(--hub-accent); --bad:var(--hub-bad); --good:var(--hub-good);
+  --ink: var(--hub-bg);
+  --card: var(--hub-surface);
+  --line: var(--hub-line-solid);
+  --mute: var(--hub-mute);
+  --acc: var(--hub-accent);
+  --bad: var(--hub-bad);
+  --good: var(--hub-good);
+
   /* tools/index.html */
-  --navy:var(--hub-bar); --navy2:var(--hub-surface); --gold:var(--hub-gold); --gold-soft:var(--hub-gold-soft);
-  --bg:var(--hub-bg); --surface:var(--hub-surface); --surface2:var(--hub-field); --line2:var(--hub-line);
-  --text:var(--hub-text); --muted:var(--hub-mute); --faint:#8790bd; --focus:var(--hub-accent-lt);
-  --shadow:0 2px 8px rgba(0,0,0,.25); --shadow-h:0 18px 42px rgba(0,0,0,.4); --font:var(--hub-font);
-  /* KML tools */
-  --panel:var(--hub-field); --border:var(--hub-line); --accent:var(--hub-accent-lt);
+  --navy: var(--hub-bar);
+  --navy2: var(--hub-surface);
+  --gold: var(--hub-gold);
+  --gold-soft: var(--hub-gold-soft);
+  --bg: var(--hub-bg);
+  --surface: var(--hub-surface);
+  --surface2: var(--hub-field);
+  --line2: var(--hub-line-solid);
+  --text: var(--hub-text);
+  --muted: var(--hub-mute);
+  --faint: #7a8eab;
+  --focus: var(--hub-accent-lt);
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-h: 0 18px 42px rgba(0, 0, 0, 0.4);
+  --font: var(--hub-font);
+  --r: 18px;
+
+  /* KML / converter tools */
+  --panel: var(--hub-field);
+  --border: var(--hub-line-solid);
+  --accent: var(--hub-accent-lt);
+
   /* gis_property_survey.html */
-  --mut:var(--hub-mute); --nav:var(--hub-bar); --warn:var(--hub-gold);
+  --mut: var(--hub-mute);
+  --nav: var(--hub-bar);
+  --warn: var(--hub-gold);
 }
-html,body{background:var(--hub-bg)!important;color:var(--hub-text)!important;font-family:var(--hub-font)!important;-webkit-font-smoothing:antialiased}
-body{background-image:none!important}
-h1,h2,h3{font-family:var(--hub-slab)}
-a{color:var(--hub-accent-lt)}
-input,select,textarea{background:var(--hub-field)!important;color:var(--hub-text)!important;border:1px solid var(--hub-line)!important;border-radius:10px}
-input::placeholder,textarea::placeholder{color:#8790bd!important}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--hub-accent-lt)!important}
-button.primary,.btn-primary,.primary{background:var(--hub-accent)!important;color:#fff!important;border-color:var(--hub-accent)!important}
-th{background:var(--hub-field)!important;color:var(--hub-mute)!important}
-td,th{border-color:var(--hub-line)!important}
-pre,code{background:var(--hub-field)!important;color:var(--hub-text)!important}
-:focus-visible{outline:3px solid var(--hub-gold-soft);outline-offset:2px}
-::-webkit-scrollbar{width:7px;height:7px}::-webkit-scrollbar-track{background:#0a0e1c}::-webkit-scrollbar-thumb{background:#2a3464;border-radius:4px}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
-/* The shared header: identical to the app's Navbar (hub-shell.js adds it) */
-.hub-bar{position:sticky;top:0;z-index:2147482000;background:rgba(20,26,54,.95);backdrop-filter:blur(8px);border-bottom:1px solid #2a3464;color:#fff;font-family:var(--hub-font)}
-.hub-bar-in{max-width:80rem;margin:0 auto;padding:0 1rem;height:3.5rem;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.hub-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff!important;font-weight:700;font-size:1rem;letter-spacing:-.01em}
-.hub-mark{width:32px;height:32px;border-radius:8px;background:#e5484d;display:grid;place-items:center}
-.hub-links{display:flex;gap:8px}
-.hub-links a{font-size:12px;font-weight:700;padding:8px 12px;border-radius:8px;color:#d6dcf5!important;text-decoration:none}
-.hub-links a:hover{background:rgba(255,255,255,.1)}
-@media print{.hub-bar{display:none!important}}
+html, body {
+  background: var(--hub-bg) !important;
+  color: var(--hub-text) !important;
+  font-family: var(--hub-font) !important;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
 
-/* page-specific leftovers */
-.band{background:var(--hub-bg)!important;color:var(--hub-text)!important;border-bottom:1px solid var(--hub-line)!important}
-.band .mark{background:var(--hub-accent)!important;color:#fff!important}
-.app-header{background:var(--hub-bar)!important;color:var(--hub-text)!important;border-bottom:1px solid var(--hub-line)!important}
-.brandmark,.login-mark{background:var(--hub-accent)!important;color:#fff!important}
+body {
+  background-image:
+    radial-gradient(ellipse at 12% -10%, rgba(46, 91, 190, 0.22), transparent 38rem),
+    radial-gradient(ellipse at 95% 0%, rgba(18, 195, 188, 0.09), transparent 32rem) !important;
+  background-attachment: fixed !important;
+}
 
-/* GIS Property Survey: its town sign-in card, same look as the app's sign-in */
-#townLoginGate{background:linear-gradient(180deg,#0d1030 0,#2b2f78 55%,#d9946a 100%)!important;color:#e4e8fa!important}
-.login-card{background:rgba(13,16,40,.68)!important;color:#e4e8fa!important;border:1px solid rgba(255,255,255,.15)!important;backdrop-filter:blur(20px)}
-.login-card h2,.login-brand h1{color:#fff!important}
-.login-card .login-intro,.login-intro,.login-brand p,.login-foot{color:#aab4dc!important}
-.login-eyebrow,#townLoginGate label{color:#a5b4ff!important}
-#townLoginGate input,#townLoginGate select{background:rgba(255,255,255,.05)!important;color:#fff!important;border:1px solid rgba(255,255,255,.15)!important}
-#townLoginGate button[type=submit],#townLoginGate .b{background:linear-gradient(135deg,#c7d0ff,#a5b4ff)!important;color:#0e1230!important;border:0!important;box-shadow:0 10px 26px rgba(165,180,255,.3)!important}
-#townLoginGate{top:3.5rem!important}
+h1, h2, h3, h4 {
+  letter-spacing: -0.035em;
+  color: var(--hub-text);
+}
+
+a { color: var(--hub-accent-lt); }
+a:hover { color: #c5d6ff; }
+
+button, a, input, select, textarea {
+  transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease,
+    box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid rgba(76, 156, 255, 0.75);
+  outline-offset: 3px;
+}
+
+input, select, textarea {
+  background: var(--hub-field) !important;
+  color: var(--hub-text) !important;
+  border: 1px solid var(--hub-line-solid) !important;
+  border-radius: 12px !important;
+}
+input::placeholder, textarea::placeholder { color: #7a8eab !important; }
+input:focus, select:focus, textarea:focus {
+  border-color: var(--hub-accent) !important;
+  box-shadow: 0 0 0 4px rgba(71, 125, 255, 0.18) !important;
+}
+
+/* ── Shared top bar (injected by hub-shell.js) ── */
+.hub-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(9, 16, 31, 0.88) !important;
+  color: #e8f0ff !important;
+  border-bottom: 1px solid rgba(137, 164, 211, 0.18) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18) !important;
+  backdrop-filter: blur(22px) saturate(145%);
+  -webkit-backdrop-filter: blur(22px) saturate(145%);
+}
+.hub-bar-in {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.hub-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none !important;
+  color: #f1f6ff !important;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+}
+.hub-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #4f8cff, #21c9c3) !important;
+  box-shadow: 0 0 0 5px rgba(63, 131, 255, 0.09), 0 8px 22px rgba(49, 116, 255, 0.25);
+}
+.hub-links {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.hub-links a {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none !important;
+  color: #c8d6ef !important;
+  border: 1px solid transparent;
+}
+.hub-links a:hover {
+  background: rgba(93, 135, 226, 0.14) !important;
+  color: #fff !important;
+  border-color: rgba(106, 151, 255, 0.25);
+}
+
+/* ── Tools directory band / cards ── */
+.band {
+  background:
+    radial-gradient(ellipse at 85% 0%, rgba(40, 110, 230, 0.16), transparent 36rem),
+    linear-gradient(120deg, #09101f 0%, #0d1a32 55%, #122843 100%) !important;
+  color: #fff !important;
+  border-bottom: 1px solid rgba(137, 164, 211, 0.2) !important;
+}
+.band .mark {
+  background: linear-gradient(145deg, #4f8cff, #21c9c3) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 0 0 5px rgba(63, 131, 255, 0.09), 0 8px 22px rgba(49, 116, 255, 0.25);
+}
+.band .org, .band .sub { color: #e8f0ff !important; }
+.band .sub { color: #8da2c4 !important; opacity: 1 !important; }
+
+.card, .grid > a.card, .grid > div.card {
+  background: rgba(17, 26, 45, 0.92) !important;
+  border: 1px solid var(--hub-line) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.22), inset 0 1px rgba(255, 255, 255, 0.035) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.card:hover, .grid > a.card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(106, 151, 255, 0.4) !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.32), inset 0 1px rgba(255, 255, 255, 0.05) !important;
+}
+
+.chip, .chips .chip {
+  border-radius: 12px !important;
+  border: 1px solid var(--hub-line-solid) !important;
+  background: var(--hub-field) !important;
+  color: var(--hub-text) !important;
+}
+.chip[aria-pressed="true"], .chip.on {
+  background: rgba(69, 119, 239, 0.19) !important;
+  border-color: rgba(106, 151, 255, 0.4) !important;
+  color: #dce8ff !important;
+}
+
+/* ── App / login headers ── */
+.app-header {
+  background: rgba(9, 16, 31, 0.88) !important;
+  color: var(--hub-text) !important;
+  border-bottom: 1px solid var(--hub-line) !important;
+  backdrop-filter: blur(22px);
+}
+.brandmark, .login-mark {
+  background: linear-gradient(145deg, #4f8cff, #21c9c3) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 5px rgba(63, 131, 255, 0.09), 0 8px 22px rgba(49, 116, 255, 0.25);
+}
+
+/* ── GIS Property Survey standalone login gate ── */
+#townLoginGate {
+  background:
+    radial-gradient(ellipse at 12% -10%, rgba(46, 91, 190, 0.28), transparent 38rem),
+    radial-gradient(ellipse at 95% 0%, rgba(18, 195, 188, 0.12), transparent 32rem),
+    #0a1020 !important;
+  color: #e4e8fa !important;
+}
+.login-card {
+  background: rgba(17, 26, 45, 0.88) !important;
+  color: #e4e8fa !important;
+  border: 1px solid rgba(137, 164, 211, 0.18) !important;
+  border-radius: 22px !important;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35), inset 0 1px rgba(255, 255, 255, 0.04);
+}
+.login-card h2, .login-brand h1 { color: #fff !important; }
+.login-card .login-intro, .login-intro, .login-brand p, .login-foot { color: #8da2c4 !important; }
+.login-eyebrow, #townLoginGate label { color: #9bb8ff !important; }
+#townLoginGate input, #townLoginGate select {
+  background: #0b1324 !important;
+  color: #fff !important;
+  border: 1px solid #2b3c59 !important;
+  border-radius: 12px !important;
+}
+#townLoginGate button[type=submit], #townLoginGate .b {
+  background: linear-gradient(135deg, #4f8cff, #25d6c5) !important;
+  color: #0a1020 !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  font-weight: 700;
+  box-shadow: 0 10px 26px rgba(71, 125, 255, 0.28) !important;
+}
+#townLoginGate { top: 3.5rem !important; }
+
+/* Primary action buttons on tools pages */
+button.primary, .btn-primary, a.open, .go {
+  border-radius: 12px !important;
+}
+
+/* Soft glass panels */
+.panel, .surface, .toolbar-in {
+  background: rgba(17, 26, 45, 0.85) !important;
+  border-color: var(--hub-line) !important;
+  border-radius: 16px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

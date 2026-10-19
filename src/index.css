@@ -4,48 +4,223 @@
 
 :root {
   color-scheme: light;
-  --ink: #f4f7fb;
+  --ink: #172943;
   --slip: #ffffff;
-  --rule: #dbe3ee;
+  --rule: #dce5f1;
   --stamp: #b7791f;
   --due: #c53030;
   --paid: #16805d;
+  --command: #0a1020;
+  --command-raised: #111a2d;
+  --command-line: rgba(137, 164, 211, .18);
+  --accent: #477dff;
+  --accent-2: #25d6c5;
+  --workspace: #f3f6fb;
+  --surface: #ffffff;
+  --muted: #64748b;
 }
 
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 body {
   margin: 0;
   padding: 0;
-  background-color: #f4f7fb;
-  color: #1f2937;
-  font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--command);
+  color: #dce7f8;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+button, input, select, textarea { font: inherit; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, a {
+  transition: color .18s ease, background-color .18s ease, border-color .18s ease,
+    box-shadow .18s ease, transform .18s ease;
+}
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid rgba(76, 156, 255, .75);
+  outline-offset: 3px;
+}
+h1, h2, h3, h4 { letter-spacing: -.035em; }
+.num, td, th, input, select { font-variant-numeric: tabular-nums; }
+
+/* Adaptive shell: dark command centre surrounding bright, readable workspaces. */
+.scheme-app {
+  --page-ink: #172943;
+  --page-muted: #667891;
+  --page-line: #dce5f1;
+  --page-accent: #3268d8;
+  min-height: 100vh;
+  color: #e5edfc;
+  background:
+    radial-gradient(ellipse at 12% -10%, rgba(46, 91, 190, .22), transparent 38rem),
+    radial-gradient(ellipse at 95% 0%, rgba(18, 195, 188, .09), transparent 32rem),
+    #0a1020;
+}
+.scheme-app main { max-width: 1600px; margin-inline: auto; }
+.scheme-app button, .scheme-app a, .scheme-app input, .scheme-app select, .scheme-app textarea {
+  transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease,
+    transform .18s ease, color .18s ease;
+}
+.scheme-app button:hover:not(:disabled) { filter: saturate(1.06); }
+.scheme-app button:active:not(:disabled) { transform: translateY(1px); }
+
+/* Bright work surface for the GIS survey and municipal records. */
+.scheme-app .gis-survey-page {
+  min-height: calc(100vh - 70px);
+  background: linear-gradient(180deg, #f2f6fc 0%, #f7f9fd 100%) !important;
+  color: #1d304b !important;
+}
+.scheme-app .gis-survey-page > .bg-\[\#141a36\] {
+  background: linear-gradient(110deg, #0c1426, #121f38) !important;
+  border-color: rgba(130, 160, 207, .24) !important;
+  color: #edf4ff !important;
+  box-shadow: 0 10px 30px rgba(8, 17, 36, .14);
+}
+.scheme-app .gis-survey-page .bg-\[\#0d1224\],
+.scheme-app .gis-survey-page .bg-\[\#121830\],
+.scheme-app .gis-survey-page .bg-\[\#141a36\],
+.scheme-app .gis-survey-page .bg-\[\#181f3d\],
+.scheme-app .gis-survey-page .bg-\[\#1d2547\],
+.scheme-app .gis-survey-page .bg-\[\#232c52\] { background-color: #fff !important; }
+.scheme-app .gis-survey-page .border-\[\#28325c\],
+.scheme-app .gis-survey-page .border-\[\#2f3a6b\],
+.scheme-app .gis-survey-page .border-\[\#2a3464\] { border-color: #dce5f1 !important; }
+.scheme-app .gis-survey-page .text-white { color: #1d304b !important; }
+.scheme-app .gis-survey-page .text-\[\#9aa8ff\],
+.scheme-app .gis-survey-page .text-\[\#aab4dc\],
+.scheme-app .gis-survey-page .text-\[\#d6dcf5\],
+.scheme-app .gis-survey-page .text-\[\#8790bd\] { color: #657891 !important; }
+.scheme-app .gis-survey-page input,
+.scheme-app .gis-survey-page select,
+.scheme-app .gis-survey-page textarea {
+  background: #fff !important;
+  border-color: #cbd8e8 !important;
+  color: #1d304b !important;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(20, 40, 70, .025);
+}
+.scheme-app .gis-survey-page input:focus,
+.scheme-app .gis-survey-page select:focus,
+.scheme-app .gis-survey-page textarea:focus {
+  border-color: #5487ef !important;
+  box-shadow: 0 0 0 4px rgba(71, 125, 255, .12);
+}
+.scheme-app .gis-survey-page button { border-radius: 12px; }
+.scheme-app .gis-survey-page .rounded-2xl,
+.scheme-app .gis-survey-page .rounded-3xl { box-shadow: 0 8px 28px rgba(29, 54, 91, .065); }
+.scheme-app .gis-survey-page table { border-collapse: separate; border-spacing: 0; }
+.scheme-app .gis-survey-page th {
+  background: #edf3fb;
+  color: #405571;
+  font-weight: 750;
+  letter-spacing: .025em;
+  text-transform: uppercase;
+  font-size: .69rem;
+}
+.scheme-app .gis-survey-page td { color: #263b57; }
+.scheme-app .gis-survey-page tr:hover td { background-color: #f5f8ff; }
+
+/* Tools directory cards. */
+.scheme-app .tools-directory-page { color: #1c304c !important; }
+.scheme-app .tools-directory-page .grid > div {
+  background: rgba(255,255,255,.96) !important;
+  border: 1px solid #dce5f1 !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 26px rgba(20, 44, 83, .06) !important;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.scheme-app .tools-directory-page .grid > div:hover {
+  transform: translateY(-3px);
+  border-color: #a7c4ff !important;
+  box-shadow: 0 18px 42px rgba(20, 44, 83, .12) !important;
+}
+.scheme-app .tools-directory-page h2, .scheme-app .tools-directory-page h3 { color: #1b3150 !important; }
+.scheme-app .tools-directory-page p { color: #667891 !important; }
+.scheme-app .tools-directory-page h2 span {
+  background: #eaf1ff !important;
+  border-color: #cddcff !important;
+  color: #315fc0 !important;
+}
+.scheme-app .tools-directory-page input {
+  min-height: 46px;
+  border-radius: 13px;
+  background: #fff !important;
+  border-color: #d3deec !important;
+  color: #1b3150 !important;
+}
+.scheme-app .tools-directory-page button { border-radius: 12px; }
+
+/* Existing converter/admin dark panels get a more polished command-centre treatment. */
+.scheme-app .min-h-screen.bg-\[\#0d1224\] {
+  background: radial-gradient(ellipse at 85% 0%, rgba(40, 110, 230, .16), transparent 36rem), #0a1020 !important;
+}
+.scheme-app .min-h-screen.bg-\[\#0d1224\] .bg-\[\#181f3d\] {
+  background: rgba(17, 26, 45, .92) !important;
+  border-color: var(--command-line) !important;
+  border-radius: 22px !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .22), inset 0 1px rgba(255,255,255,.035);
+}
+.scheme-app .min-h-screen.bg-\[\#0d1224\] input,
+.scheme-app .min-h-screen.bg-\[\#0d1224\] textarea {
+  background: #0b1324 !important;
+  border-color: #2b3c59 !important;
+  border-radius: 12px;
+}
+.scheme-app .min-h-screen.bg-\[\#0d1224\] button {
+  border-radius: 12px;
+  box-shadow: 0 8px 22px rgba(60, 105, 255, .14);
 }
 
-/* Headings are set like a receipt book: slab serif. Numbers line up in columns. */
-h1, h2, h3, .slab {
-  font-family: 'Zilla Slab', Rockwell, 'Roboto Slab', Georgia, serif;
-  letter-spacing: -0.005em;
+/* Navigation is the persistent dark command bar. */
+.scheme-app .scheme-navbar {
+  background: rgba(9, 16, 31, .88) !important;
+  color: #e8f0ff !important;
+  border-color: rgba(137, 164, 211, .18) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, .18) !important;
+  backdrop-filter: blur(22px) saturate(145%);
 }
-.num, td, th, b, input, select { font-variant-numeric: tabular-nums; }
+.scheme-app .scheme-navbar button:hover, .scheme-app .scheme-navbar a:hover {
+  background: rgba(93, 135, 226, .14) !important;
+  color: #fff !important;
+}
+.scheme-app .scheme-navbar .hub-nav-active {
+  background: rgba(69, 119, 239, .19) !important;
+  border-color: rgba(106, 151, 255, .4) !important;
+  color: #dce8ff !important;
+}
+.scheme-app .scheme-navbar .hub-brand-mark {
+  background: linear-gradient(145deg, #4f8cff, #21c9c3) !important;
+  box-shadow: 0 0 0 5px rgba(63, 131, 255, .09), 0 8px 22px rgba(49, 116, 255, .25);
+}
+.scheme-app .scheme-navbar .hub-brand-name { color: #f1f6ff !important; }
+.scheme-app .scheme-navbar .hub-brand-subtitle { color: #8da2c4 !important; }
 
-/* A stub: the card every menu choice is drawn on. The left edge is perforated like a torn receipt. */
+/* Retain bill-stub and paid/due stamp utility classes used by existing screens. */
+:root { --ink: #f4f7fb; --slip: #fff; --rule: #dbe3ee; }
 .stub {
   position: relative;
-  border-radius: 6px 14px 14px 6px;
+  border-radius: 14px;
   padding-left: 1.6rem !important;
-  background-image: radial-gradient(circle at 0.55rem center, #f4f7fb 0 4px, transparent 4.5px);
+  background-image: radial-gradient(circle at .55rem center, #f4f7fb 0 4px, transparent 4.5px);
   background-size: 1.1rem 1.1rem;
   background-repeat: repeat-y;
   background-position: 0 0;
 }
 .stub::after {
   content: '';
-  position: absolute; top: 8px; bottom: 8px; left: 1.1rem;
+  position: absolute;
+  top: 8px; bottom: 8px; left: 1.1rem;
   border-left: 2px dashed rgba(100, 116, 139, .35);
   pointer-events: none;
 }
-
-/* The one loud thing: the total liability, struck like a rubber stamp. */
+.scheme-app .gis-survey-page .stub { border-radius: 16px !important; padding-left: 1rem !important; background-image: none !important; }
+.scheme-app .gis-survey-page .stub::after { display: none; }
+.scheme-app .gis-survey-page .stub:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 34px rgba(35, 76, 145, .13);
+  border-color: #94b7ff !important;
+}
 .stamp {
   display: inline-block;
   border: 3px solid var(--due);
@@ -53,22 +228,30 @@ h1, h2, h3, .slab {
   border-radius: 10px;
   padding: .25rem .9rem;
   transform: rotate(-1.5deg);
-  font-family: 'Zilla Slab', Rockwell, Georgia, serif;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1.1;
-  box-shadow: inset 0 0 0 2px rgba(255, 107, 111, .25);
+  box-shadow: inset 0 0 0 2px rgba(255, 107, 111, .16);
 }
-.stamp.clear { border-color: var(--paid); color: var(--paid); box-shadow: inset 0 0 0 2px rgba(52, 211, 153, .25); }
+.stamp.clear { border-color: var(--paid); color: var(--paid); }
 
-:focus-visible { outline: 3px solid #ffe3a3; outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0a1020; }
+::-webkit-scrollbar-thumb { background: #344361; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #6685bf; }
 
-/* Custom scrollbars */
-::-webkit-scrollbar { width: 7px; height: 7px; }
-::-webkit-scrollbar-track { background: #0a0e1c; }
-::-webkit-scrollbar-thumb { background: #2a3464; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #9aa8ff; }
-
+@media (max-width: 640px) {
+  .scheme-app { overflow-x: clip; }
+  .scheme-app main { padding-inline: 0; }
+  .scheme-app .gis-survey-page { overflow-x: hidden; }
+  .scheme-app .gis-survey-page table { min-width: 720px; }
+  .scheme-app .scheme-navbar > div { padding-inline: 12px; gap: 8px; }
+  .scheme-app .hub-brand-name { font-size: 13px; }
+  .scheme-app .hub-brand-subtitle { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
 @media print {
-  body { background-color: #fff !important; color: #000 !important; }
+  body, .scheme-app, .scheme-app .gis-survey-page { background: #fff !important; color: #000 !important; }
+  .scheme-navbar { display: none !important; }
 }
