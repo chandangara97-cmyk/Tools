@@ -255,3 +255,95 @@ h1, h2, h3, h4 { letter-spacing: -.035em; }
   body, .scheme-app, .scheme-app .gis-survey-page { background: #fff !important; color: #000 !important; }
   .scheme-navbar { display: none !important; }
 }
+
+/* ═══ Full-site React coverage: collection, assessment, reports, login, etc. ═══ */
+
+.scheme-app .collection-panel,
+.scheme-app .assessment-panel,
+.scheme-app .reports-panel,
+.scheme-app .liability-search,
+.scheme-app .property-records,
+.scheme-app .rate-table-editor,
+.scheme-app .self-assessment,
+.scheme-app .admin-dues,
+.scheme-app .bill-maker,
+.scheme-app .citizen-pay,
+.scheme-app .work-menu,
+.scheme-app .town-rules,
+.scheme-app .login-gate {
+  color: #1d304b;
+}
+
+/* Dark panels that should become polished command cards */
+.scheme-app [class*="bg-[#0"],
+.scheme-app [class*="bg-[#1"] {
+  /* leave utility classes; targeted overrides below */
+}
+
+/* Modals / dialogs */
+.scheme-app .fixed.inset-0,
+.scheme-app [role="dialog"] {
+  /* backdrop stays dark */
+}
+.scheme-app [role="dialog"] > div,
+.scheme-app .rounded-2xl.bg-white,
+.scheme-app .rounded-3xl.bg-white {
+  border-radius: 20px !important;
+  box-shadow: 0 24px 70px rgba(20, 40, 70, 0.18) !important;
+}
+
+/* Tables across all React panels */
+.scheme-app table th {
+  background: #edf3fb !important;
+  color: #405571 !important;
+  font-weight: 750;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  font-size: 0.69rem;
+}
+.scheme-app table td { color: #263b57; }
+.scheme-app table tr:hover td { background-color: #f5f8ff; }
+
+/* Primary buttons in React */
+.scheme-app button.bg-indigo-600,
+.scheme-app button.bg-\[\#4f46e5\],
+.scheme-app button.bg-\[\#2459a9\],
+.scheme-app .btn-primary {
+  background: linear-gradient(135deg, #4f8cff, #25d6c5) !important;
+  color: #0a1020 !important;
+  border: 0 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 8px 22px rgba(71, 125, 255, 0.22) !important;
+}
+
+/* Sync bar */
+.scheme-app .sync-bar,
+.scheme-app [class*="SyncBar"] {
+  background: rgba(9, 16, 31, 0.92) !important;
+  border-color: rgba(137, 164, 211, 0.18) !important;
+  color: #e8f0ff !important;
+}
+
+/* Login gate inside React */
+.scheme-app .login-gate input,
+.scheme-app [class*="LoginGate"] input {
+  background: #0b1324 !important;
+  border-color: #2b3c59 !important;
+  color: #e8f0ff !important;
+  border-radius: 12px !important;
+}
+
+/* Work menu — full makeover workspace under dark command nav */
+.scheme-app .work-menu-page {
+  color: #1d304b;
+  padding-top: 0.25rem;
+}
+.scheme-app .work-menu-page h2,
+.scheme-app .work-menu-page h3 {
+  letter-spacing: -0.03em;
+}
+@media (max-width: 640px) {
+  .scheme-app .work-menu-page {
+    padding-inline: 2px;
+  }
+}

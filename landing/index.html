@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0d1030">
+<meta name="theme-color" content="#0a1020">
 <title>Scheme Hub 2026 · Sign in</title>
 <style>
-:root{--ink:#eef0fb;--mute:#aab4dc;--acc:#a5b4ff;--acc2:#4f46e5;--warm:#ffcf8a;--line:rgba(255,255,255,.16)}
+:root{--ink:#e8f0ff;--mute:#8da2c4;--acc:#9bb8ff;--acc2:#477dff;--warm:#25d6c5;--line:rgba(137,164,211,.18)}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%}
-body{font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:#0d1030;overflow-x:hidden}
+body{font:16px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:#0a1020;overflow-x:hidden}
 .scene{position:fixed;inset:0;width:100%;height:100%;z-index:0}
 .cloud{position:fixed;z-index:0;height:46px;border-radius:50px;background:rgba(255,255,255,.12);filter:blur(10px);animation:dr 60s linear infinite}
 @keyframes dr{from{transform:translateX(-30vw)}to{transform:translateX(130vw)}}
@@ -16,17 +16,17 @@ padding:max(22px,env(safe-area-inset-top)) 20px max(26px,env(safe-area-inset-bot
 .badge{display:inline-flex;gap:8px;align-items:center;padding:7px 14px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.08);font-size:13px;color:var(--warm)}
 .badge i{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc)}
 h1{font-size:clamp(32px,6vw,52px);line-height:1.05;margin:16px 0 12px;letter-spacing:-.03em}
-h1 em{font-style:normal;background:linear-gradient(90deg,#c7d0ff,var(--warm));-webkit-background-clip:text;background-clip:text;color:transparent}
+h1 em{font-style:normal;background:linear-gradient(90deg,#9bb8ff,var(--warm));-webkit-background-clip:text;background-clip:text;color:transparent}
 .lead{color:#d6dcf5;max-width:520px;margin:0 0 22px}
 .stats{display:flex;gap:12px;flex-wrap:wrap}
-.st{padding:12px 16px;border-radius:14px;background:rgba(13,16,40,.45);border:1px solid var(--line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.st{padding:12px 16px;border-radius:14px;background:rgba(17,26,45,.55);border:1px solid var(--line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .st b{display:block;font-size:22px}.st span{font-size:12px;color:var(--mute)}
-.card{background:rgba(13,16,40,.68);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 30px 70px rgba(0,0,0,.45)}
+.card{background:rgba(17,26,45,.78);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 30px 70px rgba(0,0,0,.45)}
 .seg{position:relative;display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:14px;background:rgba(255,255,255,.07);margin-bottom:18px}
-.seg::before{content:"";position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:11px;background:linear-gradient(135deg,#c7d0ff,var(--acc));transition:.25s}
+.seg::before{content:"";position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:11px;background:linear-gradient(135deg,#4f8cff,var(--acc));transition:.25s}
 .seg.admin::before{transform:translateX(100%)}
 .seg button{position:relative;z-index:1;height:42px;border:0;background:none;font-size:15px;font-weight:600;color:var(--mute);cursor:pointer;display:flex;gap:7px;align-items:center;justify-content:center}
-.seg button.on{color:#0e1230}
+.seg button.on{color:#0a1020}
 .note{font-size:13px;color:var(--mute);margin:-6px 2px 14px;min-height:20px}
 .f{position:relative;margin-bottom:14px}
 .f input{width:100%;height:56px;padding:22px 46px 6px 16px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);font-size:16px;outline:0;transition:.2s}
@@ -36,7 +36,7 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#c7d0ff,var(--warm));-w
 .eye{position:absolute;right:6px;top:8px;width:40px;height:40px;border:0;background:none;color:var(--mute);cursor:pointer}
 .rem{display:flex;gap:8px;align-items:center;color:var(--mute);font-size:14px;margin:0 2px 12px}
 .rem input{accent-color:var(--acc);width:17px;height:17px}
-button.go{width:100%;height:54px;border:0;border-radius:14px;font-size:17px;font-weight:700;color:#0e1230;cursor:pointer;background:linear-gradient(135deg,#c7d0ff,var(--acc));box-shadow:0 10px 26px rgba(165,180,255,.3)}
+button.go{width:100%;height:54px;border:0;border-radius:14px;font-size:17px;font-weight:700;color:#0a1020;cursor:pointer;background:linear-gradient(135deg,#c7d0ff,var(--acc));box-shadow:0 10px 26px rgba(71,125,255,.28)}
 button.go:active{transform:scale(.98)}button.go[disabled]{opacity:.7}
 .err{min-height:20px;margin:10px 2px 0;color:#ffb4a8;font-size:14px;text-align:center}
 .shake{animation:sh .35s}@keyframes sh{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
@@ -50,16 +50,26 @@ a.tile b{display:block}a.tile small{color:var(--mute);font-size:13px}
 .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:rgba(165,180,255,.14);color:var(--acc);flex:none}
 .out{width:100%;margin-top:14px;background:none;border:0;color:var(--mute);font-size:14px;cursor:pointer;padding:10px}
 .foot{grid-column:1/-1;text-align:center;font-size:12px;color:var(--mute)}
+
+/* Futuristic polish */
+.card,.st{border-radius:22px!important;box-shadow:0 24px 70px rgba(0,0,0,.35),inset 0 1px rgba(255,255,255,.04)!important}
+.badge{background:rgba(71,125,255,.1)!important;color:#9bb8ff!important}
+.badge i{background:#25d6c5!important;box-shadow:0 0 12px #25d6c5!important}
+.f input{background:#0b1324!important;border:1px solid #2b3c59!important;border-radius:12px!important}
+.f input:focus{border-color:#477dff!important;box-shadow:0 0 0 4px rgba(71,125,255,.18)!important}
+.go{border-radius:12px!important;font-weight:700!important}
+.tile{border-radius:16px!important;border:1px solid rgba(137,164,211,.18)!important;background:rgba(17,26,45,.7)!important}
+.tile.pri{background:linear-gradient(135deg,rgba(79,140,255,.18),rgba(37,214,197,.1))!important;border-color:rgba(106,151,255,.35)!important}
 </style><link rel="stylesheet" href="app/hub-theme.css">
 <script src="app/hub-shell.js" defer></script>
 </head><body>
 <svg class="scene" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
 <defs>
-<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1030"/><stop offset=".45" stop-color="#2b2f78"/><stop offset=".72" stop-color="#d9946a"/><stop offset="1" stop-color="#ffcf8a"/></linearGradient>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a1020"/><stop offset=".45" stop-color="#1a2a5c"/><stop offset=".72" stop-color="#2a6bcf"/><stop offset="1" stop-color="#25d6c5"/></linearGradient>
 <radialGradient id="sun" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff2cf"/><stop offset=".25" stop-color="#ffd08a" stop-opacity=".8"/><stop offset="1" stop-color="#ffb070" stop-opacity="0"/></radialGradient>
-<linearGradient id="m1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa3e0"/><stop offset="1" stop-color="#4a4f9c"/></linearGradient>
-<linearGradient id="m2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#343a86"/><stop offset="1" stop-color="#1b2058"/></linearGradient>
-<linearGradient id="m3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#141845"/><stop offset="1" stop-color="#0a0d2b"/></linearGradient>
+<linearGradient id="m1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b8fd4"/><stop offset="1" stop-color="#2a3a7a"/></linearGradient>
+<linearGradient id="m2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e2d5c"/><stop offset="1" stop-color="#121a3a"/></linearGradient>
+<linearGradient id="m3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1528"/><stop offset="1" stop-color="#070c18"/></linearGradient>
 <path id="pine" d="M0-34l9 15h-5l8 13h-6l9 14H-15l9-14h-6l8-13h-5z"/>
 </defs>
 <rect width="1200" height="800" fill="url(#sky)"/>

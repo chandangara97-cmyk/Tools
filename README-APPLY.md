@@ -1,79 +1,72 @@
-# Scheme Hub — Full Futuristic Theme (React + Landing + Tools)
+# Scheme Hub — FULL Futuristic Theme (ALL pages)
 
-This package extends the original **Tools-Futuristic-Redesign** so the **whole website**
-shares one look: dark command-centre chrome, blue/cyan accents, glass bars, and bright
-workspaces where data is shown.
+One look for **every** surface in the product:
 
-## What is included
+| Surface | How it is themed |
+|---------|------------------|
+| React app (GIS, collection, assessment, reports, tools dir, converters, login, …) | `src/App.tsx` + `Navbar.tsx` + `src/index.css` |
+| Root app shell | `index.html` (theme-color + font) |
+| Landing / sign-in | `landing/index.html` (palette + polish baked in) |
+| Admin console | `public/admin_users.html` + `public/hub-theme.css` |
+| Tools directory | already loads `hub-theme.css` → updated file |
+| GIS property survey (standalone HTML) | already loads `hub-theme.css` → updated file |
+| KML converters | already loads `hub-theme.css` → updated file |
+| Shared header on standalone pages | `public/hub-shell.js` |
 
-| Path | Role |
-|------|------|
-| `src/App.tsx` | React app shell (from original redesign) |
-| `src/components/Navbar.tsx` | React command-centre navbar |
-| `src/index.css` | React global theme |
-| `public/hub-theme.css` | **Shared** theme for landing, admin, tools HTML |
-| `public/hub-shell.js` | Shared sticky header for standalone pages |
-| `landing/landing-futuristic-override.css` | Optional extra polish for the sign-in page |
+## Files to copy (overwrite same paths)
 
-## Apply (step by step)
+```
+src/App.tsx
+src/components/Navbar.tsx
+src/components/WorkMenu.tsx
+src/index.css
+index.html
+landing/index.html
+public/hub-theme.css
+public/hub-shell.js
+public/admin_users.html
+```
 
-1. **Backup** your project (or create a branch).
+Optional (only if you prefer not to overwrite landing HTML):
+```
+landing/landing-futuristic-override.css
+```
 
-2. **React app** — copy these over the same paths:
-   ```
-   src/App.tsx
-   src/components/Navbar.tsx
-   src/index.css
-   ```
+## Apply steps
 
-3. **Standalone pages** — copy these over the same paths:
-   ```
-   public/hub-theme.css
-   public/hub-shell.js
-   ```
-   (If your tools/landing pages already load `../hub-theme.css` and `../hub-shell.js`,
-   they will pick up the new look automatically.)
-
-4. **Landing page (optional extra polish)**  
-   Either:
-   - Add this line in `landing/index.html` **after** the existing `<style>` block:
-     ```html
-     <link rel="stylesheet" href="landing-futuristic-override.css">
-     ```
-     and place the CSS file next to `landing/index.html`,  
-   **or**
-   - Copy the rules from `landing/landing-futuristic-override.css` into the bottom of
-     the landing page’s own `<style>` block.
-
-5. **Install & build**
-   ```bash
+1. Backup or branch the repo.
+2. Copy every file above into the matching path in your project.
+3. ```bash
    npm install
    npm run build
    ```
+4. Test **all** of these before deploy:
+   - Landing sign-in (town + super)
+   - Every role (surveyor, assessor, supervisor, cashier, public, admin)
+   - GIS survey (React + standalone HTML tool)
+   - Collection, assessment, demand, reports, exports
+   - Tools directory + both KML tools
+   - Admin console (create users / towns)
+   - Mobile width + offline queue
+5. Rebuild the Android APK after the web build succeeds.
 
-6. **Test before deploy**
-   - Login (Town + Super)
-   - Every role (surveyor, assessor, cashier, public, …)
-   - GIS survey, collection, reports, exports
-   - Tools directory + KML converters
-   - Mobile width and offline queue
-   - Then rebuild the APK if you ship Android
+## Design tokens (shared)
 
-## Design notes
+| Token | Value |
+|-------|-------|
+| Command background | `#0a1020` |
+| Raised surface | `#111a2d` |
+| Field / input | `#0b1324` |
+| Accent blue | `#477dff` |
+| Accent cyan | `#25d6c5` |
+| Text on dark | `#e8f0ff` |
+| Muted | `#8da2c4` |
+| Font | Inter |
 
-- **Command surfaces** (navbar, tools band, dark panels): `#0a1020` / `#111a2d`
-- **Accents**: blue `#477dff` + cyan `#25d6c5`
-- **Data workspaces** (GIS survey inside React): stay light for readability
-- Reduced-motion is respected
-- No Firebase credentials or secrets are included
+Data-heavy React panels (survey tables, ledgers) stay on a **light workspace** so numbers stay readable; chrome (nav, tools, landing, admin) stays **dark command-centre**.
 
-## Scope
+## Notes
 
-| Area | Covered by this package |
-|------|-------------------------|
-| React hub (App, Navbar, global CSS) | Yes |
-| Tools directory + converters | Yes (via hub-theme.css) |
-| Admin console | Yes (via hub-theme.css variables) |
-| Landing / sign-in | Yes (hub-theme + optional override) |
-| APK | After you rebuild from the updated source |
-
+- Tools HTML files (`tools/*.html`) are **not** duplicated here because they already link `../hub-theme.css` and `../hub-shell.js`. Replacing `public/hub-theme.css` is enough for them.
+- No Firebase keys, `.env`, or user data are included.
+- After apply, run your existing tests (`npm run test:all` if available).
