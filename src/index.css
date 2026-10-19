@@ -2,6 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* —— Larger readable type scale (requested) —— */
+html {
+  font-size: 17px; /* was ~16px browser default */
+}
+@media (min-width: 640px) {
+  html { font-size: 18px; }
+}
+.scheme-app {
+  font-size: 1rem;
+  line-height: 1.55;
+}
+.scheme-app h1 { font-size: clamp(1.6rem, 3vw, 2.1rem); }
+.scheme-app h2 { font-size: clamp(1.35rem, 2.4vw, 1.75rem); }
+.scheme-app h3 { font-size: clamp(1.15rem, 2vw, 1.35rem); }
+.scheme-app button,
+.scheme-app input,
+.scheme-app select,
+.scheme-app textarea {
+  font-size: 1rem;
+}
+.scheme-app .text-xs { font-size: 0.8125rem !important; }   /* ~13–14.5px */
+.scheme-app .text-sm { font-size: 0.9375rem !important; }  /* ~16–17px */
+.scheme-app .text-base { font-size: 1.0625rem !important; }
+.scheme-app .text-lg { font-size: 1.1875rem !important; }
+.scheme-app .text-xl { font-size: 1.375rem !important; }
+.scheme-app .text-2xl { font-size: 1.625rem !important; }
+.scheme-app table th,
+.scheme-app table td {
+  font-size: 0.95rem;
+}
+
+
+
 :root {
   color-scheme: light;
   --ink: #172943;
@@ -25,8 +58,8 @@ html { scroll-behavior: smooth; }
 body {
   margin: 0;
   padding: 0;
-  background: var(--command);
-  color: #dce7f8;
+  background: #f3f6fb;
+  color: #1d304b;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -51,11 +84,10 @@ h1, h2, h3, h4 { letter-spacing: -.035em; }
   --page-line: #dce5f1;
   --page-accent: #3268d8;
   min-height: 100vh;
-  color: #e5edfc;
+  color: #1d304b;
   background:
-    radial-gradient(ellipse at 12% -10%, rgba(46, 91, 190, .22), transparent 38rem),
-    radial-gradient(ellipse at 95% 0%, rgba(18, 195, 188, .09), transparent 32rem),
-    #0a1020;
+    radial-gradient(ellipse at 50% 0%, rgba(79, 125, 255, .06), transparent 28rem),
+    #f3f6fb;
 }
 .scheme-app main { max-width: 1600px; margin-inline: auto; }
 .scheme-app button, .scheme-app a, .scheme-app input, .scheme-app select, .scheme-app textarea {
@@ -347,3 +379,150 @@ h1, h2, h3, h4 { letter-spacing: -.035em; }
     padding-inline: 2px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   CONTRAST FIX — never same colour for text and background
+   ═══════════════════════════════════════════════════════════ */
+
+/* Default: light workspace text on the app shell after the dark navbar */
+.scheme-app {
+  color: #1d304b;
+}
+.scheme-app main,
+.scheme-app > main,
+.scheme-app .work-menu-page,
+.scheme-app .gis-survey-page,
+.scheme-app .tools-directory-page,
+.scheme-app [class*="Panel"],
+.scheme-app [class*="panel"] {
+  color: #1d304b;
+}
+
+/* Any forced-white panels must use dark ink */
+.scheme-app .bg-white,
+.scheme-app [class*="bg-white"],
+.scheme-app .gis-survey-page .bg-\[\#0d1224\],
+.scheme-app .gis-survey-page .bg-\[\#121830\],
+.scheme-app .gis-survey-page .bg-\[\#141a36\],
+.scheme-app .gis-survey-page .bg-\[\#181f3d\],
+.scheme-app .gis-survey-page .bg-\[\#1d2547\],
+.scheme-app .gis-survey-page .bg-\[\#232c52\] {
+  color: #1d304b !important;
+}
+
+/* text-white on a light workspace → dark ink (except inside accent tiles / navbar / dark hero) */
+.scheme-app .gis-survey-page .text-white,
+.scheme-app .work-menu-page .text-white,
+.scheme-app .tools-directory-page .text-white {
+  color: #1d304b !important;
+}
+
+/* Keep light text where the surface is truly dark */
+.scheme-app .scheme-navbar,
+.scheme-app .scheme-navbar * {
+  color: inherit;
+}
+.scheme-app .scheme-navbar {
+  color: #e8f0ff !important;
+}
+.scheme-app .work-menu-page header,
+.scheme-app .work-menu-page header h2,
+.scheme-app .work-menu-page header p,
+.scheme-app .work-menu-page header span {
+  /* hero card is dark — keep light type */
+  color: inherit;
+}
+.scheme-app .work-menu-page header {
+  color: #e8f0ff;
+}
+
+/* Blue gradient bill tiles: force white text */
+.scheme-app .work-menu-page button.group.relative.text-left,
+.scheme-app button.bg-gradient-to-br.from-\[\#4f7dff\],
+.scheme-app [class*="from-[#4f7dff]"],
+.scheme-app [class*="from-[#4f46e5]"] {
+  color: #ffffff !important;
+}
+.scheme-app [class*="from-[#4f7dff]"] *,
+.scheme-app [class*="from-[#4f46e5]"] * {
+  color: inherit;
+}
+
+/* Generic light surfaces */
+.scheme-app .rounded-2xl.bg-white,
+.scheme-app .rounded-3xl.bg-white,
+.scheme-app .bg-\[\#f4f7fb\],
+.scheme-app .bg-\[\#f2f6fc\],
+.scheme-app .bg-\[\#f7f9fd\],
+.scheme-app .bg-\[\#f8fafc\] {
+  color: #1d304b !important;
+}
+
+/* Dark command panels that stay dark (converters / admin tools) */
+.scheme-app .min-h-screen.bg-\[\#0d1224\],
+.scheme-app .min-h-screen.bg-\[\#0a1020\] {
+  color: #e8f0ff !important;
+  background: #0a1020 !important;
+}
+.scheme-app .min-h-screen.bg-\[\#0d1224\] .text-white,
+.scheme-app .min-h-screen.bg-\[\#0a1020\] .text-white {
+  color: #ffffff !important;
+}
+
+/* Inputs always readable */
+.scheme-app input,
+.scheme-app select,
+.scheme-app textarea {
+  color: #1d304b !important;
+  background: #ffffff !important;
+  border-color: #cbd8e8 !important;
+}
+.scheme-app input::placeholder,
+.scheme-app textarea::placeholder {
+  color: #7a8eab !important;
+  opacity: 1;
+}
+
+/* On dark tool pages, inputs stay dark field + light text */
+.scheme-app .min-h-screen.bg-\[\#0d1224\] input,
+.scheme-app .min-h-screen.bg-\[\#0d1224\] select,
+.scheme-app .min-h-screen.bg-\[\#0d1224\] textarea,
+.scheme-app .min-h-screen.bg-\[\#0a1020\] input,
+.scheme-app .min-h-screen.bg-\[\#0a1020\] select,
+.scheme-app .min-h-screen.bg-\[\#0a1020\] textarea {
+  color: #e8f0ff !important;
+  background: #0b1324 !important;
+  border-color: #2b3c59 !important;
+}
+
+/* Tables */
+.scheme-app table {
+  color: #1d304b;
+}
+.scheme-app table th {
+  color: #405571 !important;
+  background: #edf3fb !important;
+}
+.scheme-app table td {
+  color: #263b57 !important;
+}
+
+/* Muted labels must not vanish on light bg */
+.scheme-app .text-\[\#aab4dc\],
+.scheme-app .text-\[\#9aa8ff\],
+.scheme-app .text-\[\#d6dcf5\],
+.scheme-app .text-\[\#8790bd\] {
+  color: #5b6f8a !important;
+}
+.scheme-app .scheme-navbar .text-\[\#aab4dc\],
+.scheme-app .scheme-navbar .text-\[\#9aa8ff\],
+.scheme-app .work-menu-page header .text-\[\#aab4dc\],
+.scheme-app .work-menu-page header .text-\[\#9aa8ff\] {
+  color: #8da2c4 !important;
+}
+
+/* Sync bar / chips on light page */
+.scheme-app .bg-emerald-100 { color: #065f46 !important; }
+.scheme-app .bg-amber-100 { color: #92400e !important; }
+.scheme-app .bg-sky-100 { color: #075985 !important; }
+.scheme-app .bg-red-100 { color: #991b1b !important; }

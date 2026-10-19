@@ -20,6 +20,7 @@ src/App.tsx
 src/components/Navbar.tsx
 src/components/WorkMenu.tsx
 src/services/access.ts
+src/hooks/useHistoryBack.ts
 src/index.css
 index.html
 landing/index.html
@@ -81,3 +82,16 @@ Data-heavy React panels (survey tables, ledgers) stay on a **light workspace** s
 - Land on the **Work Menu** after sign-in
 - See **every** payment head enabled for the town (Property tax, Water, Garbage, Sewerage, Other)
 - `public` role remains search-only
+
+
+## Back button (does not exit on first press)
+
+`src/hooks/useHistoryBack.ts` + `src/App.tsx`:
+- Each in-app page change pushes browser history
+- Hardware / browser **Back** goes one step inside the app
+- At the home view, first Back shows “Press Back again to leave”; second Back within 2s can leave
+
+## Font size
+
+Base type is raised to **17px** (mobile) / **18px** (tablet+), with scaled headings and controls
+in `src/index.css` and `public/hub-theme.css`.

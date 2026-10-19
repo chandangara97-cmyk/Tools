@@ -351,3 +351,26 @@ nav button.active, nav button[aria-pressed="true"] {
 html, body, button, input, select, textarea {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
 }
+
+
+/* Larger type on standalone pages */
+html { font-size: 17px !important; }
+@media (min-width: 640px) {
+  html { font-size: 18px !important; }
+}
+body { font-size: 1rem !important; line-height: 1.55 !important; }
+h1 { font-size: clamp(1.5rem, 3vw, 2rem) !important; }
+h2 { font-size: clamp(1.25rem, 2.4vw, 1.6rem) !important; }
+h3 { font-size: clamp(1.1rem, 2vw, 1.3rem) !important; }
+button, input, select, textarea, label { font-size: 1rem !important; }
+.card, .tile, .stat { font-size: 1rem; }
+
+/* Contrast safety on standalone pages */
+.card, .tile, .stat, .panel, .login-card {
+  color: var(--hub-text, #e8f0ff) !important;
+}
+/* If a page forces a light surface, force dark text */
+.bg-white, .surface-light, [data-theme="light"] {
+  color: #1d304b !important;
+  background: #fff !important;
+}
