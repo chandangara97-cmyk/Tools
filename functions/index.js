@@ -1,4 +1,5 @@
 const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 
@@ -96,4 +97,27 @@ exports.generateRecurringBills = onSchedule({ schedule: '15 2 * * *', timeZone: 
     await db.ref(`billingAutomationRuns/${date}`).set({ date, ...results, at: Date.now(), status: 'completed' });
   }
   logger.info('Recurring billing run finished', { date, ...results });
+});
+
+/**
+ * Admin sets a new password for a login. Passwords are never stored or readable; this only replaces one.
+ * Platform owner (ulb "*") may reset any login; a ULB admin only logins of their own ULB.
+ */
+exports.resetLoginPassword = onCall({ region: 'asia-south1' }, async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in first.');
+  const { uid, password } = req.data || {};
+  if (typeof uid !== 'string' || !uid || typeof password !== 'string' || password.length < 6 || password.length > 128) {
+    throw new HttpsError('invalid-argument', 'Give a login and a password of 6 to 128 characters.');
+  }
+  const [meSnap, targetSnap] = await Promise.all([db.ref(`users/${req.auth.uid}`).get(), db.ref(`users/${uid}`).get()]);
+  const me = meSnap.val() || {}, target = targetSnap.val();
+  if (me.role !== 'admin' || !me.ulb) throw new HttpsError('permission-denied', 'Only an admin can reset passwords.');
+  if (!target) throw new HttpsError('not-found', 'No such login.');
+  if (me.ulb !== '*' && (target.ulb !== me.ulb || target.ulb === '*')) throw new HttpsError('permission-denied', 'That login belongs to another ULB.');
+  await admin.auth().updateUser(uid, { password });
+  if (target.ulb && target.ulb !== '*') {
+    await db.ref(`audit/${target.ulb}`).push({ at: Date.now(), by: req.auth.uid, action: 'password-reset', detail: `Password reset for ${String(target.email || uid).split('@')[0]}` });
+  }
+  logger.info('Password reset', { by: req.auth.uid, target: uid });
+  return { ok: true };
 });

@@ -80,3 +80,9 @@ Search dues, open a property, press "Generate bill".
 - `npm run test:collection` and `npm run test:search`: money maths, monthly bills, search, dues across bill heads (42 checks, no browser needed).
 - `npm run test:browser`: opens the search page, collection pages and role menus in a real browser with a fake database and clicks through them (59 checks). One-time setup: `npm i -D playwright && npx playwright install chromium`.
 - `npm run test:all` runs everything. Run it before each release.
+
+## Common password, login dropdown and password reset
+- **Common password:** on the admin page, "Common password" card. If filled (6+ characters), every new ID made on that page gets it instead of a random one. It is typed each session and never saved in the code or the database. A shared password is weak, so staff should use the new **Password** button in the app header to change theirs.
+- **Login dropdown:** the sign-in page has a town box; picking a town lists that ULB's IDs with their role. The list lives at `loginDirectory/<town>/<ID>` (IDs and role names only, readable without signing in). New IDs are added automatically. For IDs made earlier press "Refresh login dropdown list" once. Removing an ID removes it from the list.
+- **Reset password:** each ID on the admin page has a "Reset password" button. It calls the Cloud Function `resetLoginPassword` (a ULB admin only for own ULB). Deploy with `firebase deploy --only functions,database`.
+- Passwords are still not stored or readable anywhere.

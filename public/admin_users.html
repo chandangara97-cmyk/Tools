@@ -73,6 +73,16 @@
       </div>
     </div>
 
+    <div class="card" id="pwCard">
+      <b>Common password (optional)</b>
+      <div style="font-size:13px;color:var(--mute);margin-top:4px">If filled, every new ID made on this page gets this password instead of a random one. It is not saved anywhere. Staff should change it after first sign-in.</div>
+      <label>Password for new IDs (6 or more characters)</label>
+      <input id="commonPw" type="text" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <button class="ghost small" id="btnSyncDir" style="margin-top:8px">Refresh login dropdown list</button>
+      <div style="font-size:12px;color:var(--mute);margin-top:6px">The sign-in page shows each ULB's IDs in a dropdown. New IDs are added automatically. Use this button once for IDs made earlier.</div>
+      <div id="pwMsg" class="msg"></div>
+    </div>
+
     <!-- Platform owner only: one-click ULB setup -->
     <div class="card hidden" id="ulbCard">
       <b>1. Set up a ULB (one click)</b>
@@ -165,6 +175,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js";
 import { getDatabase, ref, get, set, update, onValue, query, orderByChild, equalTo }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 
@@ -184,12 +195,16 @@ const db = getDatabase(app);
 const app2 = initializeApp(cfg, "creator");
 const auth2 = getAuth(app2);
 
+const resetFn = httpsCallable(getFunctions(app, "asia-south1"), "resetLoginPassword");
+
 const $ = id => document.getElementById(id);
 const show = (id, on) => $(id).classList.toggle("hidden", !on);
 function msg(id, type, text) { const e = $(id); e.className = "msg " + type; e.textContent = text; }
 const DOMAIN = "propertytax.app";
 function toEmail(v) { v = v.trim().toLowerCase(); return v.includes("@") ? v : v + "@" + DOMAIN; }
 function genPass() {
+  const cp = ($("commonPw") ? $("commonPw").value : "").trim();
+  if (cp.length >= 6) return cp;
   const c = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#";
   const a = new Uint32Array(10); crypto.getRandomValues(a);
   return Array.from(a, n => c[n % c.length]).join("");
@@ -301,6 +316,7 @@ async function createLogin({ userId, password, name, role, ulb, head, supervisor
     if (head) rec.head = head;
     if (supervisor) rec.supervisor = supervisor;
     await set(ref(db, `users/${cred.user.uid}`), rec);
+    await listInDropdown(ulb, userId, role, head);
     await signOut(auth2);
     usersCache[cred.user.uid] = rec;
     return { ok: true, uid: cred.user.uid };
@@ -309,6 +325,30 @@ async function createLogin({ userId, password, name, role, ulb, head, supervisor
     return { ok: false, code: e.code || e.message };
   }
 }
+
+// ---- login dropdown list: loginDirectory/<ulb>/<ID> = role label (IDs only, never passwords) ----
+const dirKeyOk = id => /^[^.#$\[\]\/\s@]+$/.test(id);
+const dirLabel = (role, head) => (ROLE_LABEL[role] || role) + (head && HEADS[head] ? " (" + HEADS[head][0] + ")" : "");
+async function listInDropdown(ulb, userId, role, head) {
+  const id = userId.trim().toUpperCase();
+  if (!ulb || ulb === "*" || !dirKeyOk(id) || role === "disabled") return;
+  try { await set(ref(db, `loginDirectory/${ulb}/${id}`), dirLabel(role, head)); } catch (e) {}
+}
+$("commonPw").oninput = () => {
+  const n = $("commonPw").value.trim().length;
+  msg("pwMsg", n && n < 6 ? "err" : "ok", n && n < 6 ? "Too short: new IDs will get random passwords until this has 6 or more characters." : n ? "New IDs will all get this password." : "");
+};
+$("btnSyncDir").onclick = async () => {
+  const patch = {}; let n = 0;
+  for (const u of Object.values(usersCache)) {
+    const id = String(u.email || "").replace("@" + DOMAIN, "").toUpperCase();
+    if (!u.ulb || u.ulb === "*" || !u.email || !u.email.endsWith("@" + DOMAIN) || u.role === "disabled" || !dirKeyOk(id)) continue;
+    patch[`loginDirectory/${u.ulb}/${id}`] = dirLabel(u.role, u.head); n++;
+  }
+  if (!n) return msg("pwMsg", "err", "No IDs to list.");
+  try { await update(ref(db), patch); msg("pwMsg", "ok", `${n} ID(s) listed in the sign-in dropdown.`); }
+  catch (e) { msg("pwMsg", "err", (e.code || e.message) + " (deploy the updated database rules first)"); }
+};
 
 let lastCreds = [];
 function showCreds(rows) {
@@ -517,7 +557,18 @@ function userRow(uid, u, indent) {
     }
     try { await update(ref(db, `users/${uid}`), { role: sel.value }); } catch (e) { alert(e.code || e.message); }
   };
-  row.append(who, sel);
+  const rp = document.createElement("button"); rp.type = "button"; rp.className = "ghost small"; rp.textContent = "Reset password";
+  rp.onclick = async () => {
+    const id = (u.email || uid).replace("@" + DOMAIN, "");
+    const pw = prompt(`New password for ${id} (6 or more characters):`, ($("commonPw").value || "").trim());
+    if (pw === null) return;
+    if (pw.length < 6) return alert("Use 6 or more characters.");
+    rp.disabled = true;
+    try { await resetFn({ uid, password: pw }); alert(`Password changed for ${id}. Tell them the new password; it is not saved anywhere.`); }
+    catch (e) { alert(e.message || e.code); }
+    rp.disabled = false;
+  };
+  row.append(who, sel, rp);
   return row;
 }
 
@@ -575,8 +626,13 @@ $("uRemove").onclick = async () => {
   if (!confirm(`Remove ${uids.length} ID(s)?\n${names}${uids.length > 8 ? ", ..." : ""}\n\nThey lose all access immediately. This cannot be undone.`)) return;
   $("uRemove").disabled = true; msg("uMsg", "ok", "Removing...");
   try {
-    const patch = {}; for (const u of uids) patch[u] = null;
-    await update(ref(db, "users"), patch);          // one atomic multi-delete
+    const patch = {};
+    for (const u of uids) {
+      patch[`users/${u}`] = null;
+      const x = usersCache[u], id = String((x && x.email) || "").replace("@" + DOMAIN, "").toUpperCase();
+      if (x && x.ulb && x.ulb !== "*" && dirKeyOk(id)) patch[`loginDirectory/${x.ulb}/${id}`] = null;
+    }
+    await update(ref(db), patch);          // one atomic multi-delete
     uids.forEach(u => selUids.delete(u));
     msg("uMsg", "ok", `${uids.length} ID(s) removed. Their Firebase sign-in accounts still exist (the ID name stays reserved). To free the names, delete them under Authentication > Users in the Firebase Console, or run scripts/delete-auth-users.mjs.`);
   } catch (e) { msg("uMsg", "err", (e.code || e.message) + (isSuper() ? "" : " (ULB admins need the updated database rules deployed)")); }

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Lock, LogOut } from 'lucide-react';
+import { ref as dbRef, get as dbGet } from 'firebase/database';
+import { db } from '../firebase';
 import { useAuth } from '../services/auth';
 
 export const LoginGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -10,7 +12,32 @@ export const LoginGate: React.FC<{ children: React.ReactNode }> = ({ children })
   const [busy, setBusy] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [remember, setRemember] = useState(true);
-  React.useEffect(() => { try { const v = localStorage.getItem('hub_id'); if (v) setUserId(v); } catch { /* ignore */ } }, []);
+  const [towns, setTowns] = useState<{ slug: string; name: string }[]>([]);
+  const [town, setTown] = useState('');
+  const [ids, setIds] = useState<{ id: string; label: string }[]>([]);
+  const [idsMsg, setIdsMsg] = useState('');
+  const [manual, setManual] = useState(false);
+  React.useEffect(() => {
+    try {
+      const v = localStorage.getItem('hub_id'); const t = localStorage.getItem('hub_town');
+      if (v) { setUserId(v); if (!t) setManual(true); }
+      if (t) setTown(t);
+    } catch { /* ignore */ }
+    fetch(`${import.meta.env.BASE_URL}ulb_list.json`).then((r) => r.json()).then(setTowns).catch(() => setManual(true));
+  }, []);
+  // Only IDs and role labels are listed here (loginDirectory), never passwords.
+  React.useEffect(() => {
+    if (!town) { setIds([]); setIdsMsg(''); return; }
+    let off = false; setIdsMsg('Loading IDs…');
+    dbGet(dbRef(db, `loginDirectory/${town}`)).then((s) => {
+      if (off) return;
+      const v = (s.val() || {}) as Record<string, unknown>;
+      const list = Object.entries(v).map(([id, label]) => ({ id, label: String(label) }))
+        .sort((a, b) => a.label.localeCompare(b.label) || a.id.localeCompare(b.id));
+      setIds(list); setIdsMsg(list.length ? '' : 'No IDs listed for this ULB yet');
+    }).catch(() => { if (!off) { setIds([]); setIdsMsg('Could not load IDs. Type the ID instead.'); } });
+    return () => { off = true; };
+  }, [town]);
 
   if (loading) {
     return <div className="p-10 text-center text-sm text-[#aab4dc]">Checking sign-in…</div>;
@@ -21,7 +48,7 @@ export const LoginGate: React.FC<{ children: React.ReactNode }> = ({ children })
       setErr(''); setBusy(true);
       try {
         await signIn(userId, password);
-        try { if (remember) localStorage.setItem('hub_id', userId.trim()); else localStorage.removeItem('hub_id'); } catch { /* ignore */ }
+        try { if (remember) { localStorage.setItem('hub_id', userId.trim()); if (town && !manual) localStorage.setItem('hub_town', town); } else { localStorage.removeItem('hub_id'); localStorage.removeItem('hub_town'); } } catch { /* ignore */ }
       } catch (e) {
         const code = (e as { code?: string }).code || '';
         setErr(code.includes('network') ? 'No internet. First sign-in needs a connection.'
@@ -60,10 +87,33 @@ export const LoginGate: React.FC<{ children: React.ReactNode }> = ({ children })
             </div>
             <div className="rounded-3xl border border-white/15 p-5" style={{ background: 'rgba(13,16,40,.68)', backdropFilter: 'blur(20px)', boxShadow: '0 30px 70px rgba(0,0,0,.45)' }}>
               <h2 className="text-xs font-bold text-[#a5b4ff] uppercase tracking-widest mb-4">Sign in</h2>
-              <div className="relative mb-3">
-                <label className={lab} htmlFor="gate-id">User ID</label>
-                <input id="gate-id" type="text" autoComplete="username" autoCapitalize="characters" spellCheck={false} value={userId} onChange={(e) => setUserId(e.target.value)} className={field} />
-              </div>
+              {!manual && (
+                <>
+                  <div className="relative mb-3">
+                    <label className={lab} htmlFor="gate-town">ULB / Town</label>
+                    <select id="gate-town" value={town} onChange={(e) => { setTown(e.target.value); setUserId(''); }} className={field} style={{ colorScheme: 'dark' }}>
+                      <option value="">Select town…</option>
+                      {towns.map((t) => <option key={t.slug} value={t.slug}>{t.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="relative mb-3">
+                    <label className={lab} htmlFor="gate-id">User ID</label>
+                    <select id="gate-id" value={userId} onChange={(e) => setUserId(e.target.value)} disabled={!town} className={field} style={{ colorScheme: 'dark' }}>
+                      <option value="">{town ? (idsMsg || 'Select ID…') : 'Select town first'}</option>
+                      {ids.map((x) => <option key={x.id} value={x.id}>{x.id} – {x.label}</option>)}
+                    </select>
+                  </div>
+                </>
+              )}
+              {manual && (
+                <div className="relative mb-3">
+                  <label className={lab} htmlFor="gate-id">User ID</label>
+                  <input id="gate-id" type="text" autoComplete="username" autoCapitalize="characters" spellCheck={false} value={userId} onChange={(e) => setUserId(e.target.value)} className={field} />
+                </div>
+              )}
+              <button type="button" onClick={() => setManual(!manual)} className="text-xs font-semibold text-[#a5b4ff] mb-3">
+                {manual ? 'Pick ID from list' : 'ID not in the list? Type it'}
+              </button>
               <div className="relative mb-3">
                 <label className={lab} htmlFor="gate-pw">Password</label>
                 <input id="gate-pw" type={showPw ? 'text' : 'password'} autoComplete="current-password" value={password}

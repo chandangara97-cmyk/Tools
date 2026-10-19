@@ -2,6 +2,7 @@ import React from 'react';
 import { Smartphone, Lock, LogOut, Wrench, Command, ChevronDown } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { useAuth } from '../services/auth';
+import { ChangePasswordButton } from './ChangePassword';
 
 interface NavbarProps {
   activeView: string;
@@ -95,6 +96,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
             <ChevronDown className="w-3 h-3 text-slate-500" />
           </div>
+
+          <ChangePasswordButton />
 
           <button
             type="button"
