@@ -19,6 +19,7 @@ One look for **every** surface in the product:
 src/App.tsx
 src/components/Navbar.tsx
 src/components/WorkMenu.tsx
+src/services/access.ts
 src/index.css
 index.html
 landing/index.html
@@ -70,3 +71,13 @@ Data-heavy React panels (survey tables, ledgers) stay on a **light workspace** s
 - Tools HTML files (`tools/*.html`) are **not** duplicated here because they already link `../hub-theme.css` and `../hub-shell.js`. Replacing `public/hub-theme.css` is enough for them.
 - No Firebase keys, `.env`, or user data are included.
 - After apply, run your existing tests (`npm run test:all` if available).
+
+
+## Cashier: all payment heads
+
+`src/services/access.ts` is updated so **cashier** logins:
+- Are **not** locked to full-screen search only
+- Get tabs: `search` + `collection`
+- Land on the **Work Menu** after sign-in
+- See **every** payment head enabled for the town (Property tax, Water, Garbage, Sewerage, Other)
+- `public` role remains search-only

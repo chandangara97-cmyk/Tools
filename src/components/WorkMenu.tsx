@@ -196,7 +196,7 @@ export const WorkMenu: React.FC<Props> = ({ townName, tabs, bills, onChoose }) =
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-cyan-300/90 mb-1">
-              Command centre
+              {role === 'cashier' ? 'Cashier desk' : 'Command centre'}
             </p>
             <h2 className="text-2xl sm:text-[1.75rem] font-black tracking-tight leading-none">
               {isSuper ? 'All ULBs' : townName}
@@ -216,7 +216,9 @@ export const WorkMenu: React.FC<Props> = ({ townName, tabs, bills, onChoose }) =
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             Ready
           </span>
-          <span className="text-slate-500">Choose a task below</span>
+          <span className="text-slate-500">
+            {role === 'cashier' ? 'Select a payment head to collect' : 'Choose a task below'}
+          </span>
         </div>
       </header>
 
