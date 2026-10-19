@@ -37,12 +37,21 @@ export function usePayableRates(townKey: string): Record<string, PayableRates> {
   return map;
 }
 
+/** Which fixed amount a property's use belongs to. Tolerant of case, spaces and common spellings ("residential ", "RESIDENTIAL", "Residence"). Anything else (Mixed use, Institutional, Vacant land...) has no fixed amount. */
+export type FixedClass = 'residential' | 'commercial';
+export function fixedClassOf(use: string | null | undefined): FixedClass | null {
+  const u = String(use ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!u) return null;
+  if (u === 'commercial' || u === 'comm' || u === 'shop' || u === 'business') return 'commercial';
+  if (u === 'residential' || u === 'residence' || u === 'res' || u === 'domestic' || u === 'house') return 'residential';
+  return null;
+}
+
 /** Fixed amount for a property's use. Only Residential and Commercial have one; anything else returns null. */
 export function fixedAmountFor(rates: PayableRates | undefined, use: string): number | null {
   if (!rates) return null;
-  if (use === 'Residential') return rates.residential;
-  if (use === 'Commercial') return rates.commercial;
-  return null;
+  const c = fixedClassOf(use);
+  return c === 'residential' ? rates.residential : c === 'commercial' ? rates.commercial : null;
 }
 
 export function validateRates(r: { residential: number | null; commercial: number | null }): string | null {
