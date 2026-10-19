@@ -556,7 +556,7 @@ const ManualDues: React.FC<{ townKey: string; head: HeadId; monthly: boolean; ro
 };
 
 // ---------------------------------------------------------------------------
-const RateRow: React.FC<{ head: HeadId; initial: PayableRates | undefined; busy: boolean; onSave: (h: HeadId, r: { residential: number | null; commercial: number | null; frequency: 'yearly' | 'monthly' }) => void; townName: string }> = ({ head, initial, busy, onSave, townName }) => {
+export const RateRow: React.FC<{ head: HeadId; initial: PayableRates | undefined; busy: boolean; onSave: (h: HeadId, r: { residential: number | null; commercial: number | null; frequency: 'yearly' | 'monthly' }) => void; townName: string }> = ({ head, initial, busy, onSave, townName }) => {
   const [res, setRes] = useState(initial?.residential == null ? '' : String(initial.residential));
   const [com, setCom] = useState(initial?.commercial == null ? '' : String(initial.commercial));
   const [err, setErr] = useState('');
@@ -604,7 +604,7 @@ const RateFiller: React.FC<{ townName: string; heads: HeadId[]; all: Record<stri
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-const SettingsEditor: React.FC<{ initial: CollectionSettings; busy: boolean; onSave: (s: CollectionSettings) => void }> = ({ initial, busy, onSave }) => {
+export const SettingsEditor: React.FC<{ initial: CollectionSettings; busy: boolean; onSave: (s: CollectionSettings) => void }> = ({ initial, busy, onSave }) => {
   const [s, setS] = useState<CollectionSettings>(initial);
   const [err, setErr] = useState('');
   const num = (v: string) => (v === '' ? NaN : Number(v));

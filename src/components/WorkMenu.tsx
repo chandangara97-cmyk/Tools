@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Building2, Layers, FileSpreadsheet, PenTool, Download, ClipboardCheck, Droplets, Trash2, Waves, Receipt, Home } from 'lucide-react';
+import { Search, Building2, Layers, FileSpreadsheet, PenTool, Download, ClipboardCheck, Droplets, Trash2, Waves, Receipt, Home, Wallet, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '../services/auth';
 import { HeadId } from '../services/heads';
 import { ROLE_LABEL, Tab } from '../services/access';
@@ -64,6 +64,28 @@ export const WorkMenu: React.FC<Props> = ({ townName, tabs, bills, onChoose }) =
           <span>
             <span className="block slab text-lg font-bold text-white leading-tight">Search dues</span>
             <span className="block text-xs text-[#aab4dc]">By property ID or owner</span>
+          </span>
+        </button>
+      )}
+
+      {has('dues') && (
+        <button type="button" onClick={() => onChoose({ tab: 'dues' })}
+          className="w-full h-16 rounded-2xl bg-[#181f3d] border-2 border-[#ff6b6f] hover:bg-[#222b52] px-5 flex items-center gap-3 text-left">
+          <Wallet className="w-6 h-6 text-[#ff6b6f] flex-none" />
+          <span>
+            <span className="block slab text-lg font-bold text-white leading-tight">Pending dues</span>
+            <span className="block text-xs text-[#aab4dc]">See and update dues of every bill</span>
+          </span>
+        </button>
+      )}
+
+      {has('rules') && (
+        <button type="button" onClick={() => onChoose({ tab: 'rules' })}
+          className="w-full h-16 rounded-2xl bg-[#181f3d] border-2 border-[#9aa8ff] hover:bg-[#222b52] px-5 flex items-center gap-3 text-left">
+          <SlidersHorizontal className="w-6 h-6 text-[#9aa8ff] flex-none" />
+          <span>
+            <span className="block slab text-lg font-bold text-white leading-tight">Bill rules</span>
+            <span className="block text-xs text-[#aab4dc]">Amounts, interest %, due date and rebate for the whole town</span>
           </span>
         </button>
       )}

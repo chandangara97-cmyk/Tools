@@ -2,7 +2,7 @@
 import type { Role } from './auth';
 import type { HeadId } from './heads';
 
-export type Tab = 'search' | 'survey' | 'map-editor' | 'records' | 'assessment' | 'collection' | 'reports' | 'exports';
+export type Tab = 'search' | 'survey' | 'map-editor' | 'records' | 'assessment' | 'collection' | 'reports' | 'exports' | 'dues' | 'rules';
 
 export const ROLE_LABEL: Record<Role, string> = {
   admin: 'ULB admin', supervisor: 'Supervisor', surveyor: 'Data collector',
@@ -13,7 +13,7 @@ const ALL: Tab[] = ['search', 'collection', 'survey', 'records', 'assessment', '
 
 /** Pages this login may open. */
 export function allowedTabs(role: Role | null, head: HeadId | null, isSuper: boolean): Tab[] {
-  if (isSuper || role === 'admin') return ALL;
+  if (isSuper || role === 'admin') return [...ALL, 'dues', 'rules'];
   switch (role) {
     case 'supervisor':
       // a supervisor tied to water, garbage etc. only works that bill head

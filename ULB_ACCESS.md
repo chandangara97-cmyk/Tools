@@ -21,13 +21,13 @@ A login with no `ulb` gets no access. A ULB switched off in `ulbs/<town>/active`
 5. Open `admin_users.html`, sign in, and for each ULB:
    - Step 1 "Set up a ULB": tick the bill heads (property tax, water, garbage...) and press the button. It creates the ULB, 1 monitor, 1 cashier and 1 supervisor per head, e.g. `BHOTA_MON`, `BHOTA_CASH`, `BHOTA_SUP_WTR`.
    - Step 2 "Add data collectors": pick the supervisor and a number. IDs look like `BHOTA_WTR_C01`.
-   - Download the CSV of passwords at once. Passwords are not stored anywhere.
+   - Download the CSV of passwords at once. Passwords are shown only once and are not stored anywhere, not even in the database.
 
 ## Notes
 - Passwords cannot be reset from the admin page. Use Firebase Console > Authentication > the user > Reset password.
 - A phone used by two ULBs: the second ULB's login clears the first ULB's local copy, or is blocked if unsent work is pending.
 - The old admin page could not list users under the previous rules. The new page reads users by ULB.
-- Bill heads are recorded on each supervisor and collector (`head`) but not enforced yet. Water and garbage screens do not exist yet; when they are built, the rules will limit each supervisor and collector to their own head.
+- Bill heads are recorded on each supervisor and collector (`head`). The screens limit a head-tied supervisor to their own head; the database rules do not enforce the head yet.
 - One cashier per ULB is enforced by the admin page, not by the database rules.
 
 ## What each login sees after sign-in
@@ -35,7 +35,7 @@ After sign-in the app opens on a menu with big buttons, showing only what that l
 
 | Login | Menu |
 |---|---|
-| Cashier | Opens straight on the full-page property search box. The Menu button leads to one button per bill head of the ULB (Property tax, Water, Garbage, Sewerage, Other) |
+| Cashier | A bare full-page property search box. No menu and no header controls; the bill and payment are made from the search result |
 | Supervisor tied to one head (e.g. `_SUP_GAR`) | Search dues and that head only |
 | Supervisor without a head (`_APR`, `_LDG`) | Search dues, all bill heads, survey, records, assessment, reports, ward map, exports |
 | Data collector | Property survey, Property records |
@@ -45,11 +45,18 @@ After sign-in the app opens on a menu with big buttons, showing only what that l
 
 The head comes from `users/<uid>/head`, which the admin page already writes.
 
-## Saved IDs and passwords
-When the admin page creates an ID, it also saves the User ID, password and function under `credentials/<town>/<uid>`. The admin page has a "Saved IDs and passwords (town wise)" card: pick a town in the dropdown to see its IDs, passwords and functions, with CSV download and copy.
-- Only the platform owner and that town's ULB admin can read or write `credentials/<town>`. Deploy the rules: `firebase deploy --only database`.
-- IDs created before this change have no saved password.
-- If a password is reset in Firebase Console, this list is not updated.
+## Passwords are never stored
+The admin page shows each new password once, in the "New IDs and passwords" table, with a CSV download and Copy. Nothing is saved in the database, and the rules have no `credentials` node any more.
+- **If you used an earlier version of this page:** it saved IDs and passwords under `credentials/<town>`. Delete that whole node once in Firebase Console > Realtime Database (the rules now block the app from reading it, but the old data stays until you delete it). Then change the password of any login you still use, because those passwords sat in the database and in any backup or export taken before.
+- Lost password: Firebase Console > Authentication > the user > Reset password.
+
+## Who may change dues, and what the database enforces
+- Ledger entries cannot be edited, only added (and cancelled by a reversal).
+- **Payment and rebate:** cashier or admin. The time (`at`) must be the database server's own time, so a wrong phone clock cannot change it. The app also takes the payment date from the server's clock (India date), not the phone's.
+- **Receipt numbers:** the counter moves up by exactly one, in the same write as the payment. If the save fails, no number is used up, so the series has no gaps.
+- **Demand and reversal:** supervisor or admin.
+- **Adjustment:** admin on any property and any period (the Pending dues page). A supervisor may adjust only a year or month that already has a demand (re-assessment); a supervisor cannot add arrears or waive dues for a period with no demand.
+- **Not enforced by the database:** that a payment is not larger than the dues. The app checks this; the rules cannot add up ledger entries. Closing this needs a stored balance per property or a Cloud Function, which is not built.
 
 ## Search dues
 Type a property ID, part of an owner's name, house number or UPN. The result shows the total liability on that property across every bill head (tax or charge, interest, due) as on today, and the total liability of the owner across all properties surveyed under the same owner name. A login only sees the bill heads it may open. No new database rules are needed; it reads the existing ledger.

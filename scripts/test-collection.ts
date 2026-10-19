@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { rekeyTowns, townSlug, townCode } from '../src/services/townPath';
 import towns from '../src/data/townsData.json';
-import { computeLedger, previewPayment, placeholderSettings, rupeesInWords, dueDateOf, addMonths, LedgerEntry, CollectionSettings } from '../src/services/collection';
+import { computeLedger, previewPayment, placeholderSettings, rupeesInWords, dueDateOf, setClock, todayIso, addMonths, LedgerEntry, CollectionSettings } from '../src/services/collection';
 
 let n = 0;
 const t = (name: string, fn: () => void) => { fn(); n++; console.log('ok  ' + name); };
@@ -120,6 +120,23 @@ t('towns are keyed by name, keep their ULB code, no name collisions', () => {
   assert.equal(townSlug('Baijnath paprola'), 'Baijnath_paprola'); assert.equal(townCode('Baijnath_paprola'), '0202013');
   assert.deepEqual(Object.keys(rekeyTowns(k)).sort(), Object.keys(k).sort()); // running twice changes nothing
   assert.ok(Object.keys(k).every((x) => /^[A-Za-z0-9_]+$/.test(x)));
+});
+
+t('today comes from the set clock and is always the India (IST) date', () => {
+  const at = (iso: string) => setClock(() => Date.parse(iso));
+  at('2026-03-31T18:29:59Z'); assert.equal(todayIso(), '2026-03-31');   // 23:59:59 IST
+  at('2026-03-31T18:30:00Z'); assert.equal(todayIso(), '2026-04-01');   // midnight IST: new day, new financial year
+  at('2026-12-31T20:00:00Z'); assert.equal(todayIso(), '2027-01-01');
+  setClock(() => Date.now());
+});
+
+t('a phone clock that is wrong does not move the date once the server offset is applied', () => {
+  const server = Date.parse('2026-10-19T06:00:00Z');
+  const phoneBehind = server - 3 * 24 * 3600 * 1000;           // phone is 3 days behind
+  const offset = server - phoneBehind;                          // what Firebase reports as serverTimeOffset
+  setClock(() => phoneBehind + offset);
+  assert.equal(todayIso(), '2026-10-19');
+  setClock(() => Date.now());
 });
 
 console.log(`\n${n} tests passed`);

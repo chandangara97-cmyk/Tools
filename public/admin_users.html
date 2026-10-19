@@ -102,23 +102,10 @@
 
     <div class="card hidden" id="credCard">
       <b>New IDs and passwords</b>
-      <div style="font-size:13px;color:var(--mute);margin-top:4px">These are also saved town wise in the list below.</div>
+      <div style="font-size:13px;color:var(--mute);margin-top:4px">Passwords are shown only now and are not stored anywhere. Download the CSV before you leave this page.</div>
       <div style="overflow-x:auto"><table id="credTable"></table></div>
       <button id="btnCsv" class="small">Download CSV</button>
       <button id="btnCopy" class="ghost small" style="margin-left:8px">Copy</button>
-    </div>
-
-    <div class="card">
-      <b>Saved IDs and passwords (town wise)</b>
-      <label>Town</label>
-      <select id="sTown"></select>
-      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
-        <button class="small" id="sCsv" type="button">Download CSV</button>
-        <button class="ghost small" id="sCopy" type="button">Copy</button>
-        <span id="sCnt" style="font-size:13px;color:var(--mute)"></span>
-      </div>
-      <div id="sMsg" class="msg"></div>
-      <div style="overflow-x:auto"><table id="sTable"></table></div>
     </div>
 
     <div class="card">
@@ -290,7 +277,6 @@ function fillSelects() {
     sel.disabled = !isSuper();
   }
   fillSupervisors();
-  fillSavedTowns();
 }
 $("cUlb").onchange = fillSupervisors;
 
@@ -315,15 +301,8 @@ async function createLogin({ userId, password, name, role, ulb, head, supervisor
     if (head) rec.head = head;
     if (supervisor) rec.supervisor = supervisor;
     await set(ref(db, `users/${cred.user.uid}`), rec);
-    // keep the ID, password and function town wise so the admin can look them up later
-    if (ulb && ulb !== "*") {
-      try {
-        await set(ref(db, `credentials/${ulb}/${cred.user.uid}`), { userId: toEmail(userId).split("@")[0].toUpperCase(), password, name, role, head: head || null, createdAt: rec.createdAt });
-      } catch (x) {}
-    }
     await signOut(auth2);
     usersCache[cred.user.uid] = rec;
-    if (ulb && $("sTown") && $("sTown").value === ulb) { clearTimeout(window.__sT); window.__sT = setTimeout(loadSaved, 600); }
     return { ok: true, uid: cred.user.uid };
   } catch (e) {
     try { await signOut(auth2); } catch (x) {}
@@ -358,51 +337,6 @@ $("btnCopy").onclick = async () => {
   try { await navigator.clipboard.writeText(txt); alert("Copied."); } catch (e) { alert("Copy failed. Use Download CSV."); }
 };
 
-
-// ---- saved IDs and passwords, town wise ----
-let savedRows = [];
-function fillSavedTowns() {
-  const sel = $("sTown"); const keep = sel.value; sel.innerHTML = "";
-  const keys = isSuper() ? Object.keys(ulbs).sort((a, b) => (ulbs[a].name || ulbNames[a] || a).localeCompare(ulbs[b].name || ulbNames[b] || b)) : [myUlb];
-  for (const k of keys) { const o = document.createElement("option"); o.value = k; o.textContent = ulbs[k]?.name || ulbNames[k] || k; sel.append(o); }
-  if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
-  if (sel.value) loadSaved();
-}
-async function loadSaved() {
-  const town = $("sTown").value; const t = $("sTable"); t.innerHTML = ""; savedRows = [];
-  if (!town) return;
-  msg("sMsg", "", "Loading...");
-  try {
-    const v = (await get(ref(db, `credentials/${town}`))).val() || {};
-    savedRows = Object.values(v).map(c => ({
-      userId: c.userId, password: c.password,
-      fn: (ROLE_LABEL[c.role] || c.role) + (c.head && HEADS[c.head] ? " (" + HEADS[c.head][0] + ")" : "") + (/_APR$/i.test(c.userId) ? " - data approver" : /_LDG$/i.test(c.userId) ? " - ledger" : ""),
-      role: c.role, name: c.name || "",
-    })).sort((a, b) => (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9) || a.userId.localeCompare(b.userId));
-    const hr = document.createElement("tr");
-    for (const c of ["User ID", "Password", "Function"]) { const th = document.createElement("th"); th.textContent = c; hr.append(th); }
-    t.append(hr);
-    for (const r of savedRows) {
-      const tr = document.createElement("tr");
-      for (const c of [r.userId, r.password, r.fn]) { const td = document.createElement("td"); td.textContent = c; tr.append(td); }
-      t.append(tr);
-    }
-    $("sCnt").textContent = savedRows.length + " ID(s)";
-    msg("sMsg", "", savedRows.length ? "" : "No saved IDs for this town. IDs made before this list existed are not here, because their passwords were never stored.");
-  } catch (e) { msg("sMsg", "err", e.code || e.message); }
-}
-$("sTown").onchange = loadSaved;
-$("sCsv").onclick = () => {
-  const lines = [["Town", "User ID", "Password", "Function"], ...savedRows.map(r => [$("sTown").selectedOptions[0]?.textContent || "", r.userId, r.password, r.fn])]
-    .map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(","));
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
-  a.download = ($("sTown").value || "town") + "_logins.csv"; a.click();
-};
-$("sCopy").onclick = async () => {
-  const txt = savedRows.map(r => `${r.userId} | ${r.password} | ${r.fn}`).join("\n");
-  try { await navigator.clipboard.writeText(txt); alert("Copied."); } catch (e) { alert("Copy failed. Use Download CSV."); }
-};
 
 // ---- 1. one-click ULB setup ----
 $("btnSetup").onclick = async () => {

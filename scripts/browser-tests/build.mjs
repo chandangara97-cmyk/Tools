@@ -10,7 +10,15 @@ const G = path.resolve(HERE, '../../node_modules');
 const OUT = path.join(HERE, '.out');
 fs.mkdirSync(OUT, { recursive: true });
 fs.writeFileSync(path.join(OUT, 'page.html'), '<!doctype html><meta charset="utf-8"><div id="root"></div><script src="out.js"></script>');
-const icons = 'Search X Printer Download Building2 Layers FileSpreadsheet PenTool ClipboardCheck Droplets Trash2 Waves Receipt Home AlertTriangle Undo2 Landmark Cloud CloudOff UploadCloud LogOut Smartphone Lock Wrench Eye EyeOff Camera Plus FileText ArrowRight ArrowLeft Compass FileCheck Sparkles ShieldCheck Map Calculator Calendar CheckCircle CheckCircle2 XCircle Send ExternalLink Copy Check Terminal TrendingUp MapPin'.split(' ');
+// every icon any source file imports from lucide-react, so a new page can never break this list
+const iconSet = new Set();
+const scan = (dir) => { for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
+  const full = path.join(dir, f.name);
+  if (f.isDirectory()) scan(full);
+  else if (/\.tsx?$/.test(f.name)) for (const m of fs.readFileSync(full, 'utf8').matchAll(/import\s*\{([^}]*)\}\s*from\s*'lucide-react'/g)) m[1].split(',').map((x) => x.trim().split(/\s+as\s+/)[0]).filter(Boolean).forEach((n) => iconSet.add(n));
+} };
+scan(SRC);
+const icons = [...iconSet];
 const stubs = {
   'lucide-react': `import React from 'react';\n` + icons.map((n) => `export const ${n} = (p) => React.createElement('svg', { 'data-icon': '${n}' });`).join('\n'),
   '@capacitor/filesystem': `export const Filesystem = { writeFile: async () => ({ uri: 'x' }) }; export const Directory = { Cache: 'CACHE' }; export const Encoding = { UTF8: 'utf8' };`,
@@ -29,7 +37,7 @@ export const onValue = (r, cb, err) => {
 };
 export const get = async (r) => ({ val: () => walk(window.__db || {}, r.path) ?? null });
 export const set = async () => {}; export const push = () => ({ key: 'k' }); export const update = async () => {}; export const remove = async () => {};
-export const runTransaction = async () => ({}); export const query = (r) => r; export const limitToLast = () => ({}); export const orderByKey = () => ({});
+export const serverTimestamp = () => ({ '.sv': 'timestamp' }); export const runTransaction = async () => ({}); export const query = (r) => r; export const limitToLast = () => ({}); export const orderByKey = () => ({});
 `,
 };
 const plug = {

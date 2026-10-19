@@ -1,7 +1,8 @@
 // Cloud storage for Phase 3: collection settings, ledgers, receipts, audit log. Online only (office work).
 // Ledger entries are append-only; the database rules refuse edits and deletes.
 import { useEffect, useState } from 'react';
-import { ref, set, onValue, update, push, runTransaction, query, limitToLast, orderByKey } from 'firebase/database';
+import { ref, set, get, onValue, update, push, serverTimestamp, query, limitToLast, orderByKey } from 'firebase/database';
+import './serverClock';
 import { db } from '../firebase';
 import { financialYearOf } from './assessment';
 import type { Assessment } from './assessmentStore';
@@ -103,30 +104,42 @@ export async function postPayment(p: PaymentInput, entries: LedgerEntry[], setti
   const rcFy = financialYearOf(new Date(p.date + 'T00:00:00'));
   // property tax keeps its original counter and receipt format; other heads get their own series
   const ctrKey = head === 'property_tax' ? rcFy : `${head}_${rcFy}`;
-  const ctr = await runTransaction(ref(db, `receiptCounters/${p.town}/${ctrKey}`), (cur) => (typeof cur === 'number' ? cur : 0) + 1);
-  if (!ctr.committed) throw new Error('Could not get a receipt number.');
-  const receiptNo = head === 'property_tax'
-    ? `${ulbCode(p.town)}/${rcFy}/${String(ctr.snapshot.val()).padStart(6, '0')}`
-    : `${ulbCode(p.town)}/${head.toUpperCase().slice(0, 3)}/${rcFy}/${String(ctr.snapshot.val()).padStart(6, '0')}`;
-
+  const ctrPath = `receiptCounters/${p.town}/${ctrKey}`;
   const base = `ledger/${p.town}/${ledgerKey(head, p.propertyId)}`;
-  const paymentId = newKey(base);
   const firstFy = prev.result?.rows.find((r) => r.fy)?.fy || rcFy;
-  const common = { at: Date.now(), by: currentUid(), date: p.date, receiptNo };
-  const updates: Record<string, unknown> = {
-    [`${base}/${paymentId}`]: clean({
-      ...common, type: 'payment', fy: firstFy, amount: p.amount, mode: p.mode,
-      ...(p.ref?.trim() ? { ref: p.ref.trim() } : {}),
-      ...(p.payer?.trim() ? { payer: p.payer.trim() } : {}),
-      ...(p.note?.trim() ? { note: p.note.trim() } : {}),
-    }),
-  };
-  if (prev.rebate > 0 && prev.rebateFy) {
-    updates[`${base}/${newKey(base)}`] = clean({ ...common, type: 'rebate', fy: prev.rebateFy, amount: prev.rebate, note: 'Early-payment rebate' });
+
+  // The receipt number is taken in the SAME write as the payment, so a failed save never leaves a gap in the series.
+  // The rules only accept the counter going up by exactly one; if another cashier got there first, the whole write
+  // is refused and we read the counter again and retry.
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const cur = (await get(ref(db, ctrPath))).val();
+    const next = (typeof cur === 'number' ? cur : 0) + 1;
+    const receiptNo = head === 'property_tax'
+      ? `${ulbCode(p.town)}/${rcFy}/${String(next).padStart(6, '0')}`
+      : `${ulbCode(p.town)}/${head.toUpperCase().slice(0, 3)}/${rcFy}/${String(next).padStart(6, '0')}`;
+    const paymentId = newKey(base);
+    // `at` is the database server's own time: the rules require it, so a wrong phone clock cannot change it
+    const common = { at: serverTimestamp() as unknown as number, by: currentUid(), date: p.date, receiptNo };
+    const updates: Record<string, unknown> = {
+      [ctrPath]: next,
+      [`${base}/${paymentId}`]: clean({
+        ...common, type: 'payment', fy: firstFy, amount: p.amount, mode: p.mode,
+        ...(p.ref?.trim() ? { ref: p.ref.trim() } : {}),
+        ...(p.payer?.trim() ? { payer: p.payer.trim() } : {}),
+        ...(p.note?.trim() ? { note: p.note.trim() } : {}),
+      }),
+    };
+    if (prev.rebate > 0 && prev.rebateFy) {
+      updates[`${base}/${newKey(base)}`] = clean({ ...common, type: 'rebate', fy: prev.rebateFy, amount: prev.rebate, note: 'Early-payment rebate' });
+    }
+    updates[`audit/${p.town}/${newKey(`audit/${p.town}`)}`] = auditEntry('payment', `${headLabel(head)} receipt ${receiptNo}, ₹${p.amount}, ${p.mode}${prev.rebate ? `, rebate ₹${prev.rebate}` : ''}`, p.propertyId);
+    try {
+      await update(ref(db), updates);
+      return { receiptNo, paymentId, rebate: prev.rebate };
+    } catch (e) { lastErr = e; }
   }
-  updates[`audit/${p.town}/${newKey(`audit/${p.town}`)}`] = auditEntry('payment', `${headLabel(head)} receipt ${receiptNo}, ₹${p.amount}, ${p.mode}${prev.rebate ? `, rebate ₹${prev.rebate}` : ''}`, p.propertyId);
-  await update(ref(db), updates);
-  return { receiptNo, paymentId, rebate: prev.rebate };
+  throw lastErr instanceof Error ? lastErr : new Error('Could not save the payment. Check the connection and try again.');
 }
 
 /** Cancel entries by posting reversal entries. `ids` are the entries to cancel (a payment and its rebate go together). */

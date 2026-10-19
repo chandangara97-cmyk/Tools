@@ -76,7 +76,12 @@ export function validateSettings(s: CollectionSettings): string | null {
 const pad = (n: number) => String(n).padStart(2, '0');
 const toIso = (d: Date) => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 const parse = (s: string) => { const [y, m, d] = s.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
-export const todayIso = () => { const n = new Date(); return `${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())}`; };
+// The date is read from a clock that can be pointed at the database server's time (see serverClock.ts), so a wrong
+// phone clock cannot post a payment on the wrong day. The calendar day is always India's (IST, UTC+5:30).
+let clock: () => number = () => Date.now();
+export const setClock = (f: () => number) => { clock = f; };
+const IST_MS = (5 * 60 + 30) * 60 * 1000;
+export const todayIso = () => toIso(new Date(clock() + IST_MS));
 
 export function addDays(s: string, n: number): string {
   const d = parse(s); d.setUTCDate(d.getUTCDate() + n); return toIso(d);

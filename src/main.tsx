@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { AuthProvider } from './services/auth';
 import { LoginGate } from './components/LoginGate';
+import './services/serverClock';
 import './index.css';
 
 // The whole app, including the hub page, opens only after a town sign-in.
