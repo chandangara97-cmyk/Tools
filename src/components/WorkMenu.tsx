@@ -224,7 +224,7 @@ export const WorkMenu: React.FC<Props> = ({ townName, tabs, bills, onChoose }) =
 
       <div className="relative space-y-6">
         {/* Primary actions */}
-        {(has('search') || has('dues') || has('rules')) && (
+        {(has('search') || has('dues') || has('rules') || has('register')) && (
           <div className="space-y-3">
             {has('search') && (
               <ActionRow
@@ -242,6 +242,15 @@ export const WorkMenu: React.FC<Props> = ({ townName, tabs, bills, onChoose }) =
                 title="Pending dues"
                 note="See and update dues of every bill"
                 onClick={() => onChoose({ tab: 'dues' })}
+              />
+            )}
+            {has('register') && (
+              <ActionRow
+                tone="blue"
+                icon={<Building2 className="w-5 h-5" strokeWidth={2.4} />}
+                title="Register & bye-laws"
+                note="Every property of the town with its bye-law tax (admin only)"
+                onClick={() => onChoose({ tab: 'register' })}
               />
             )}
             {has('rules') && (

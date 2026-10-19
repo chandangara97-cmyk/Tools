@@ -12,6 +12,7 @@ import { ReportsPanel } from './ReportsPanel';
 import { WorkMenu, BILL_NAME, Choice } from './WorkMenu';
 import { LiabilitySearch } from './LiabilitySearch';
 import { AdminDuesPage } from './AdminDuesPage';
+import { TownRegister } from './TownRegister';
 import { TownRulesPage } from './TownRulesPage';
 import { ErrorBoundary } from './ErrorBoundary';
 import { allowedTabs, allowedHeads, startTab, isSearchOnly, Tab } from '../services/access';
@@ -92,7 +93,7 @@ const GisPropertySurveyInner: React.FC = () => {
   useEffect(() => { if (activeTab !== 'menu' && !tabs.includes(activeTab)) setActiveTab('menu'); }, [activeTab, tabs]);
   const PAGE_TITLE: Record<Tab, string> = {
     search: 'Search dues', survey: 'Property survey', 'map-editor': 'Ward map', records: 'Property records', assessment: 'Assessment',
-    collection: billHead ? BILL_NAME[billHead] : 'Collection', reports: 'Reports & notices', exports: 'GIS exports', dues: 'Pending dues', rules: 'Bill rules',
+    collection: billHead ? BILL_NAME[billHead] : 'Collection', reports: 'Reports & notices', exports: 'GIS exports', dues: 'Pending dues', rules: 'Bill rules', register: 'Register & bye-laws',
   };
   const writable = canWriteSurvey(role);
   const deletable = canDeleteSurvey(role);
@@ -1035,6 +1036,9 @@ const GisPropertySurveyInner: React.FC = () => {
         )}
         {activeTab === 'rules' && (
           <TownRulesPage townKey={selectedTownKey} townName={currentTown.n} heads={bills} />
+        )}
+        {activeTab === 'register' && (
+          <TownRegister townKey={selectedTownKey} townName={currentTown.n} records={records} />
         )}
         {activeTab === 'dues' && (
           <AdminDuesPage townKey={selectedTownKey} townName={currentTown.n} records={records} heads={bills} />

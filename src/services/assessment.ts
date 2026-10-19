@@ -61,6 +61,7 @@ export interface CalcResult {
 
 /** Values copied from the app's existing hard-coded Form-E export. NOT notified rates. */
 export function placeholderRateTable(town: string, effectiveFrom = '2026-04-01'): RateTable {
+  if (town === 'Nerwa') return nerwaDefaultRateTable(effectiveFrom);
   return {
     id: effectiveFrom,
     town,
@@ -76,6 +77,32 @@ export function placeholderRateTable(town: string, effectiveFrom = '2026-04-01')
     rebatePct: 10,
     taxRatePct: null,
     bylaw: { title: '', authority: '', notificationNo: '', notificationDate: '', notes: '' },
+    clauses: {},
+    adjustments: [],
+  };
+}
+
+/**
+ * Nerwa starts with this PROVISIONAL table so tax can be calculated for testing.
+ * These are NOT notified bye-law values. Status stays 'placeholder', so a supervisor cannot approve
+ * assessments until an admin replaces the factors with the notified ones and sets the table to 'approved'.
+ */
+export function nerwaDefaultRateTable(effectiveFrom = '2026-04-01'): RateTable {
+  return {
+    id: effectiveFrom,
+    town: 'Nerwa',
+    effectiveFrom,
+    status: 'placeholder',
+    note: 'DEFAULT PROVISIONAL rate table for Nerwa so tax can be calculated for testing. NOT notified rates. Replace with the bye-law values and set to approved before any real demand.',
+    zoneF1: { A: 6, B: 5, C: 4, default: 4 },
+    structureF2: { RCC: 3, 'Brick-Slate': 2.5, 'Stone-Slate': 2, default: 2 },
+    ageF3: [{ maxAge: 10, factor: 4 }, { maxAge: 25, factor: 3.5 }, { maxAge: 50, factor: 3 }, { maxAge: null, factor: 2.5 }],
+    occupancyF4: { 'Owner-occupied': 2, Tenanted: 2.5, 'Let out': 2.5, Vacant: 1, default: 2 },
+    useF5: { Residential: 1.5, Commercial: 2.5, 'Mixed use': 2, Mixed: 2, Industrial: 2.5, Institutional: 1.5, 'Vacant land': 1, Vacant: 1, 'Under construction': 1, default: 1.5 },
+    classFactor: { C: 1.1, D: 1, E: 0.9, default: 1 },
+    rebatePct: 10,
+    taxRatePct: 10,
+    bylaw: { title: 'Provisional default (replace with the notified municipal property tax bye-laws)', authority: '', notificationNo: '', notificationDate: '', notes: 'Factors follow the Form-E structure; values are placeholders.' },
     clauses: {},
     adjustments: [],
   };
