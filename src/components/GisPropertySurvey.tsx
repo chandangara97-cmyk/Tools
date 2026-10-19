@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useStepBack, readStep } from '../hooks/useStepBack';
+import { PropertyUnit, unitList, unitsToRecord, nextUnitId } from '../services/units';
 import townsJson from '../data/townsData.json';
 import { cloudWatchProperties, cloudFetchPhotos } from '../firebase';
 import { useAuth, canWriteSurvey, canDeleteSurvey } from '../services/auth';
@@ -74,19 +76,32 @@ const GisPropertySurveyInner: React.FC = () => {
   const tabs = useMemo(() => allowedTabs(role, userHead, isSuper), [role, userHead, isSuper]);
   // cashier and general public: the full-screen search box and nothing else
   const searchOnly = isSearchOnly(role, isSuper);
-  const [activeTab, setActiveTab] = useState<Tab | 'menu'>(() => startTab(role, userHead, isSuper));
-  const [billHead, setBillHead] = useState<HeadId | null>(() => (!isSuper && role === 'supervisor' && userHead && userHead !== 'property_tax' ? userHead : null));
+  // Pages are history steps: Back returns to the page this one was opened from (menu, records, ...), never out of the site.
+  const landingTab = startTab(role, userHead, isSuper);
+  const landingHead: HeadId | null = !isSuper && role === 'supervisor' && userHead && userHead !== 'property_tax' ? userHead : null;
+  const stepKey = (t: Tab | 'menu', h: HeadId | null) => (t === 'menu' ? 'menu' : `${t}:${h ?? ''}`);
+  const landingKey = stepKey(landingTab, landingHead);
+  const savedStep = readStep<string>('gisTab', '');
+  const [activeTab, setActiveTab] = useState<Tab | 'menu'>(() => (savedStep ? (savedStep.split(':')[0] as Tab | 'menu') : landingTab));
+  const [billHead, setBillHead] = useState<HeadId | null>(() => (savedStep && savedStep.includes(':') ? ((savedStep.split(':')[1] || null) as HeadId | null) : landingHead));
+  const applyStep = (k: string) => {
+    if (k === 'menu') { setActiveTab('menu'); return; }
+    const [t, h] = k.split(':');
+    setBillHead((h || null) as HeadId | null); setActiveTab(t as Tab);
+  };
+  const tabNav = useStepBack('gisTab', stepKey(activeTab, billHead), applyStep, landingKey, ['cpage', 'csel', 'duesPid', 'srchPick']);
+  const openTab = (t: Tab | 'menu', h?: HeadId | null) => tabNav.go(stepKey(t, h === undefined ? billHead : h));
   // A ULB login is locked to its own town; only the platform owner ("*") can pick any ULB.
   const [selectedTownKey, setSelectedTownKey] = useState<string>(isSuper || !ulb ? townSlug('Bhota') : ulb);
   const [wardNo, setWardNo] = useState<string>('1');
   const [townSearch, setTownSearch] = useState<string>('');
   const townHeads = useTownHeads(selectedTownKey);
   const bills = useMemo(() => allowedHeads(role, userHead, isSuper, townHeads), [role, userHead, isSuper, townHeads]);
-  const choose = (c: Choice) => { setBillHead(c.head ?? null); setActiveTab(c.tab); };
+  const choose = (c: Choice) => openTab(c.tab, c.head ?? null);
   // a login with a single place to go never needs the menu
   const singleDest = tabs.length === 1 && (tabs[0] !== 'collection' || bills.length === 1);
   useEffect(() => {
-    if (activeTab === 'menu' && tabs.length === 1 && tabs[0] === 'collection' && bills.length === 1) choose({ tab: 'collection', head: bills[0] });
+    if (activeTab === 'menu' && tabs.length === 1 && tabs[0] === 'collection' && bills.length === 1) { setBillHead(bills[0]); setActiveTab('collection'); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, tabs, bills]);
   // a login can never sit on a page it is not allowed to open
@@ -195,6 +210,7 @@ const GisPropertySurveyInner: React.FC = () => {
   const [ncls, setNcls] = useState('');
   const [act, setAct] = useState('');
   const [tenant, setTenant] = useState('');
+  const [units, setUnits] = useState<(PropertyUnit & { saved?: boolean })[]>([]);
   const [upn, setUpn] = useState('');
   const [lat, setLat] = useState('31.6118');
   const [lng, setLng] = useState('76.5638');
@@ -342,6 +358,7 @@ const GisPropertySurveyInner: React.FC = () => {
     setLandArea(120);
     setAct('');
     setTenant('');
+    setUnits([]);
     setUpn('');
     setRem('');
     setPhotos([]);
@@ -381,6 +398,11 @@ const GisPropertySurveyInner: React.FC = () => {
       }
     }
 
+    const badUnit = units.find((u) => u.label.trim() && u.occupantType === 'Tenant' && !u.occupant.trim());
+    if (badUnit) {
+      setFormMsg({ type: 'err', text: `Enter the tenant's name for "${badUnit.label}", or mark that unit as Owner.` });
+      return;
+    }
     const newPhotos = photos.filter(p => p.isNew);
     const photoIds = [...(previous?.photoIds || []), ...newPhotos.map(p => p.id)];
 
@@ -403,6 +425,7 @@ const GisPropertySurveyInner: React.FC = () => {
       zone,
       ncls: ncls.trim(),
       tenant: tenant.trim(),
+      ...(unitsToRecord(units) ? { units: unitsToRecord(units) } : {}),
       upn: upn.trim(),
       lat,
       lng,
@@ -450,12 +473,13 @@ const GisPropertySurveyInner: React.FC = () => {
     setNcls(r.ncls || '');
     setAct(r.act || '');
     setTenant(r.tenant || '');
+    setUnits(unitList(r).map((u) => ({ ...u, saved: true })));
     setUpn(r.upn || '');
     setLat(r.lat || '');
     setLng(r.lng || '');
     setAcc(r.acc || '');
     setRem(r.rem || '');
-    setActiveTab('survey');
+    openTab('survey');
     setPhotos([]);
     if (r.photoIds && r.photoIds.length) {
       cloudFetchPhotos(selectedTownKey, r.id)
@@ -963,7 +987,7 @@ const GisPropertySurveyInner: React.FC = () => {
           ) : (
             <div className="flex items-center gap-3">
               {!singleDest && (
-                <button type="button" onClick={() => setActiveTab('menu')}
+                <button type="button" onClick={() => openTab('menu', null)}
                   className="inline-flex items-center gap-1.5 bg-[#4f46e5] hover:bg-[#6259f0] text-white text-sm font-bold px-3 py-2 rounded-xl">
                   <ArrowLeft className="w-4 h-4" /> Menu
                 </button>
@@ -1027,7 +1051,7 @@ const GisPropertySurveyInner: React.FC = () => {
           onOpenConflict={(id) => { const r = records.find(x => x.id === id); if (r) handleEditRecord(r); }}
         />
         )}
-        <ErrorBoundary resetKey={`${activeTab}:${billHead ?? ''}`} onBack={() => setActiveTab('menu')}>
+        <ErrorBoundary resetKey={`${activeTab}:${billHead ?? ''}`} onBack={() => openTab('menu', null)}>
         {activeTab === 'menu' && (
           <WorkMenu townName={currentTown.n} tabs={tabs} bills={bills} onChoose={choose} />
         )}
@@ -1178,7 +1202,38 @@ const GisPropertySurveyInner: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="rounded-xl border border-[#2f3a6b] p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="text-xs font-semibold text-white">Units in this building (shops / flats)</div>
+                      <div className="text-[11px] text-[#aab4dc]">Garbage is billed per unit. Leave empty for a building with one use and one payer.</div>
+                    </div>
+                    <button type="button" onClick={() => setUnits([...units, { id: nextUnitId(units), label: '', use: 'Residential', occupantType: 'Owner', occupant: '', active: true }])}
+                      className="text-xs font-bold text-[#9aa8ff] border border-[#2f3a6b] rounded-lg px-3 py-2 shrink-0">+ Add unit</button>
+                  </div>
+                  {units.map((u, i) => {
+                    const set = (patch: Partial<PropertyUnit>) => setUnits(units.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+                    const f = 'w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded-lg p-2 focus:border-[#9aa8ff]';
+                    return (
+                      <div key={u.id} className="grid grid-cols-2 sm:grid-cols-6 gap-2 items-end border-t border-[#20284b] pt-2">
+                        <div className="col-span-2 sm:col-span-2"><label className="block text-[10px] text-[#aab4dc] mb-1">{u.id} · Name of unit</label>
+                          <input className={f} placeholder="e.g. Ground floor shop" value={u.label} onChange={(e) => set({ label: e.target.value })} /></div>
+                        <div><label className="block text-[10px] text-[#aab4dc] mb-1">Use</label>
+                          <select className={f} value={u.use} onChange={(e) => set({ use: e.target.value as PropertyUnit['use'] })}><option>Residential</option><option>Commercial</option></select></div>
+                        <div><label className="block text-[10px] text-[#aab4dc] mb-1">Occupied by</label>
+                          <select className={f} value={u.occupantType} onChange={(e) => set({ occupantType: e.target.value as PropertyUnit['occupantType'] })}><option>Owner</option><option>Tenant</option></select></div>
+                        <div className="col-span-2 sm:col-span-2"><label className="block text-[10px] text-[#aab4dc] mb-1">Name of payer {u.occupantType === 'Owner' ? '(blank = owner)' : ''}</label>
+                          <input className={f} value={u.occupant} onChange={(e) => set({ occupant: e.target.value })} /></div>
+                        <div className="col-span-2 sm:col-span-3"><label className="block text-[10px] text-[#aab4dc] mb-1">Mobile (optional)</label>
+                          <input className={f} inputMode="tel" value={u.mobile || ''} onChange={(e) => set({ mobile: e.target.value })} /></div>
+                        <label className="flex items-center gap-2 text-xs text-white sm:col-span-2"><input type="checkbox" checked={u.active} onChange={(e) => set({ active: e.target.checked })} className="w-4 h-4 accent-[#a5b4ff]" /> In use</label>
+                        {!u.saved ? <button type="button" onClick={() => setUnits(units.filter((_, j) => j !== i))} className="text-xs text-[#ffb4a8] font-bold">Remove</button> : <span className="text-[10px] text-[#aab4dc]">Saved: untick "In use" to close</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+
+<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs text-[#aab4dc] mb-1 font-semibold">Year Built</label>
                     <input
@@ -1399,7 +1454,7 @@ const GisPropertySurveyInner: React.FC = () => {
                     Ward Outlines &amp; Tap Geo-Tagging
                   </h3>
                   <button
-                    onClick={() => setActiveTab('map-editor')}
+                    onClick={() => openTab('map-editor')}
                     className="text-xs text-[#ffe3a3] hover:underline flex items-center gap-1"
                   >
                     Open Full Editor &rarr;

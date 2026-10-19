@@ -9,7 +9,6 @@ import type { Assessment } from './assessmentStore';
 import { currentUid } from './assessmentStore';
 import { ulbCode } from './ids';
 import { HeadId, headLabel, ledgerKey, splitLedgerKey } from './heads';
-import { fixedAmountFor } from './payableRates';
 import {
   CollectionSettings, LedgerEntry, PayMode, placeholderSettings, previewPayment,
 } from './collection';
@@ -207,7 +206,7 @@ export async function generateFixedDemands(
   const todo: { id: string; amt: number; use: string }[] = [];
   let skippedExisting = 0, noRate = 0;
   for (const p of props) {
-    const amt = fixedAmountFor({ residential: rates.residential, commercial: rates.commercial }, p.use);
+    const amt = p.use === 'Residential' ? rates.residential : p.use === 'Commercial' ? rates.commercial : null;
     if (amt === null || !(amt > 0)) { noRate++; continue; }
     if ((ledgers[p.id] || []).some((e) => e.id === `demand_${fy}`)) { skippedExisting++; continue; }
     todo.push({ id: p.id, amt, use: p.use });

@@ -23,7 +23,7 @@ export function useHistoryBack(
   useEffect(() => {
     const state = window.history.state as { appView?: string } | null;
     if (!state || state.appView == null) {
-      window.history.replaceState({ appView: viewRef.current }, '');
+      window.history.replaceState({ ...(window.history.state || {}), appView: viewRef.current }, '');
     }
   }, []);
 
@@ -36,7 +36,9 @@ export function useHistoryBack(
         setView(next);
         return;
       }
-      // Already at root (or unknown state): don't leave on first Back
+      // Same screen, different inner page (menu -> page, list -> item): the inner pages handle it (useStepBack)
+      if (next != null && next === viewRef.current) return;
+      // Unknown state: don't leave on first Back
       if (viewRef.current === rootView || next == null) {
         window.history.pushState({ appView: viewRef.current }, '');
         if (!exitArmed.current) {

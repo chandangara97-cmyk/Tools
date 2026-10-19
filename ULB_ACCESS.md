@@ -86,3 +86,13 @@ Search dues, open a property, press "Generate bill".
 - **Login dropdown:** the sign-in page has a town box; picking a town lists that ULB's IDs with their role. The list lives at `loginDirectory/<town>/<ID>` (IDs and role names only, readable without signing in). New IDs are added automatically. For IDs made earlier press "Refresh login dropdown list" once. Removing an ID removes it from the list.
 - **Reset password:** each ID on the admin page has a "Reset password" button. It calls the Cloud Function `resetLoginPassword` (a ULB admin only for own ULB). Deploy with `firebase deploy --only functions,database`.
 - Passwords are still not stored or readable anywhere.
+
+## Garbage per unit (shops and homes in one building)
+- In the survey form, "Units in this building" lists each shop, flat or floor with its use (Residential/Commercial), who occupies it (Owner/Tenant), the payer's name and mobile. Leave it empty for a building with one use and one payer.
+- Garbage demand is raised per active unit at that ULB's own Residential or Commercial amount. Each unit has its own ledger (`ledger/<town>/garbage~<propertyId>~<unitId>`), receipts and dues; Search dues adds a building's units together.
+- Bills raised before units existed stay under the whole building (shown as "earlier bills"), are never moved, and get no new demand. A closed unit ("In use" unticked) keeps its history.
+- Mixed or other-use buildings with no units get no garbage bill; the garbage page shows how many.
+- No rule change is needed. Run `npm run test:units`.
+
+## Back button
+Every page opened from a menu or list is one browser-history step, so the phone's Back button, the browser Back and the on-screen Back/Menu buttons all return to the page you came from (menu, list of records, search results), never straight out of the site. This covers the app menu pages, the collection pages (Overview, Collect payment, Update dues, Fixed amounts...), an opened property, Search dues results and Pending dues. The admin page has a Back link. The logic is in `src/hooks/useStepBack.ts`.

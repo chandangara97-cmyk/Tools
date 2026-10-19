@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useStepBack, readStep } from '../hooks/useStepBack';
 import { Search, X } from 'lucide-react';
 import { PropertyRecord } from '../utils/gisUtils';
 import { HeadId } from '../services/heads';
@@ -25,7 +26,8 @@ export const LiabilitySearch: React.FC<Props> = ({ townKey, townName, records, h
   const canBill = canCollect(role) || canManageLedger(role);
 
   const [q, setQ] = useState('');
-  const [picked, setPicked] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string | null>(() => readStep('srchPick', '') || null);
+  const pickNav = useStepBack('srchPick', picked ?? '', (v: string) => setPicked(v || null), '');
   const [billing, setBilling] = useState(false);
   const [slow, setSlow] = useState(false);
   useEffect(() => {
@@ -83,7 +85,7 @@ export const LiabilitySearch: React.FC<Props> = ({ townKey, townName, records, h
         <ul className="space-y-2">
           {listed.map(({ r, l }) => (
             <li key={r.id}>
-              <button type="button" onClick={() => setPicked(r.id)} className="stub w-full text-left bg-[#181f3d] border border-[#2f3a6b] hover:border-[#9aa8ff] p-3 flex items-center justify-between gap-3">
+              <button type="button" onClick={() => pickNav.go(r.id)} className="stub w-full text-left bg-[#181f3d] border border-[#2f3a6b] hover:border-[#9aa8ff] p-3 flex items-center justify-between gap-3">
                 <span className="min-w-0">
                   <span className="block font-bold text-white truncate">{r.owner || 'Owner not recorded'}</span>
                   <span className="block text-xs text-[#aab4dc] truncate">{r.id} · Ward {r.ward}{r.hno ? ` · ${r.hno}` : ''}</span>
@@ -97,7 +99,7 @@ export const LiabilitySearch: React.FC<Props> = ({ townKey, townName, records, h
 
       {rec && mine && (
         <div className="space-y-3">
-          {matches.length > 1 && <button type="button" onClick={() => setPicked(null)} className="text-sm font-bold text-[#9aa8ff]">Back to results</button>}
+          {matches.length > 1 && <button type="button" onClick={() => pickNav.back()} className="text-sm font-bold text-[#9aa8ff]">Back to results</button>}
 
           <div className="stub bg-[#181f3d] border border-[#2f3a6b] p-4 space-y-4">
             <div>
@@ -160,7 +162,7 @@ export const LiabilitySearch: React.FC<Props> = ({ townKey, townName, records, h
             <div className="space-y-2">
               <h3 className="text-lg font-bold text-white">Other properties of this owner</h3>
               {ownerRows.filter((x) => x.r.id !== rec.id).map(({ r, l }) => (
-                <button key={r.id} type="button" onClick={() => { setPicked(r.id); setBilling(false); }} className="stub w-full text-left bg-[#181f3d] border border-[#2f3a6b] hover:border-[#9aa8ff] p-3 flex items-center justify-between gap-3">
+                <button key={r.id} type="button" onClick={() => { pickNav.go(r.id); setBilling(false); }} className="stub w-full text-left bg-[#181f3d] border border-[#2f3a6b] hover:border-[#9aa8ff] p-3 flex items-center justify-between gap-3">
                   <span className="min-w-0"><span className="block font-bold text-white truncate">{r.id}</span><span className="block text-xs text-[#aab4dc] truncate">Ward {r.ward}{r.hno ? ` · ${r.hno}` : ''}</span></span>
                   <Amount l={l} big />
                 </button>

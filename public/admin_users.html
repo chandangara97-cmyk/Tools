@@ -46,6 +46,7 @@
 </head>
 <body>
 <div class="wrap">
+  <a href="./" id="backLink" style="display:inline-block;margin-bottom:8px;font-size:14px;font-weight:700;color:var(--accent,#9aa8ff);text-decoration:none">&larr; Back</a>
   <h1>ULB &amp; User Admin</h1>
   <div class="sub">Each ULB gets its own logins. A login sees only its own ULB.</div>
 
@@ -198,6 +199,12 @@ const auth2 = getAuth(app2);
 const resetFn = httpsCallable(getFunctions(app, "asia-south1"), "resetLoginPassword");
 
 const $ = id => document.getElementById(id);
+// Back goes to the page this one was opened from; with no earlier page of this site it opens the app home
+$("backLink").onclick = (e) => {
+  e.preventDefault();
+  let same = false; try { same = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (x) {}
+  if (same && history.length > 1) history.back(); else location.href = "./";
+};
 const show = (id, on) => $(id).classList.toggle("hidden", !on);
 function msg(id, type, text) { const e = $(id); e.className = "msg " + type; e.textContent = text; }
 const DOMAIN = "propertytax.app";

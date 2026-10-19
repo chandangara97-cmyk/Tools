@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useStepBack, readStep } from '../hooks/useStepBack';
 import { Search, X, CheckCircle2 } from 'lucide-react';
 import type { PropertyRecord } from '../utils/gisUtils';
 import { HeadId, headLabel } from '../services/heads';
@@ -103,7 +104,8 @@ export const AdminDuesPage: React.FC<Props> = ({ townKey, townName, records, hea
   const ready = status === 'ready' && settingsReady;
   const today = todayIso();
   const [q, setQ] = useState('');
-  const [pid, setPid] = useState<string | null>(null);
+  const [pid, setPid] = useState<string | null>(() => readStep('duesPid', '') || null);
+  const pidNav = useStepBack('duesPid', pid ?? '', (v: string) => setPid(v || null), '');
   const [onlyDue, setOnlyDue] = useState(true);
   const [note, setNote] = useState('');
 
@@ -141,7 +143,7 @@ export const AdminDuesPage: React.FC<Props> = ({ townKey, townName, records, hea
           <ul className="space-y-2">
             {shown.map(({ r, l }) => (
               <li key={r.id}>
-                <button type="button" onClick={() => { setPid(r.id); setNote(''); }} className="w-full text-left bg-[#181f3d] border border-[#2f3a6b] hover:border-[#9aa8ff] rounded-xl p-3 flex items-center justify-between gap-3">
+                <button type="button" onClick={() => { pidNav.go(r.id); setNote(''); }} className="w-full text-left bg-[#181f3d] border border-[#2f3a6b] hover:border-[#9aa8ff] rounded-xl p-3 flex items-center justify-between gap-3">
                   <span className="min-w-0">
                     <span className="block font-bold text-white truncate">{r.owner || 'Owner not recorded'}</span>
                     <span className="block text-xs text-[#aab4dc] truncate">{r.id} · Ward {r.ward}{r.hno ? ` · ${r.hno}` : ''}</span>
@@ -158,7 +160,7 @@ export const AdminDuesPage: React.FC<Props> = ({ townKey, townName, records, hea
       )}
       {cur && (
         <div className="space-y-3">
-          <button type="button" onClick={() => setPid(null)} className="text-sm font-bold text-[#9aa8ff]">Back to list</button>
+          <button type="button" onClick={() => pidNav.back()} className="text-sm font-bold text-[#9aa8ff]">Back to list</button>
           <div className={card}>
             <h2 className="text-2xl font-bold text-white leading-tight">{cur.r.owner || 'Owner not recorded'}</h2>
             <p className="text-sm text-[#aab4dc]">{cur.r.id} · Ward {cur.r.ward}{cur.r.hno ? ` · House ${cur.r.hno}` : ''}</p>

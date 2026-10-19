@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from 'react';
+import { useStepBack, readStep } from '../hooks/useStepBack';
 import { AlertTriangle, Printer, Download, Undo2, Receipt, Search, Landmark } from 'lucide-react';
 import type { PropertyRecord } from '../utils/gisUtils';
 import { triggerFileDownload } from '../utils/gisUtils';
 import { useAuth, canCollect, canManageLedger, canSeeAudit, canEditRates, canSetPayableRates } from '../services/auth';
 import { HeadId, HEAD_LIST, headLabel, useTownHeads } from '../services/heads';
-import { PayableRates, fixedAmountFor, fixedClassOf, isMonthly, savePayableRates, usePayableRates, validateRates } from '../services/payableRates';
+import { expandForHead, isUnitHead, needsUnits } from '../services/units';
+import { PayableRates, fixedAmountFor, isMonthly, savePayableRates, usePayableRates, validateRates } from '../services/payableRates';
 import { financialYearOf } from '../services/assessment';
 import { useAssessments } from '../services/assessmentStore';
 import {
@@ -83,14 +85,18 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
   const period = monthly ? month : fy;
   const assessments = useAssessments(townKey, fy);
   const [q, setQ] = useState('');
-  const [useFilter, setUseFilter] = useState<'all' | 'residential' | 'commercial' | 'other'>('all');
-  const [sel, setSel] = useState<string | null>(null);
+  const [sel, setSel] = useState<string | null>(() => readStep('csel', '') || null);
+  const selNav = useStepBack('csel', sel ?? '', (v: string) => setSel(v || null), '');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [collectionPage, setCollectionPage] = useState<'overview' | 'properties' | 'update' | 'settings' | 'rates' | 'audit'>('overview');
+  type CollectionPage = 'overview' | 'properties' | 'update' | 'settings' | 'rates' | 'audit';
+  const [collectionPage, setCollectionPageRaw] = useState<CollectionPage>(() => readStep<CollectionPage>('cpage', 'overview'));
+  const pageNav = useStepBack<CollectionPage>('cpage', collectionPage, setCollectionPageRaw, 'overview', ['csel']);
+  const setCollectionPage = pageNav.go;
 
-  const townRecords = useMemo(() => records.filter((r) => r.town === townName), [records, townName]);
+  const townRecords = useMemo(() => expandForHead(records.filter((r) => r.town === townName), activeHead, ledgers), [records, townName, activeHead, ledgers]);
+  const needUnits = useMemo(() => isUnitHead(activeHead) ? records.filter((r) => r.town === townName && needsUnits(r)).length : 0, [records, townName, activeHead]);
   const rows = useMemo(() => townRecords.map((r) => {
     const entries = ledgers[r.id] || [];
     return { r, entries, led: computeLedger(entries, settings, today) };
@@ -127,36 +133,21 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
     });
   };
 
-  const fixedTargets = useMemo(() => townRecords.filter((r) => (fixedAmountFor(rates, r.use) ?? 0) > 0), [townRecords, rates]);
+  const fixedTargets = useMemo(() => townRecords.filter((r) => r.billable !== false && (fixedAmountFor(rates, r.use) ?? 0) > 0), [townRecords, rates]);
   const fixedPending = fixedTargets.filter((r) => !(ledgers[r.id] || []).some((e) => e.id === `demand_${period}`)).length;
   const generateFixed = () => {
     if (!window.confirm(`Generate ${headLabel(activeHead)} demand for ${periodLabel(period)} from the fixed amounts${monthly ? ' (charged per month)' : ''} (Residential ${rates.residential === null ? 'not set' : money(rates.residential)}, Commercial ${rates.commercial === null ? 'not set' : money(rates.commercial)}) for ${fixedPending} propert${fixedPending === 1 ? 'y' : 'ies'}?\n\nA demand cannot be edited afterwards, only adjusted or reversed.`)) return;
     void run('Fixed-amount demand', async () => {
-      const r = await generateFixedDemands(townKey, period, townRecords.map((x) => ({ id: x.id, use: x.use })), rates, ledgers, activeHead);
-      const noRes = townRecords.filter((x) => fixedClassOf(x.use) === 'residential' && !((rates.residential ?? 0) > 0)).length;
-      const noCom = townRecords.filter((x) => fixedClassOf(x.use) === 'commercial' && !((rates.commercial ?? 0) > 0)).length;
-      const oth = townRecords.filter((x) => fixedClassOf(x.use) === null).length;
-      const why = [noRes ? `${noRes} Residential (no Residential amount set)` : '', noCom ? `${noCom} Commercial (no Commercial amount set)` : '', oth ? `${oth} other use` : ''].filter(Boolean).join(', ');
-      return `${r.created} created, ${r.skippedExisting} already had one${r.noRate ? `, ${r.noRate} skipped${why ? ': ' + why : ''}` : ''}.`;
+      const r = await generateFixedDemands(townKey, period, townRecords.filter((x) => x.billable !== false).map((x) => ({ id: x.id, use: x.use })), rates, ledgers, activeHead);
+      return `${r.created} created, ${r.skippedExisting} already had one, ${r.noRate} skipped (not Residential/Commercial or no amount set).${needUnits ? ` ${needUnits} mixed-use building(s) have no units yet: add their shops and flats in the survey form.` : ''}`;
     });
   };
 
-  // How many properties of each kind the town has, and how many of them can be billed from the fixed amounts.
-  const useCounts = useMemo(() => {
-    const c = { residential: 0, commercial: 0, other: 0 };
-    townRecords.forEach((r) => { const k = fixedClassOf(r.use); c[k ?? 'other']++; });
-    return c;
-  }, [townRecords]);
-
   const list = useMemo(() => {
     const t = q.trim().toLowerCase();
-    const f = rows.filter(({ r }) => {
-      if (useFilter !== 'all' && (fixedClassOf(r.use) ?? 'other') !== useFilter) return false;
-      return !t || [r.id, r.owner, r.hno, r.ward].some((x) => String(x).toLowerCase().includes(t));
-    });
-    // highest dues first; properties with equal dues stay in ID order so Residential and Commercial are mixed fairly
-    return f.sort((a, b) => b.led.totalDue - a.led.totalDue || String(a.r.id).localeCompare(String(b.r.id))).slice(0, 200);
-  }, [rows, q, useFilter]);
+    const f = rows.filter(({ r }) => !t || [r.id, r.owner, r.hno, r.ward].some((x) => String(x).toLowerCase().includes(t)));
+    return f.sort((a, b) => b.led.totalDue - a.led.totalDue).slice(0, 100);
+  }, [rows, q]);
 
   const exportLedger = () => {
     const head = ['Property ID', 'Ward', 'Owner', 'Year', 'Due date', 'Demand', 'Adjustments', 'Rebate', 'Paid tax', 'Paid interest', 'Tax due', 'Interest due', 'Total due'];
@@ -178,6 +169,13 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
             {settings.interestPctPerMonth === null ? 'Interest is not set, so none is charged. ' : ''}
             {settings.rebatePct === 0 ? 'No early-payment rebate is set. ' : ''}
           </span>
+        </div>
+      )}
+
+      {needUnits > 0 && (
+        <div className="rounded-lg p-3 text-xs bg-[#f2b233]/20 text-[#ffe3a3] border border-[#f2b233]/40 flex gap-2">
+          <AlertTriangle className="w-4 h-4 flex-none mt-0.5" />
+          <span>{needUnits} building(s) are mixed or other use and have no units, so they get no {headLabel(activeHead).toLowerCase()} bill. Open each in the survey form and add its shops and flats under "Units in this building".</span>
         </div>
       )}
 
@@ -240,20 +238,6 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
           <Search className="w-4 h-4 text-[#aab4dc]" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search property ID, owner, house no., ward" className={`${inp} flex-1`} />
         </div>
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by use">
-          {([['all', `All (${townRecords.length})`], ['residential', `Residential (${useCounts.residential})`], ['commercial', `Commercial (${useCounts.commercial})`], ...(useCounts.other ? [['other', `Other use (${useCounts.other})`]] : [])] as [typeof useFilter, string][]).map(([k, label]) => (
-            <button key={k} type="button" aria-pressed={useFilter === k} onClick={() => setUseFilter(k)}
-              className={`text-xs font-bold px-3 py-1.5 rounded-lg border ${useFilter === k ? 'bg-[#4f46e5] border-[#9aa8ff] text-white' : 'bg-[#121830] border-[#2f3a6b] text-[#aab4dc]'}`}>{label}</button>
-          ))}
-        </div>
-        {useCounts.residential > 0 && !((rates.residential ?? 0) > 0) && (
-          <p className="text-[11px] rounded-lg p-2 bg-[#f2b233]/20 text-[#ffe3a3] border border-[#f2b233]/40">
-            {useCounts.residential} Residential propert{useCounts.residential === 1 ? 'y has' : 'ies have'} no {headLabel(activeHead)} amount, so no bill can be raised for {useCounts.residential === 1 ? 'it' : 'them'}. Set the Residential amount under “Fixed amounts”, then generate demand again.
-          </p>
-        )}
-        {useCounts.other > 0 && (
-          <p className="text-[11px] text-[#8790bd]">{useCounts.other} propert{useCounts.other === 1 ? 'y has' : 'ies have'} a use other than Residential or Commercial (for example Mixed use). They have no fixed amount; use “Update dues” to bill them by hand.</p>
-        )}
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead className="text-[#aab4dc] border-b border-[#28325c]">
@@ -268,13 +252,13 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
                   <td className="p-2 text-right">{money(led.principalDue)}</td>
                   <td className="p-2 text-right">{money(led.interestDue)}</td>
                   <td className="p-2 text-right font-bold">{money(led.totalDue)}</td>
-                  <td className="p-2"><button type="button" className="text-[#9aa8ff] font-bold" onClick={() => setSel(sel === r.id ? null : r.id)}>{sel === r.id ? 'Close' : 'Open'}</button></td>
+                  <td className="p-2"><button type="button" className="text-[#9aa8ff] font-bold" onClick={() => (sel === r.id ? selNav.back() : selNav.go(r.id))}>{sel === r.id ? 'Close' : 'Open'}</button></td>
                 </tr>
               ))}
               {!list.length && <tr><td colSpan={7} className="p-4 text-center text-[#aab4dc]">No matching properties.</td></tr>}
             </tbody>
           </table>
-          {rows.length > 200 && <p className="text-[10px] text-[#8790bd] mt-1">Showing the first 200. Search or filter to find others.</p>}
+          {rows.length > 100 && <p className="text-[10px] text-[#8790bd] mt-1">Showing the 100 highest dues. Search to find others.</p>}
         </div>
       </div>}
 

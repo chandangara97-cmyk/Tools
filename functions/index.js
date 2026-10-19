@@ -11,6 +11,17 @@ const fyOf = (d) => d.getMonth() >= 3 ? `${d.getFullYear()}-${String(d.getFullYe
 const periodOf = (frequency, d) => frequency === 'monthly'
   ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : fyOf(d);
 const ledgerKey = (head, pid) => head === 'property_tax' ? pid : `${head}~${pid}`;
+/** Garbage is billed per unit (shop / flat). A building with units gets one target per active unit; others stay one. */
+const unitTargets = (head, props) => {
+  if (head !== 'garbage') return props;
+  const out = [];
+  for (const p of props) {
+    const units = p.units && typeof p.units === 'object' ? Object.entries(p.units).filter(([, u]) => u && typeof u === 'object') : [];
+    if (!units.length) { out.push(p); continue; }
+    for (const [uid, u] of units) if (u.active !== false) out.push({ ...p, id: `${p.id}~${uid}`, use: u.use === 'Commercial' ? 'Commercial' : 'Residential' });
+  }
+  return out;
+};
 const useRate = (rates, use) => use === 'Residential' ? rates?.residential : use === 'Commercial' ? rates?.commercial : null;
 
 /**
@@ -51,7 +62,7 @@ exports.generateRecurringBills = onSchedule({ schedule: '15 2 * * *', timeZone: 
       if (!wardData || typeof wardData !== 'object') continue;
       for (const [id, p] of Object.entries(wardData)) {
         if (!p || typeof p !== 'object' || !p.id) continue;
-        townProps.push({ id: String(p.id || id), use: p.use || '', ward: String(p.ward || ward) });
+        townProps.push({ id: String(p.id || id), use: p.use || '', ward: String(p.ward || ward), units: p.units });
       }
     }
     // Yearly property-tax demands are raised only from approved assessments.
@@ -74,7 +85,7 @@ exports.generateRecurringBills = onSchedule({ schedule: '15 2 * * *', timeZone: 
       if (frequency === 'yearly' && month !== 4) continue;
       if (townCfg?.heads?.[head] === false) continue;
       const period = periodOf(frequency, today);
-      for (const p of townProps) {
+      for (const p of unitTargets(head, townProps)) {
         const amount = useRate(rates, p.use);
         if (!(typeof amount === 'number' && Number.isFinite(amount) && amount > 0)) { results.noRate++; continue; }
         const path = `ledger/${town}/${ledgerKey(head, p.id)}`;
