@@ -61,18 +61,34 @@ export const LoginGate: React.FC<{ children: React.ReactNode }> = ({ children })
     const loginBg = `${base.endsWith('/') ? base : base + '/'}login-bg-himachal.png`;
     return (
       <div className="fixed inset-0 overflow-auto text-[#e4e8fa]">
+        <style>{`
+          .login-bg-himachal {
+            background-image: url("${loginBg}");
+            background-size: cover;
+            background-repeat: no-repeat;
+            /* Mobile portrait: keep valley + hills in frame (avoid cropping title text awkwardly) */
+            background-position: 58% 42%;
+          }
+          @media (min-width: 768px) {
+            .login-bg-himachal {
+              /* Desktop: show full composition — temple left, mountains centre, icons right */
+              background-position: center center;
+            }
+          }
+          @media (min-width: 1200px) and (min-aspect-ratio: 16/10) {
+            .login-bg-himachal {
+              background-position: center 35%;
+            }
+          }
+        `}</style>
         {/* Himachal Pradesh scenic background */}
-        <div
-          className="fixed inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url("${loginBg}")` }}
-          aria-hidden
-        />
-        {/* Readability scrim — keeps form legible over bright sky / snow */}
+        <div className="login-bg-himachal fixed inset-0" aria-hidden />
+        {/* Lighter scrim: image stays visible, form still readable */}
         <div
           className="fixed inset-0"
           style={{
             background:
-              'linear-gradient(120deg, rgba(8,12,28,0.72) 0%, rgba(12,18,40,0.55) 45%, rgba(20,28,50,0.45) 100%), linear-gradient(180deg, rgba(6,10,24,0.35) 0%, rgba(6,10,24,0.55) 100%)',
+              'radial-gradient(ellipse 80% 70% at 50% 45%, rgba(8,12,28,0.38) 0%, rgba(8,12,28,0.62) 100%), linear-gradient(180deg, rgba(6,10,24,0.25) 0%, rgba(6,10,24,0.15) 40%, rgba(6,10,24,0.55) 100%)',
           }}
           aria-hidden
         />
@@ -82,12 +98,12 @@ export const LoginGate: React.FC<{ children: React.ReactNode }> = ({ children })
               <div className="mx-auto mb-3 w-14 h-14 rounded-2xl grid place-items-center" style={{ background: 'linear-gradient(145deg,#a5b4ff,#4f46e5)', boxShadow: '0 10px 30px rgba(165,180,255,.35)' }}>
                 <Lock className="w-7 h-7 text-[#0e1230]" />
               </div>
-              <h1 className="text-3xl font-bold tracking-tight drop-shadow-md">Scheme Hub 2026</h1>
-              <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-200/90">
+              <h1 className="text-3xl font-bold tracking-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]">Scheme Hub 2026</h1>
+              <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100/95 drop-shadow-md">
                 Himachal Pradesh · Urban local bodies
               </p>
             </div>
-            <div className="rounded-3xl border border-white/20 p-5" style={{ background: 'rgba(10,14,32,.72)', backdropFilter: 'blur(22px) saturate(140%)', boxShadow: '0 30px 70px rgba(0,0,0,.4)' }}>
+            <div className="rounded-3xl border border-white/25 p-5" style={{ background: 'rgba(10,14,32,.78)', backdropFilter: 'blur(24px) saturate(150%)', boxShadow: '0 30px 70px rgba(0,0,0,.45)' }}>
               <h2 className="text-xs font-bold text-[#a5b4ff] uppercase tracking-widest mb-4">Sign in</h2>
               {!manual && (
                 <>

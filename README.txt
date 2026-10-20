@@ -1,20 +1,10 @@
-Scheme Hub — Cashier full update (UI + filters)
+Login background — improved position
 
-Copy these files into Tools-main (same paths):
+Copy into Tools-main:
+  public/login-bg-himachal.png
+  src/components/LoginGate.tsx
 
-  src/components/CollectionPanel.tsx
-  src/components/WorkMenu.tsx
-  src/index.css
-
-Includes:
-1) Professional light cashier desk UI
-   - Light cards, metric KPIs, green Take payment panel
-   - Collect payment tab first for cashiers
-   - Colour-coded bill tiles on Work menu
-
-2) Property filters on Collect payment
-   - Ward no. dropdown
-   - Owner / name text filter
-   - Due status (All / Has dues / Cleared)
-   - Property ID / house no. search
-   - Clear filters + chips + Open details card
+- Mobile: focus on valley/hills (58% 42%) so the scene is not cropped oddly
+- Desktop: centre the full composition
+- Lighter overlay so more of the Himachal image shows through
+- Form card slightly stronger so text stays readable
