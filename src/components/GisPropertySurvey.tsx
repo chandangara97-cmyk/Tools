@@ -10,6 +10,7 @@ import { SyncBar } from './SyncBar';
 import { PhotoCapture, PhotoItem } from './PhotoCapture';
 import { AssessmentPanel } from './AssessmentPanel';
 import { CollectionPanel } from './CollectionPanel';
+import { UnitsManager } from './UnitsManager';
 import { ReportsPanel } from './ReportsPanel';
 import { WorkMenu, BILL_NAME, Choice } from './WorkMenu';
 import { LiabilitySearch } from './LiabilitySearch';
@@ -108,7 +109,7 @@ const GisPropertySurveyInner: React.FC = () => {
   useEffect(() => { if (activeTab !== 'menu' && !tabs.includes(activeTab)) setActiveTab('menu'); }, [activeTab, tabs]);
   const PAGE_TITLE: Record<Tab, string> = {
     search: 'Search dues', survey: 'Property survey', 'map-editor': 'Ward map', records: 'Property records', assessment: 'Assessment',
-    collection: billHead ? BILL_NAME[billHead] : 'Collection', reports: 'Reports & notices', exports: 'GIS exports', dues: 'Pending dues', rules: 'Bill rules', register: 'Register & bye-laws',
+    collection: billHead ? BILL_NAME[billHead] : 'Collection', reports: 'Reports & notices', exports: 'GIS exports', dues: 'Pending dues', rules: 'Bill rules', register: 'Register & bye-laws', units: 'Units in structures',
   };
   const writable = canWriteSurvey(role);
   const deletable = canDeleteSurvey(role);
@@ -1221,7 +1222,7 @@ const GisPropertySurveyInner: React.FC = () => {
                         <div><label className="block text-[10px] text-[#aab4dc] mb-1">Use</label>
                           <select className={f} value={u.use} onChange={(e) => set({ use: e.target.value as PropertyUnit['use'] })}><option>Residential</option><option>Commercial</option></select></div>
                         <div><label className="block text-[10px] text-[#aab4dc] mb-1">Occupied by</label>
-                          <select className={f} value={u.occupantType} onChange={(e) => set({ occupantType: e.target.value as PropertyUnit['occupantType'] })}><option>Owner</option><option>Tenant</option></select></div>
+                          <select className={f} value={u.occupantType} onChange={(e) => set({ occupantType: e.target.value as PropertyUnit['occupantType'] })}><option>Owner</option><option>Tenant</option><option>Vacant</option></select></div>
                         <div className="col-span-2 sm:col-span-2"><label className="block text-[10px] text-[#aab4dc] mb-1">Name of payer {u.occupantType === 'Owner' ? '(blank = owner)' : ''}</label>
                           <input className={f} value={u.occupant} onChange={(e) => set({ occupant: e.target.value })} /></div>
                         <div className="col-span-2 sm:col-span-3"><label className="block text-[10px] text-[#aab4dc] mb-1">Mobile (optional)</label>
@@ -1806,6 +1807,16 @@ const GisPropertySurveyInner: React.FC = () => {
             records={records}
             settings={collectionSettings}
             wards={currentTown.w}
+          />
+        )}
+
+        {activeTab === 'units' && (
+          <UnitsManager
+            townKey={selectedTownKey}
+            townName={currentTown.n}
+            records={records}
+            canEdit={writable}
+            onSaved={(saved) => setRecords(prev => prev.map(r => (r.id === saved.id ? saved : r)))}
           />
         )}
 

@@ -13,7 +13,8 @@ export type Tab =
   | 'exports'
   | 'dues'
   | 'rules'
-  | 'register';
+  | 'register'
+  | 'units';
 
 export const ROLE_LABEL: Record<Role, string> = {
   admin: 'ULB admin',
@@ -34,6 +35,7 @@ const ALL: Tab[] = [
   'reports',
   'map-editor',
   'exports',
+  'units',
 ];
 
 /** Pages this login may open. */
@@ -46,9 +48,9 @@ export function allowedTabs(
   switch (role) {
     case 'supervisor':
       // a supervisor tied to water, garbage etc. only works that bill head
-      return head && head !== 'property_tax' ? ['search', 'collection'] : ALL;
+      return head && head !== 'property_tax' ? (head === 'garbage' ? ['search', 'collection', 'units'] : ['search', 'collection']) : ALL;
     case 'surveyor':
-      return ['survey', 'records'];
+      return ['survey', 'records', 'units'];
     case 'assessor':
       return ['assessment', 'records'];
     // Cashier: search + every payment head (collection) on the work menu

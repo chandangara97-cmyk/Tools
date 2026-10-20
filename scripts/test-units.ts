@@ -20,7 +20,7 @@ const unknown = rec('P3', { use: 'Mixed' });
 const dem = (fy: string, amount: number): LedgerEntry => ({ id: `demand_${fy}`, type: 'demand', fy, amount, date: '2026-10-01', at: 1, by: 'x' } as LedgerEntry);
 
 ok(unitList(mixed).length === 3 && unitList(mixed)[0].id === 'U1', 'units listed in order');
-ok(nextUnitId(unitList(mixed)) === 'U4', 'next unit id');
+ok(nextUnitId(unitList(mixed)) === 'U04', 'next unit id');
 ok(unitsToRecord([]) === undefined, 'empty units stored as nothing');
 ok(needsUnits(unknown) && !needsUnits(mixed) && !needsUnits(plain), 'only mixed buildings without units need units');
 

@@ -9,7 +9,9 @@ export type LedgersByHead = Record<HeadId, Record<string, LedgerEntry[]>>;
 export const rulesApproved = (s: CollectionSettings | undefined) => !!s && s.status === 'approved' && s.interestPctPerMonth !== null;
 
 export interface PeriodDue { fy: string; dueDate: string; principal: number; interest: number; total: number }
-export interface HeadLiability { head: HeadId; principal: number; interest: number; total: number; billed: boolean; periods: PeriodDue[] }
+/** Dues of one unit (garbage). `key` is the ledger key without the head, e.g. <propertyId>~U01. */
+export interface UnitDue { key: string; principal: number; interest: number; total: number; periods: PeriodDue[] }
+export interface HeadLiability { head: HeadId; principal: number; interest: number; total: number; billed: boolean; periods: PeriodDue[]; units?: UnitDue[] }
 export interface PropertyLiability { propertyId: string; heads: HeadLiability[]; total: number }
 
 const fin = (n: number) => (Number.isFinite(n) ? n : 0);
@@ -25,6 +27,7 @@ export function propertyLiability(
     const keys = isUnitHead(h) ? Object.keys(map).filter((k) => belongsTo(pid, k)) : (map[pid] ? [pid] : []);
     let principal = 0, interest = 0, total = 0, billed = false, any = false;
     const periods = new Map<string, PeriodDue>();
+    const unitRows: UnitDue[] = [];
     for (const k of keys) {
       const entries = map[k] || [];
       if (!entries.length) continue;
@@ -33,16 +36,19 @@ export function propertyLiability(
         any = true;
         principal += fin(l.principalDue); interest += fin(l.interestDue); total += fin(l.totalDue);
         billed = billed || entries.some((e) => e.type === 'demand');
+        const kp: PeriodDue[] = [];
         for (const r of l.rows) {
           if (fin(r.totalDue) <= 0.004) continue;
+          kp.push({ fy: r.fy, dueDate: r.dueDate, principal: fin(r.principalDue), interest: fin(r.interestDue), total: fin(r.totalDue) });
           const cur = periods.get(r.fy);
           if (cur) { cur.principal += fin(r.principalDue); cur.interest += fin(r.interestDue); cur.total += fin(r.totalDue); }
           else periods.set(r.fy, { fy: r.fy, dueDate: r.dueDate, principal: fin(r.principalDue), interest: fin(r.interestDue), total: fin(r.totalDue) });
         }
+        if (isUnitHead(h)) unitRows.push({ key: k, principal: fin(l.principalDue), interest: fin(l.interestDue), total: fin(l.totalDue), periods: kp.sort((a, b) => a.dueDate.localeCompare(b.dueDate)) });
       } catch { /* a damaged ledger for one bill must not break the page */ }
     }
     if (!any) continue;
-    out.push({ head: h, principal, interest, total, billed, periods: [...periods.values()].sort((a, b) => a.dueDate.localeCompare(b.dueDate)) });
+    out.push({ head: h, principal, interest, total, billed, periods: [...periods.values()].sort((a, b) => a.dueDate.localeCompare(b.dueDate)), ...(unitRows.length ? { units: unitRows } : {}) });
   }
   return { propertyId: pid, heads: out, total: out.reduce((a, x) => a + x.total, 0) };
 }

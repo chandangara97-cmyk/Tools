@@ -7,7 +7,7 @@ import type { HeadId } from './heads';
 import type { LedgerEntry } from './collection';
 
 export type UnitUse = 'Residential' | 'Commercial';
-export type OccupantType = 'Owner' | 'Tenant';
+export type OccupantType = 'Owner' | 'Tenant' | 'Vacant';
 export interface PropertyUnit {
   id: string;            // U1, U2 ...
   label: string;         // e.g. "Ground floor shop"
@@ -15,7 +15,14 @@ export interface PropertyUnit {
   occupantType: OccupantType;
   occupant: string;      // who pays: the owner or the tenant
   mobile?: string;
-  active: boolean;       // false = closed or vacant; kept so old bills stay visible
+  active: boolean;       // false = closed; kept so old bills stay visible
+  // Optional survey details. Kept as they are when a unit is edited, so no field is lost on save.
+  businessType?: string;
+  builtUp?: number;
+  rentMonthly?: number;
+  occupancyStatus?: string;
+  unitId?: string;
+  parentPropertyId?: string;
 }
 
 export const UNIT_SEP = '~';
@@ -32,14 +39,20 @@ export function unitList(rec: { units?: Record<string, Partial<PropertyUnit>> })
     if (!u || typeof u !== 'object') continue;
     out.push({
       id, label: String(u.label || id), use: u.use === 'Commercial' ? 'Commercial' : 'Residential',
-      occupantType: u.occupantType === 'Tenant' ? 'Tenant' : 'Owner', occupant: String(u.occupant || ''),
+      occupantType: u.occupantType === 'Tenant' ? 'Tenant' : u.occupantType === 'Vacant' ? 'Vacant' : 'Owner', occupant: String(u.occupant || ''),
       mobile: u.mobile ? String(u.mobile) : undefined, active: u.active !== false,
+      ...(u.businessType ? { businessType: String(u.businessType) } : {}),
+      ...(typeof u.builtUp === 'number' ? { builtUp: u.builtUp } : {}),
+      ...(typeof u.rentMonthly === 'number' ? { rentMonthly: u.rentMonthly } : {}),
+      ...(u.occupancyStatus ? { occupancyStatus: String(u.occupancyStatus) } : {}),
+      ...(u.unitId ? { unitId: String(u.unitId) } : {}),
+      ...(u.parentPropertyId ? { parentPropertyId: String(u.parentPropertyId) } : {}),
     });
   }
   return out.sort((a, b) => num(a.id) - num(b.id));
 }
 
-export const nextUnitId = (units: { id: string }[]) => `U${units.reduce((m, u) => Math.max(m, num(u.id)), 0) + 1}`;
+export const nextUnitId = (units: { id: string }[]) => `U${String(units.reduce((m, u) => Math.max(m, num(u.id)), 0) + 1).padStart(2, '0')}`;
 
 /** Draft list -> the object stored in the database (keyed by unit id). Empty list gives undefined. */
 export function unitsToRecord(units: PropertyUnit[]): PropertyRecord['units'] {
@@ -50,6 +63,12 @@ export function unitsToRecord(units: PropertyUnit[]): PropertyRecord['units'] {
     out[u.id] = {
       label: u.label.trim(), use: u.use, occupantType: u.occupantType, occupant: u.occupant.trim(), active: u.active,
       ...(u.mobile?.trim() ? { mobile: u.mobile.trim() } : {}),
+      ...(u.businessType?.trim() ? { businessType: u.businessType.trim() } : {}),
+      ...(typeof u.builtUp === 'number' ? { builtUp: u.builtUp } : {}),
+      ...(typeof u.rentMonthly === 'number' ? { rentMonthly: u.rentMonthly } : {}),
+      ...(u.occupancyStatus ? { occupancyStatus: u.occupancyStatus } : {}),
+      ...(u.unitId ? { unitId: u.unitId } : {}),
+      ...(u.parentPropertyId ? { parentPropertyId: u.parentPropertyId } : {}),
     };
   }
   return out;
@@ -80,7 +99,7 @@ export function expandForHead(records: PropertyRecord[], head: HeadId, ledgers: 
         ...r, id: key, use: u.use, billable: u.active,
         owner: `${who} (${u.label}${u.occupantType === 'Tenant' ? ', tenant' : ''}${u.active ? '' : ', closed'})`,
         tenant: u.occupantType === 'Tenant' ? u.occupant : '',
-        occ: u.occupantType === 'Tenant' ? 'Tenanted' : 'Owner-occupied',
+        occ: u.occupantType === 'Tenant' ? 'Tenanted' : u.occupantType === 'Vacant' ? 'Vacant' : 'Owner-occupied',
       });
     }
   }

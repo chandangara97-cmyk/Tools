@@ -3,7 +3,7 @@ import { LogOut, Cloud, CloudOff, AlertTriangle, UploadCloud } from 'lucide-reac
 import { useAuth } from '../services/auth';
 import { ROLE_LABEL } from '../services/access';
 import { BILL_NAME } from './WorkMenu';
-import { useSyncState, discardConflict } from '../services/syncQueue';
+import { useSyncState, discardConflict, flush } from '../services/syncQueue';
 
 interface Props {
   localOnlyCount: number;
@@ -26,6 +26,7 @@ export const SyncBar: React.FC<Props> = ({ localOnlyCount, canMigrate, onMigrate
         {s.pending > 0 && (
           <span className="rounded px-2 py-1 font-semibold bg-sky-100 text-sky-800">
             {s.flushing ? 'Syncing… ' : ''}{s.pending} change{s.pending > 1 ? 's' : ''} waiting to upload
+            {s.online && !s.flushing && <button type="button" onClick={() => void flush()} className="ml-2 font-bold underline">Sync now</button>}
           </span>
         )}
         <span className="ml-auto text-[#aab4dc]">

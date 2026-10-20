@@ -48,7 +48,7 @@ export interface PropertyRecord {
   rem: string;
   date: string;
   /** Shops, flats or floors inside this building; garbage is billed per unit (see services/units.ts). */
-  units?: Record<string, { label: string; use: 'Residential' | 'Commercial'; occupantType: 'Owner' | 'Tenant'; occupant: string; mobile?: string; active: boolean }>;
+  units?: Record<string, { label: string; use: 'Residential' | 'Commercial'; occupantType: 'Owner' | 'Tenant' | 'Vacant'; occupant: string; mobile?: string; active: boolean; businessType?: string; builtUp?: number; rentMonthly?: number; occupancyStatus?: string; unitId?: string; parentPropertyId?: string }>;
   /** Set only on rows built for a bill screen: false = shown but never given a new demand. */
   billable?: boolean;
   // Phase 1 (central database) fields

@@ -54,4 +54,4 @@ export function useAllSettings(townKey: string): { settings: Record<HeadId, Coll
 }
 
 export { rulesApproved, propertyLiability } from './liabilityCalc';
-export type { PeriodDue, HeadLiability, PropertyLiability, LedgersByHead } from './liabilityCalc';
+export type { PeriodDue, UnitDue, HeadLiability, PropertyLiability, LedgersByHead } from './liabilityCalc';

@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Search, Building2, Layers, FileSpreadsheet, PenTool, Download,
   ClipboardCheck, Droplets, Trash2, Waves, Receipt, Home, Wallet,
-  SlidersHorizontal, ChevronRight, Sparkles,
+  SlidersHorizontal, ChevronRight, Sparkles, LayoutGrid,
 } from 'lucide-react';
 import { useAuth } from '../services/auth';
 import { HeadId } from '../services/heads';
@@ -306,7 +306,7 @@ export const WorkMenu: React.FC<Props> = ({ townName, tabs, bills, onChoose }) =
         )}
 
         {/* Survey & assessment */}
-        {(has('survey') || has('records') || has('assessment')) && (
+        {(has('survey') || has('records') || has('assessment') || has('units')) && (
           <Group title="Survey & assessment">
             {has('survey') && (
               <LightTile
@@ -320,6 +320,14 @@ export const WorkMenu: React.FC<Props> = ({ townName, tabs, bills, onChoose }) =
                 icon={<Layers className="w-5 h-5" strokeWidth={2.2} />}
                 title="Property records"
                 onClick={() => onChoose({ tab: 'records' })}
+              />
+            )}
+            {has('units') && (
+              <LightTile
+                icon={<LayoutGrid className="w-5 h-5" strokeWidth={2.2} />}
+                title="Units"
+                note="Shops & flats in a structure"
+                onClick={() => onChoose({ tab: 'units' })}
               />
             )}
             {has('assessment') && (
