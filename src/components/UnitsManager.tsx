@@ -24,9 +24,10 @@ const field = 'w-full h-10 rounded-lg bg-[#0d1224] border border-[#2f3a6b] px-2 
 const occFor = (t: PropertyUnit['occupantType']) => (t === 'Tenant' ? 'Tenanted' : t === 'Vacant' ? 'Vacant' : 'Owner-occupied');
 
 /**
- * Units page: the shops, flats and floors inside a structure. Garbage is billed per active unit, so this is
- * where staff add, edit, close or remove them. Every save goes through the offline queue (saved on the device
- * first, then uploaded to Firebase), and "Sync now" pushes anything still waiting.
+ * Units page: the shops, flats and floors inside a structure. Garbage is billed per active unit
+ * (shops × commercial rate + families × residential rate), so this is where staff add, edit, close
+ * or remove them. Quick count boxes create many units at once. Every save goes through the offline
+ * queue (saved on the device first, then uploaded to Firebase), and "Sync now" pushes anything still waiting.
  */
 export const UnitsManager: React.FC<Props> = ({ townKey, townName, records, canEdit, onSaved }) => {
   const sync = useSyncState();
@@ -40,6 +41,8 @@ export const UnitsManager: React.FC<Props> = ({ townKey, townName, records, canE
   const [draft, setDraft] = useState<Draft[]>([]);
   const [dirty, setDirty] = useState(false);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [shopCount, setShopCount] = useState(0);
+  const [familyCount, setFamilyCount] = useState(0);
 
   const town = useMemo(() => records.filter((r) => r && r.id && r.town === townName), [records, townName]);
   const picked = pickedId ? town.find((r) => r.id === pickedId) : undefined;
@@ -60,6 +63,7 @@ export const UnitsManager: React.FC<Props> = ({ townKey, townName, records, canE
   const choose = (r: PropertyRecord) => {
     if (dirty && !window.confirm('You have unsaved unit changes. Leave without saving?')) return;
     setPickedId(r.id); setDraft(unitList(r).map((u) => ({ ...u, saved: true }))); setDirty(false); setMsg(null);
+    setShopCount(0); setFamilyCount(0);
   };
 
   const hasBills = (u: Draft) => !!u.saved && (ledgers[`${picked?.id}${UNIT_SEP}${u.id}`] || []).length > 0;
@@ -74,6 +78,48 @@ export const UnitsManager: React.FC<Props> = ({ townKey, townName, records, canE
       occupancyStatus: 'Owner-occupied', unitId: `${picked.id}-${id}`, parentPropertyId: picked.id,
     }]);
     setDirty(true); setMsg(null);
+  };
+
+  /** Quick-add N commercial shops and/or N residential families as units. Labels continue from existing Shop / Family numbers. */
+  const addCounts = () => {
+    if (!picked || !canEdit) return;
+    const shops = Math.max(0, Math.min(99, Math.floor(shopCount) || 0));
+    const families = Math.max(0, Math.min(99, Math.floor(familyCount) || 0));
+    if (!shops && !families) {
+      setMsg({ type: 'err', text: 'Enter how many shops and/or families to add (1–99 each).' });
+      return;
+    }
+    const numFromLabel = (prefix: string, label: string) => {
+      const m = label.trim().match(new RegExp(`^${prefix}\\s*0*(\\d+)$`, 'i'));
+      return m ? parseInt(m[1], 10) : 0;
+    };
+    let shopN = draft.reduce((m, u) => Math.max(m, numFromLabel('Shop', u.label)), 0);
+    let famN = draft.reduce((m, u) => Math.max(m, numFromLabel('Family', u.label) || numFromLabel('Flat', u.label)), 0);
+    let next = [...draft];
+    const pad = (n: number) => String(n).padStart(2, '0');
+    for (let i = 0; i < shops; i++) {
+      shopN += 1;
+      const id = nextUnitId(next);
+      const label = `Shop ${pad(shopN)}`;
+      next = [...next, {
+        id, label, use: 'Commercial', occupantType: 'Owner' as const, occupant: picked.owner || '', active: true,
+        occupancyStatus: 'Owner-occupied', unitId: `${picked.id}-${id}`, parentPropertyId: picked.id,
+      }];
+    }
+    for (let i = 0; i < families; i++) {
+      famN += 1;
+      const id = nextUnitId(next);
+      const label = `Family ${pad(famN)}`;
+      next = [...next, {
+        id, label, use: 'Residential', occupantType: 'Owner' as const, occupant: picked.owner || '', active: true,
+        occupancyStatus: 'Owner-occupied', unitId: `${picked.id}-${id}`, parentPropertyId: picked.id,
+      }];
+    }
+    setDraft(next);
+    setDirty(true);
+    setShopCount(0);
+    setFamilyCount(0);
+    setMsg({ type: 'ok', text: `Added ${shops ? `${shops} shop${shops > 1 ? 's' : ''}` : ''}${shops && families ? ' and ' : ''}${families ? `${families} famil${families > 1 ? 'ies' : 'y'}` : ''}. Review names if needed, then Save units.` });
   };
   const remove = (i: number) => {
     const u = draft[i];
@@ -137,13 +183,16 @@ export const UnitsManager: React.FC<Props> = ({ townKey, townName, records, canE
           <div className="space-y-2">
             {list.map((r) => {
               const n = unitList(r).length;
+              const needsCount = !n && (r.use === 'Commercial' || r.use === 'Mixed use' || String(r.use).toLowerCase().includes('mix'));
               return (
-                <button key={r.id} type="button" onClick={() => choose(r)} className="w-full text-left rounded-xl bg-[#181f3d] border border-[#252e56] p-3 flex items-center gap-3">
+                <button key={r.id} type="button" onClick={() => choose(r)} className={`w-full text-left rounded-xl border p-3 flex items-center gap-3 ${needsCount ? 'bg-[#2a1f10] border-amber-700/60' : 'bg-[#181f3d] border-[#252e56]'}`}>
                   <span className="flex-1 min-w-0">
                     <b className="text-white block truncate">{r.owner || 'Owner not entered'}</b>
                     <span className="text-xs text-[#aab4dc]">{r.id} · Ward {r.ward}{r.hno ? ` · ${r.hno}` : ''} · {r.use}</span>
                   </span>
-                  <span className={`text-xs font-bold px-2 py-1 rounded ${n ? 'bg-emerald-100 text-emerald-800' : 'bg-[#0d1224] text-[#aab4dc] border border-[#2f3a6b]'}`}>{n ? `${n} unit${n > 1 ? 's' : ''}` : 'No units'}</span>
+                  <span className={`text-xs font-bold px-2 py-1 rounded ${n ? 'bg-emerald-100 text-emerald-800' : needsCount ? 'bg-amber-200 text-amber-900' : 'bg-[#0d1224] text-[#aab4dc] border border-[#2f3a6b]'}`}>
+                    {n ? `${n} unit${n > 1 ? 's' : ''}` : needsCount ? 'Add shops' : 'No units'}
+                  </span>
                 </button>
               );
             })}
@@ -208,7 +257,47 @@ export const UnitsManager: React.FC<Props> = ({ townKey, townName, records, canE
             );
           })}
 
-          {!draft.length && <p className="text-sm text-[#aab4dc] text-center py-4">This structure has no units. {picked.use === 'Mixed' ? 'A Mixed building cannot be billed for garbage until you add its shops or flats.' : 'It is billed once, as one building, at its own rate.'}</p>}
+          {!draft.length && (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900 space-y-1">
+              <p className="font-semibold">No units yet — garbage is under-counted</p>
+              <p className="text-xs">
+                {picked.use === 'Mixed' || String(picked.use).toLowerCase().includes('mix')
+                  ? 'A mixed building cannot be billed for garbage until you add its shops and families.'
+                  : 'Without units this building is billed only once (one shop or one family). If it has several shops or flats, add them below so each is charged.'}
+              </p>
+            </div>
+          )}
+
+          {/* Quick count: shops × commercial rate + families × residential rate */}
+          {canEdit && (
+            <div className="rounded-2xl bg-[#181f3d] border border-[#2f3a6b] p-3 space-y-3">
+              <p className="text-sm font-bold text-white">Quick add by count</p>
+              <p className="text-[11px] text-[#aab4dc]">Garbage = shops × commercial rate + families × residential rate. Enter counts, then add; you can still edit names before saving.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="text-[11px] text-[#aab4dc]">Shops (commercial)
+                  <input type="number" min={0} max={99} inputMode="numeric" className={field} value={shopCount || ''} placeholder="0"
+                    onChange={(e) => setShopCount(Math.max(0, Math.min(99, parseInt(e.target.value, 10) || 0)))} />
+                </label>
+                <label className="text-[11px] text-[#aab4dc]">Families (residential)
+                  <input type="number" min={0} max={99} inputMode="numeric" className={field} value={familyCount || ''} placeholder="0"
+                    onChange={(e) => setFamilyCount(Math.max(0, Math.min(99, parseInt(e.target.value, 10) || 0)))} />
+                </label>
+              </div>
+              {(shopCount > 0 || familyCount > 0) && rates && (
+                <p className="text-xs text-[#ffe3a3]">
+                  Will add ≈ {money((shopCount || 0) * (rates.commercial ?? 0) + (familyCount || 0) * (rates.residential ?? 0))} / {per}
+                  {(rates.commercial == null || rates.residential == null) ? ' (set rates in Demand centre if missing)' : ''}
+                </p>
+              )}
+              <button type="button" onClick={addCounts} disabled={!shopCount && !familyCount}
+                className="w-full inline-flex items-center justify-center gap-1.5 text-sm font-bold px-3 py-3 rounded-xl bg-[#4f46e5] text-white disabled:opacity-40">
+                <Plus className="w-4 h-4" />{' '}
+                {shopCount || familyCount
+                  ? `Add ${[shopCount ? `${shopCount} shop${shopCount > 1 ? 's' : ''}` : '', familyCount ? `${familyCount} famil${familyCount > 1 ? 'ies' : 'y'}` : ''].filter(Boolean).join(' + ')}`
+                  : 'Add units'}
+              </button>
+            </div>
+          )}
 
           <div className="rounded-2xl bg-[#181f3d] border border-[#f2b233]/50 p-3 space-y-2">
             <div className="flex items-center justify-between text-sm">
