@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Search, Building2, Layers, FileSpreadsheet, PenTool, Download,
   ClipboardCheck, Droplets, Trash2, Waves, Receipt, Home, Wallet,
-  SlidersHorizontal, ChevronRight, Sparkles, LayoutGrid,
+  SlidersHorizontal, ChevronRight, Sparkles, LayoutGrid, Zap,
 } from 'lucide-react';
 import { useAuth } from '../services/auth';
 import { HeadId } from '../services/heads';
@@ -248,7 +248,7 @@ export const WorkMenu: React.FC<Props> = ({ townName, tabs, bills, onChoose }) =
 
       <div className="relative space-y-6">
         {/* Primary actions */}
-        {(has('search') || has('dues') || has('rules') || has('register')) && (
+        {(has('search') || has('dues') || has('rules') || has('register') || has('demand')) && (
           <div className="space-y-3">
             {has('search') && (
               <ActionRow
@@ -275,6 +275,15 @@ export const WorkMenu: React.FC<Props> = ({ townName, tabs, bills, onChoose }) =
                 title="Register & bye-laws"
                 note="Every property of the town with its bye-law tax (admin only)"
                 onClick={() => onChoose({ tab: 'register' })}
+              />
+            )}
+            {has('demand') && (
+              <ActionRow
+                tone="amber"
+                icon={<Zap className="w-5 h-5" strokeWidth={2.4} />}
+                title="Demand centre"
+                note="All heads: rules, amounts, changes and generate demand"
+                onClick={() => onChoose({ tab: 'demand' })}
               />
             )}
             {has('rules') && (

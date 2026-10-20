@@ -14,7 +14,8 @@ export type Tab =
   | 'dues'
   | 'rules'
   | 'register'
-  | 'units';
+  | 'units'
+  | 'demand';
 
 export const ROLE_LABEL: Record<Role, string> = {
   admin: 'ULB admin',
@@ -44,7 +45,7 @@ export function allowedTabs(
   head: HeadId | null,
   isSuper: boolean,
 ): Tab[] {
-  if (isSuper || role === 'admin') return [...ALL, 'dues', 'rules', 'register']; // 'register' is admin-only
+  if (isSuper || role === 'admin') return [...ALL, 'dues', 'rules', 'register', 'demand']; // 'register' is admin-only
   switch (role) {
     case 'supervisor':
       // a supervisor tied to water, garbage etc. only works that bill head
