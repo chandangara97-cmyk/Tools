@@ -50,16 +50,6 @@
   <h1>ULB &amp; User Admin</h1>
   <div class="sub">Each ULB gets its own logins. A login sees only its own ULB.</div>
 
-  <div id="loginCard" class="card">
-    <b>Admin sign-in</b>
-    <label>User ID or email</label>
-    <input id="aEmail" type="text" autocomplete="username" autocapitalize="none">
-    <label>Password</label>
-    <input id="aPass" type="password" autocomplete="current-password">
-    <button id="btnLogin">Sign in</button>
-    <div id="loginMsg" class="msg"></div>
-  </div>
-
   <div id="denyCard" class="card hidden">
     <b>No admin access</b>
     <p id="denyText" style="font-size:14px;color:var(--mute)"></p>
@@ -238,10 +228,6 @@ let usersCache = {};       // uid -> user
 const isSuper = () => myUlb === "*";
 const prefixFor = slug => slug.replace(/_/g, "").toUpperCase().slice(0, 10);
 
-$("btnLogin").onclick = async () => {
-  try { await signInWithEmailAndPassword(auth, toEmail($("aEmail").value), $("aPass").value); }
-  catch (e) { msg("loginMsg", "err", e.code || e.message); }
-};
 const doOut = () => signOut(auth);
 $("btnOut1").onclick = doOut; $("btnOut2").onclick = doOut;
 
@@ -249,8 +235,8 @@ let unsubUsers = null, unsubUlbs = null;
 onAuthStateChanged(auth, async (user) => {
   if (unsubUsers) { unsubUsers(); unsubUsers = null; }
   if (unsubUlbs) { unsubUlbs(); unsubUlbs = null; }
-  show("loginCard", !user); show("denyCard", false); show("adminArea", false); show("ulbCard", false); show("allCard", false); show("credCard", false);
-  if (!user) return;
+  show("denyCard", false); show("adminArea", false); show("ulbCard", false); show("allCard", false); show("credCard", false);
+  if (!user) { location.replace("../"); return; }   // single login lives on the landing page
   let role = null; myUlb = null;
   try {
     const me = (await get(ref(db, `users/${user.uid}`))).val() || {};

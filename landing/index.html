@@ -7,7 +7,11 @@
 :root{--ink:#e8f0ff;--mute:#8da2c4;--acc:#9bb8ff;--acc2:#477dff;--warm:#25d6c5;--line:rgba(137,164,211,.18)}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%}
 body{font:16px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:#0a1020;overflow-x:hidden}
-.scene{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+.bgimg{position:fixed;inset:0;z-index:0;background:#0a1020 url("app/login-bg-himachal.png") 62% 42%/cover no-repeat}
+@media(min-width:768px){.bgimg{background-position:center center}}
+@media(min-width:1200px) and (min-aspect-ratio:16/10){.bgimg{background-position:center 35%}}
+.scrim{position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,rgba(8,12,28,.9) 0%,rgba(8,12,28,.84) 40%,rgba(8,12,28,.5) 64%,rgba(6,10,24,.62) 100%)}
+@media(min-width:900px){.scrim{background:radial-gradient(ellipse 50% 30% at 24% 13%,rgba(8,12,28,.96) 0%,rgba(8,12,28,.9) 55%,transparent 100%),radial-gradient(ellipse 22% 36% at 84% 16%,rgba(8,12,28,.9) 0%,transparent 100%),linear-gradient(90deg,rgba(8,12,28,.84) 0%,rgba(8,12,28,.7) 42%,rgba(8,12,28,.32) 70%,rgba(8,12,28,.5) 100%),linear-gradient(180deg,rgba(6,10,24,.2) 0%,rgba(6,10,24,.45) 100%)}}
 .cloud{position:fixed;z-index:0;height:46px;border-radius:50px;background:rgba(255,255,255,.12);filter:blur(10px);animation:dr 60s linear infinite}
 @keyframes dr{from{transform:translateX(-30vw)}to{transform:translateX(130vw)}}
 .wrap{position:relative;z-index:1;min-height:100vh;display:grid;gap:28px;align-content:center;
@@ -63,25 +67,7 @@ a.tile b{display:block}a.tile small{color:var(--mute);font-size:13px}
 </style><link rel="stylesheet" href="app/hub-theme.css">
 <script src="app/hub-shell.js" defer></script>
 </head><body>
-<svg class="scene" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-<defs>
-<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a1020"/><stop offset=".45" stop-color="#1a2a5c"/><stop offset=".72" stop-color="#2a6bcf"/><stop offset="1" stop-color="#25d6c5"/></linearGradient>
-<radialGradient id="sun" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff2cf"/><stop offset=".25" stop-color="#ffd08a" stop-opacity=".8"/><stop offset="1" stop-color="#ffb070" stop-opacity="0"/></radialGradient>
-<linearGradient id="m1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b8fd4"/><stop offset="1" stop-color="#2a3a7a"/></linearGradient>
-<linearGradient id="m2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e2d5c"/><stop offset="1" stop-color="#121a3a"/></linearGradient>
-<linearGradient id="m3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1528"/><stop offset="1" stop-color="#070c18"/></linearGradient>
-<path id="pine" d="M0-34l9 15h-5l8 13h-6l9 14H-15l9-14h-6l8-13h-5z"/>
-</defs>
-<rect width="1200" height="800" fill="url(#sky)"/>
-<circle cx="880" cy="470" r="230" fill="url(#sun)"/>
-<path d="M0 520l110-130 80 70 120-170 100 150 90-80 140 200 120-120 110 90 150-170 180 190v240H0z" fill="url(#m1)" opacity=".85"/>
-<path d="M300 290l-50 80 40-20 25 30 20-40 30 25z M690 330l-40 60 35-15 25 25 20-35z M1020 350l-35 55 30-10 25 20 15-30z" fill="#eef0fb" opacity=".9"/>
-<path d="M0 600l140-110 110 80 150-130 140 120 130-90 150 130 120-80 140 90 120-60v320H0z" fill="url(#m2)"/>
-<path d="M0 690l160-80 120 50 170-90 150 80 160-60 140 70 140-50 160 60v220H0z" fill="url(#m3)"/>
-<g fill="#0d1030"><use href="#pine" x="60" y="760"/><use href="#pine" x="130" y="775" transform="translate(0 0) scale(1)"/><use href="#pine" x="215" y="750"/><use href="#pine" x="900" y="765"/><use href="#pine" x="975" y="750"/><use href="#pine" x="1060" y="772"/><use href="#pine" x="1140" y="755"/><use href="#pine" x="330" y="785"/><use href="#pine" x="770" y="790"/></g>
-<rect y="780" width="1200" height="20" fill="#0a0d2b"/>
-</svg>
-<div class="cloud" style="top:10%;width:240px"></div><div class="cloud" style="top:22%;width:170px;animation-delay:-25s"></div>
+<div class="bgimg" aria-hidden="true"></div><div class="scrim" aria-hidden="true"></div>
 
 <div class="wrap">
 <section>
@@ -106,6 +92,7 @@ a.tile b{display:block}a.tile small{color:var(--mute);font-size:13px}
 <div class="card hide" id="home">
 <div class="hello" id="hi">Welcome</div><div class="town" id="t"></div><div class="role" id="r"></div>
 <a class="tile hide pri" id="adm" href="app/admin_users.html"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M19 8v6M16 11h6"/></svg></span><span><b>Admin console</b><small>Create towns, IDs and passwords</small></span></a>
+<a class="tile hide" id="tl" href="app/tools/index.html"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg></span><span><b>GIS &amp; KML tools</b><small>Property survey, KML and Shapefile converters</small></span></a>
 <a class="tile" id="app" href="app/"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10l9-7 9 7v10a1 1 0 01-1 1h-5v-7H9v7H4a1 1 0 01-1-1z"/></svg></span><span><b>Survey &amp; collection</b><small>Open the field app</small></span></a>
 <button class="out" id="out">Sign out</button></div>
 </section>
@@ -151,7 +138,7 @@ onAuthStateChanged(auth,async u=>{
     if(me.ulb!=="*"&&(me.role==="cashier"||me.role==="public")){location.replace(APP_URL);return}
     $("hi").textContent=manual?"Welcome":"Welcome back";$("t").textContent=name;
     $("r").textContent=(me.name?me.name+" · ":"")+(LABEL[me.role]||me.role);
-    $("app").href=APP_URL;$("adm").classList.toggle("hide",me.role!=="admin");
+    $("app").href=APP_URL;$("adm").classList.toggle("hide",me.role!=="admin");$("tl").classList.toggle("hide",me.role!=="admin");
   }catch(e){await signOut(auth);fail("Could not load your account. Try again.")}
 });
 </script></body></html>
