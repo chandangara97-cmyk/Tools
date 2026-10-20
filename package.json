@@ -11,9 +11,10 @@
     "test:collection": "tsx scripts/test-collection.ts",
     "test:search": "tsx scripts/test-search.ts",
     "test:browser": "node scripts/browser-tests/build.mjs && node scripts/browser-tests/test-search-page.cjs && node scripts/browser-tests/test-collection-page.cjs",
-    "test:all": "npm run test:collection && npm run test:search && npm run test:units && npm run test:browser",
+    "test:all": "npm run test:collection && npm run test:search && npm run test:units && npm run test:void && npm run test:browser",
     "build:site": "node scripts/assemble-site.mjs",
-    "test:units": "tsx scripts/test-units.ts"
+    "test:units": "tsx scripts/test-units.ts",
+    "test:void": "tsx scripts/test-void.ts"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",

@@ -8,7 +8,9 @@ import { expandForHead, isUnitHead, needsUnits } from '../services/units';
 import { generateDemands, generateFixedDemands, saveHeadSettings, useAudit } from '../services/collectionStore';
 import { useAssessments } from '../services/assessmentStore';
 import { financialYearOf } from '../services/assessment';
-import { monthKeys, periodLabel } from '../services/collection';
+import { monthKeys, periodLabel, liveDemand } from '../services/collection';
+import type { LedgerEntry } from '../services/collection';
+import { BillRemoval } from './BillRemoval';
 import { useAuth, canSetPayableRates } from '../services/auth';
 import { money, RateRow, SettingsEditor } from './CollectionPanel';
 
@@ -50,14 +52,14 @@ export const DemandCenter: React.FC<Props> = ({ townKey, townName, records, head
     const s = settings[h];
     if (h === 'property_tax') {
       const ok = Object.entries(assessments).filter(([, a]) => a.status === 'approved' && a.calc.tax !== null && a.calc.tax > 0);
-      const pend = ok.filter(([pid]) => !(led[pid] || []).some((e) => e.id === `demand_${fy}`));
+      const pend = ok.filter(([pid]) => !liveDemand(led[pid] || [], fy));
       return { head: h, period: fy, targets: ok.length, pending: pend.length, amount: pend.reduce((a, [, x]) => a + (x.calc.tax || 0), 0), recs: [] as PropertyRecord[], warns: [] as string[], s, r };
     }
     const period = isMonthly(h, r) ? month : fy;
     const recs = expandForHead(town, h, led);
     const live = recs.filter((x) => x.billable !== false);
     const targets = live.filter((x) => (fixedAmountFor(r, x.use) ?? 0) > 0);
-    const pend = targets.filter((x) => !(led[x.id] || []).some((e) => e.id === `demand_${period}`));
+    const pend = targets.filter((x) => !liveDemand(led[x.id] || [], period));
     const warns: string[] = [];
     const noRate = live.length - targets.length;
     if (noRate > 0) warns.push(`${noRate} item${noRate > 1 ? 's have' : ' has'} no amount (use is not Residential/Commercial, or the amount is not set).`);
@@ -78,13 +80,12 @@ export const DemandCenter: React.FC<Props> = ({ townKey, townName, records, head
     setBusy(false);
   };
 
-  const gen = async (p: typeof plan[number]): Promise<string> => {
-    const led = ledgers[p.head] || {};
+  const gen = async (p: typeof plan[number], led: Record<string, LedgerEntry[]> = ledgers[p.head] || {}, inScope: (key: string) => boolean = () => true): Promise<string> => {
     if (p.head === 'property_tax') {
-      const r = await generateDemands(townKey, fy, assessments, led);
+      const r = await generateDemands(townKey, fy, Object.fromEntries(Object.entries(assessments).filter(([pid]) => inScope(pid))), led);
       return `${r.created} created, ${r.skippedExisting} already had one${r.noTax ? `, ${r.noTax} skipped (no tax computed)` : ''}`;
     }
-    const r = await generateFixedDemands(townKey, p.period, p.recs.map((x) => ({ id: x.id, use: x.use })), p.r || { residential: null, commercial: null }, led, p.head);
+    const r = await generateFixedDemands(townKey, p.period, p.recs.filter((x) => inScope(x.id)).map((x) => ({ id: x.id, use: x.use })), p.r || { residential: null, commercial: null }, led, p.head);
     return `${r.created} created, ${r.skippedExisting} already had one, ${r.noRate} skipped`;
   };
 
@@ -204,6 +205,16 @@ export const DemandCenter: React.FC<Props> = ({ townKey, townName, records, head
           </section>
         );
       })}
+
+      {!loading && (
+        <BillRemoval
+          townKey={townKey} town={town} heads={heads} ledgers={ledgers} busy={busy}
+          periodOf={(h) => plan.find((p) => p.head === h)?.period || fy}
+          regenerate={(h, led, inScope) => gen(plan.find((p) => p.head === h) as typeof plan[number], led, inScope)}
+          run={(done, work) => run(done, work)}
+          report={(lines) => setResults(lines)}
+        />
+      )}
 
       {!loading && (
         <section className={card}>

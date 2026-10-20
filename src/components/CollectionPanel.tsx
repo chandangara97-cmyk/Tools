@@ -11,7 +11,7 @@ import { financialYearOf } from '../services/assessment';
 import { useAssessments } from '../services/assessmentStore';
 import {
   CollectionSettings, LedgerEntry, PayMode, computeLedger, previewPayment, quoteFull, rupeesInWords,
-  todayIso, validateSettings, dueDateOf, periodLabel, periodStart, monthKeys,
+  todayIso, validateSettings, dueDateOf, periodLabel, periodStart, monthKeys, liveDemand,
 } from '../services/collection';
 import {
   generateDemands, generateFixedDemands, postAdjustment, postPayment, reverseEntries, saveHeadSettings, useAudit, useHeadSettings, useLedgers,
@@ -116,7 +116,7 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
   }, [rows]);
 
   const approvedCount = Object.values(assessments).filter((a) => a.status === 'approved' && a.calc.tax !== null && a.calc.tax > 0).length;
-  const alreadyDemanded = rows.filter(({ entries }) => entries.some((e) => e.id === `demand_${fy}`)).length;
+  const alreadyDemanded = rows.filter(({ entries }) => !!liveDemand(entries, fy)).length;
 
   const run = async (label: string, work: () => Promise<string | void>) => {
     setBusy(true); setMsg('');
@@ -137,7 +137,7 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
   };
 
   const fixedTargets = useMemo(() => townRecords.filter((r) => r.billable !== false && (fixedAmountFor(rates, r.use) ?? 0) > 0), [townRecords, rates]);
-  const fixedPending = fixedTargets.filter((r) => !(ledgers[r.id] || []).some((e) => e.id === `demand_${period}`)).length;
+  const fixedPending = fixedTargets.filter((r) => !liveDemand(ledgers[r.id] || [], period)).length;
   const generateFixed = () => {
     if (!window.confirm(`Generate ${headLabel(activeHead)} demand for ${periodLabel(period)} from the fixed amounts${monthly ? ' (charged per month)' : ''} (Residential ${rates.residential === null ? 'not set' : money(rates.residential)}, Commercial ${rates.commercial === null ? 'not set' : money(rates.commercial)}) for ${fixedPending} propert${fixedPending === 1 ? 'y' : 'ies'}?\n\nA demand cannot be edited afterwards, only adjusted or reversed.`)) return;
     void run('Fixed-amount demand', async () => {
@@ -255,7 +255,7 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
           </div>
           <div className="bg-gradient-to-br from-blue-50 to-white rounded-2xl p-4 border border-blue-200/60 shadow-sm">
             <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700/80 block mb-1">Demand · {periodLabel(period)}</span>
-            <b className="text-xl font-mono text-blue-900 tracking-tight">{activeHead === 'property_tax' ? `${alreadyDemanded} / ${approvedCount}` : `${rows.filter(({ entries }) => entries.some((e) => e.id === `demand_${period}`)).length} / ${fixedTargets.length}`}</b>
+            <b className="text-xl font-mono text-blue-900 tracking-tight">{activeHead === 'property_tax' ? `${alreadyDemanded} / ${approvedCount}` : `${rows.filter(({ entries }) => !!liveDemand(entries, period)).length} / ${fixedTargets.length}`}</b>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">

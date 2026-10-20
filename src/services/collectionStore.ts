@@ -10,7 +10,7 @@ import { currentUid } from './assessmentStore';
 import { ulbCode } from './ids';
 import { HeadId, headLabel, ledgerKey, splitLedgerKey } from './heads';
 import {
-  CollectionSettings, LedgerEntry, PayMode, placeholderSettings, previewPayment,
+  CollectionSettings, LedgerEntry, PayMode, placeholderSettings, previewPayment, liveDemand, nextDemandId, VoidItem,
 } from './collection';
 
 const clean = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -171,18 +171,18 @@ export async function generateDemands(
 ): Promise<{ created: number; skippedExisting: number; noTax: number }> {
   const date = new Date();
   const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  const todo: { pid: string; a: Assessment }[] = [];
+  const todo: { pid: string; a: Assessment; did: string }[] = [];
   let skippedExisting = 0, noTax = 0;
   for (const [pid, a] of Object.entries(assessments)) {
     if (a.status !== 'approved') continue;
     if (a.calc.tax === null || !(a.calc.tax > 0)) { noTax++; continue; }
-    if ((ledgers[pid] || []).some((e) => e.id === `demand_${fy}`)) { skippedExisting++; continue; }
-    todo.push({ pid, a });
+    if (liveDemand(ledgers[pid] || [], fy)) { skippedExisting++; continue; }
+    todo.push({ pid, a, did: nextDemandId(ledgers[pid] || [], fy) });
   }
   for (let i = 0; i < todo.length; i += 100) {
     const updates: Record<string, unknown> = {};
-    for (const { pid, a } of todo.slice(i, i + 100)) {
-      updates[`ledger/${town}/${pid}/demand_${fy}`] = clean({
+    for (const { pid, a, did } of todo.slice(i, i + 100)) {
+      updates[`ledger/${town}/${pid}/${did}`] = clean({
         type: 'demand', fy, amount: a.calc.tax, date: day, at: Date.now(), by: currentUid(), rateTableId: a.rateTableId,
         note: `From approved assessment (${a.rateStatus} rates)`,
       });
@@ -203,18 +203,18 @@ export async function generateFixedDemands(
 ): Promise<{ created: number; skippedExisting: number; noRate: number }> {
   const date = new Date();
   const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  const todo: { id: string; amt: number; use: string }[] = [];
+  const todo: { id: string; amt: number; use: string; did: string }[] = [];
   let skippedExisting = 0, noRate = 0;
   for (const p of props) {
     const amt = p.use === 'Residential' ? rates.residential : p.use === 'Commercial' ? rates.commercial : null;
     if (amt === null || !(amt > 0)) { noRate++; continue; }
-    if ((ledgers[p.id] || []).some((e) => e.id === `demand_${fy}`)) { skippedExisting++; continue; }
-    todo.push({ id: p.id, amt, use: p.use });
+    if (liveDemand(ledgers[p.id] || [], fy)) { skippedExisting++; continue; }
+    todo.push({ id: p.id, amt, use: p.use, did: nextDemandId(ledgers[p.id] || [], fy) });
   }
   for (let i = 0; i < todo.length; i += 100) {
     const updates: Record<string, unknown> = {};
     for (const t of todo.slice(i, i + 100)) {
-      updates[`ledger/${town}/${ledgerKey(head, t.id)}/demand_${fy}`] = clean({
+      updates[`ledger/${town}/${ledgerKey(head, t.id)}/${t.did}`] = clean({
         type: 'demand', fy, amount: t.amt, date: day, at: Date.now(), by: currentUid(), source: 'fixed',
         note: `${headLabel(head)}: fixed town amount (${t.use})`,
       });
@@ -234,4 +234,33 @@ export function postAdjustment(town: string, propertyId: string, fy: string, amo
     [`${base}/${newKey(base)}`]: clean({ type: 'adjustment', fy, amount, date, at: Date.now(), by: currentUid(), reason: reason.trim() }),
     [`audit/${town}/${newKey(`audit/${town}`)}`]: auditEntry('adjustment', `${headLabel(head)} ${fy} ${amount > 0 ? '+' : ''}${amount}. ${reason.trim()}`, propertyId),
   });
+}
+
+/**
+ * Remove bills by cancelling them with reversal entries (the ledger is append-only, so the history stays).
+ * Returns the reversal entries just written, so a regeneration can start from the updated ledgers at once.
+ */
+export async function voidDemands(
+  town: string, head: HeadId, period: string, items: VoidItem[], ledgers: Record<string, LedgerEntry[]>, reason: string,
+): Promise<Record<string, LedgerEntry[]>> {
+  if (!reason.trim()) throw new Error('A reason is required.');
+  const d = new Date();
+  const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const added: Record<string, LedgerEntry[]> = {};
+  for (let i = 0; i < items.length; i += 100) {
+    const updates: Record<string, unknown> = {};
+    for (const it of items.slice(i, i + 100)) {
+      const base = `ledger/${town}/${ledgerKey(head, it.key)}`;
+      for (const id of it.ids) {
+        const o = (ledgers[it.key] || []).find((e) => e.id === id);
+        if (!o) continue;
+        const rev = { type: 'reversal', fy: o.fy, amount: Math.abs(o.amount), date: day, at: Date.now(), by: currentUid(), reverses: id, reason: reason.trim() };
+        updates[`${base}/rev_${id}`] = clean(rev);
+        (added[it.key] ||= []).push({ ...rev, id: `rev_${id}` } as LedgerEntry);
+      }
+    }
+    if (i + 100 >= items.length) updates[`audit/${town}/${newKey(`audit/${town}`)}`] = auditEntry('reversal', `${headLabel(head)} ${period}: removed ${items.length} bill(s). Reason: ${reason.trim()}`);
+    await update(ref(db), updates);
+  }
+  return added;
 }

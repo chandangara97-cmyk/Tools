@@ -314,3 +314,43 @@ export function rupeesInWords(amount: number): string {
   const words = `Rupees ${r}${p ? ` and ${below100(p)} paise` : ''} only`;
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
+
+
+// ---- removing and regenerating demands ----
+const cancelledIds = (entries: LedgerEntry[]) => new Set(entries.filter((e) => e.type === 'reversal' && e.reverses).map((e) => e.reverses as string));
+
+/** The demand of a period that still counts (not cancelled by a reversal), if any. */
+export function liveDemand(entries: LedgerEntry[], period: string): LedgerEntry | undefined {
+  const gone = cancelledIds(entries);
+  return entries.find((e) => e.type === 'demand' && e.fy === period && !gone.has(e.id));
+}
+
+/** Id for the next demand of a period: demand_<period>, then demand_<period>_r2, _r3 … once earlier ones were removed. */
+export function nextDemandId(entries: LedgerEntry[], period: string): string {
+  const n = entries.filter((e) => e.type === 'demand' && e.fy === period).length;
+  return n === 0 ? `demand_${period}` : `demand_${period}_r${n + 1}`;
+}
+
+export interface VoidItem { key: string; ids: string[]; amount: number }
+export interface VoidPlan { items: VoidItem[]; amount: number; keptPaid: number }
+
+/**
+ * Which bills of one period can be removed. A bill that has a payment or rebate is never removed (it is counted in
+ * `keptPaid`). Removing a bill cancels its demand and any adjustments on that period. `inScope` picks the ledgers
+ * (the whole town, one ward or one structure).
+ */
+export function planVoid(ledgers: Record<string, LedgerEntry[]>, period: string, inScope: (key: string) => boolean): VoidPlan {
+  const items: VoidItem[] = []; let amount = 0, keptPaid = 0;
+  for (const [key, entries] of Object.entries(ledgers)) {
+    if (!inScope(key)) continue;
+    const gone = cancelledIds(entries);
+    const live = entries.filter((e) => e.type !== 'reversal' && !gone.has(e.id) && e.fy === period);
+    if (!live.some((e) => e.type === 'demand')) continue;
+    if (live.some((e) => e.type === 'payment' || e.type === 'rebate')) { keptPaid++; continue; }
+    const mine = live.filter((e) => e.type === 'demand' || e.type === 'adjustment');
+    const sum = mine.reduce((a, e) => a + e.amount, 0);
+    items.push({ key, ids: mine.map((e) => e.id), amount: sum });
+    amount += sum;
+  }
+  return { items, amount, keptPaid };
+}
