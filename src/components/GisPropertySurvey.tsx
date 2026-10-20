@@ -1061,7 +1061,13 @@ const GisPropertySurveyInner: React.FC = () => {
           <LiabilitySearch townKey={selectedTownKey} townName={currentTown.n} records={records} heads={bills} fullScreen={searchOnly} />
         )}
         {activeTab === 'demand' && (
-          <DemandCenter townKey={selectedTownKey} townName={currentTown.n} records={records} heads={bills} />
+          <DemandCenter
+            townKey={selectedTownKey}
+            townName={currentTown.n}
+            records={records}
+            heads={bills}
+            onRecordSaved={(saved) => setRecords((prev) => prev.map((r) => (r.id === saved.id ? saved : r)))}
+          />
         )}
 
         {activeTab === 'rules' && (

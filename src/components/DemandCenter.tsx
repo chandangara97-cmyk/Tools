@@ -13,8 +13,16 @@ import type { LedgerEntry } from '../services/collection';
 import { BillRemoval } from './BillRemoval';
 import { useAuth, canSetPayableRates } from '../services/auth';
 import { money, RateRow, SettingsEditor } from './CollectionPanel';
+import { UnitVerifyModal } from './UnitVerifyModal';
 
-interface Props { townKey: string; townName: string; records: PropertyRecord[]; heads: HeadId[] }
+interface Props {
+  townKey: string;
+  townName: string;
+  records: PropertyRecord[];
+  heads: HeadId[];
+  /** Called when units are saved from the verify modal so the parent record list stays in sync. */
+  onRecordSaved?: (rec: PropertyRecord) => void;
+}
 
 const card = 'bg-[#181f3d] border border-[#28325c] rounded-xl p-4';
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -25,7 +33,7 @@ const sel = 'h-11 rounded-lg bg-[#0d1224] border border-[#2f3a6b] px-2 text-sm t
  * One page for the admin: every bill head's rules and amounts side by side, the recent changes to them,
  * and one button to generate the demand of all heads (or of a single head).
  */
-export const DemandCenter: React.FC<Props> = ({ townKey, townName, records, heads }) => {
+export const DemandCenter: React.FC<Props> = ({ townKey, townName, records, heads, onRecordSaved }) => {
   const { role, isSuper } = useAuth();
   const { ledgers, status } = useAllLedgers(townKey);
   const { settings, ready } = useAllSettings(townKey);
@@ -43,6 +51,8 @@ export const DemandCenter: React.FC<Props> = ({ townKey, townName, records, head
   const [note, setNote] = useState('');
   const [err, setErr] = useState('');
   const [results, setResults] = useState<string[]>([]);
+  /** When set, show the unit-verification modal before generating this head's demand. */
+  const [verifyHead, setVerifyHead] = useState<HeadId | null>(null);
 
   const town = useMemo(() => records.filter((r) => r && r.id && r.town === townName), [records, townName]);
 
@@ -89,15 +99,33 @@ export const DemandCenter: React.FC<Props> = ({ townKey, townName, records, head
     return `${r.created} created, ${r.skippedExisting} already had one, ${r.noRate} skipped`;
   };
 
-  const generateOne = (p: typeof plan[number]) => {
-    if (!window.confirm(`Generate ${headLabel(p.head)} demand for ${periodLabel(p.period)}?\n\n${p.pending} bill${p.pending === 1 ? '' : 's'} · ${money(p.amount)}\n\nA demand cannot be edited afterwards, only adjusted or reversed.`)) return;
+  const doGenerate = (p: typeof plan[number]) => {
     setResults([]);
-    void run(`${headLabel(p.head)} demand done.`, async () => { setResults([`${headLabel(p.head)} (${periodLabel(p.period)}): ${await gen(p)}`]); });
+    void run(`${headLabel(p.head)} demand done.`, async () => {
+      setResults([`${headLabel(p.head)} (${periodLabel(p.period)}): ${await gen(p)}`]);
+    });
+  };
+
+  const generateOne = (p: typeof plan[number]) => {
+    // Unit-billed heads (Garbage): force name-wise unit verification before demand.
+    if (isUnitHead(p.head)) {
+      setVerifyHead(p.head);
+      return;
+    }
+    if (!window.confirm(`Generate ${headLabel(p.head)} demand for ${periodLabel(p.period)}?\n\n${p.pending} bill${p.pending === 1 ? '' : 's'} · ${money(p.amount)}\n\nA demand cannot be edited afterwards, only adjusted or reversed.`)) return;
+    doGenerate(p);
   };
 
   const generateAll = () => {
     const todo = plan.filter((p) => p.pending > 0);
     if (!todo.length) return;
+    // If any unit-billed head is pending, open verification for the first one first;
+    // admin can then generate the rest after units are confirmed.
+    const unitPending = todo.find((p) => isUnitHead(p.head));
+    if (unitPending) {
+      setVerifyHead(unitPending.head);
+      return;
+    }
     const lines = todo.map((p) => `• ${headLabel(p.head)} · ${periodLabel(p.period)}: ${p.pending} bills, ${money(p.amount)}`).join('\n');
     const total = todo.reduce((a, p) => a + p.amount, 0);
     const unofficial = todo.filter((p) => p.s.status !== 'approved').map((p) => headLabel(p.head));
@@ -112,6 +140,8 @@ export const DemandCenter: React.FC<Props> = ({ townKey, townName, records, head
       setResults(out);
     });
   };
+
+  const verifyPlan = verifyHead ? plan.find((p) => p.head === verifyHead) : undefined;
 
   const copyToAll = (from: HeadId) => {
     const others = heads.filter((h) => h !== from);
@@ -230,7 +260,27 @@ export const DemandCenter: React.FC<Props> = ({ townKey, townName, records, head
           </div>
         </section>
       )}
-      <p className="text-[11px] text-[#8790bd]">Changing an amount or rule does not change demands already generated; use an adjustment for those. Interest counts only for heads whose rules are approved.</p>
+      <p className="text-[11px] text-[#8790bd]">Changing an amount or rule does not change demands already generated; use an adjustment for those. Interest counts only for heads whose rules are approved. For Garbage, units are verified name-wise (Residential / Commercial per structure) before demand is generated each month.</p>
+
+      {verifyPlan && isUnitHead(verifyPlan.head) && (
+        <UnitVerifyModal
+          townKey={townKey}
+          townName={townName}
+          head={verifyPlan.head}
+          period={verifyPlan.period}
+          records={town}
+          rates={rates[verifyPlan.head]}
+          pendingAmount={verifyPlan.amount}
+          pendingCount={verifyPlan.pending}
+          canEdit={isSuper || canSetPayableRates(role)}
+          onRecordSaved={(rec) => onRecordSaved?.(rec)}
+          onCancel={() => setVerifyHead(null)}
+          onConfirm={() => {
+            setVerifyHead(null);
+            doGenerate(verifyPlan);
+          }}
+        />
+      )}
     </div>
   );
 };
