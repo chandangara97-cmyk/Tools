@@ -103,13 +103,21 @@ const BillTile: React.FC<{
       hover:-translate-y-1 active:translate-y-0
       transition-all duration-200 ring-1 ring-white/10`}
   >
+    {head && (
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-cover bg-center
+          transition-transform duration-500 group-hover:scale-110"
+        style={{ backgroundImage: `url(${import.meta.env.BASE_URL}counter-bg/${head}.svg)` }}
+      />
+    )}
     <span
       className="pointer-events-none absolute -right-6 -top-6 w-28 h-28 rounded-full
         bg-white/10 blur-xl group-hover:bg-white/20 transition-colors"
       aria-hidden
     />
     <span className="pointer-events-none absolute bottom-0 left-0 right-0 h-1/2
-      bg-gradient-to-t from-black/15 to-transparent" aria-hidden />
+      bg-gradient-to-t from-black/35 to-transparent" aria-hidden />
     <span className="relative w-11 h-11 rounded-xl bg-white/20 grid place-items-center backdrop-blur-sm
       ring-1 ring-white/25 group-hover:scale-105 transition-transform">
       {icon}
