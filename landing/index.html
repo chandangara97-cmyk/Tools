@@ -37,6 +37,11 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#9bb8ff,var(--warm));-w
 .f input:focus{border-color:var(--acc);box-shadow:0 0 0 4px rgba(165,180,255,.16)}
 .f label{position:absolute;left:16px;top:17px;color:var(--mute);font-size:15px;pointer-events:none;transition:.18s;transform-origin:left}
 .f input:focus+label,.f input:not(:placeholder-shown)+label{transform:translateY(-10px) scale(.78);color:var(--acc)}
+.f select{width:100%;height:56px;padding:22px 40px 6px 16px;border-radius:12px;border:1px solid #2b3c59;background:#0b1324;color:var(--ink);font-size:16px;outline:0;color-scheme:dark;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238da2c4' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center}
+.f select:focus{border-color:#477dff;box-shadow:0 0 0 4px rgba(71,125,255,.18)}
+.f select:disabled{opacity:.55}
+.f select+label{transform:translateY(-10px) scale(.78);color:var(--acc)}
+.lnk{color:var(--acc);font-size:13px;font-weight:600;text-decoration:none;display:inline-block;margin:-4px 2px 12px}
 .eye{position:absolute;right:6px;top:8px;width:40px;height:40px;border:0;background:none;color:var(--mute);cursor:pointer}
 .rem{display:flex;gap:8px;align-items:center;color:var(--mute);font-size:14px;margin:0 2px 12px}
 .rem input{accent-color:var(--acc);width:17px;height:17px}
@@ -82,7 +87,10 @@ a.tile b{display:block}a.tile small{color:var(--mute);font-size:13px}
 <div class="seg" id="seg"><button type="button" class="on" id="bT"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 21V9l9-6 9 6v12M9 21v-7h6v7"/></svg>Town login</button>
 <button type="button" id="bA"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>Admin login</button></div>
 <div class="note" id="nt">Supervisors, collectors, approvers, ledger and cashier sign in here.</div>
-<div class="f"><input id="u" placeholder=" " autocapitalize="characters" autocomplete="username" spellcheck="false" required><label for="u" id="ul">Town ID (e.g. BHOTA_SUP_PT)</label></div>
+<div class="f" id="fTown"><select id="town"><option value="">Select town…</option></select><label for="town">Town / ULB</label></div>
+<div class="f" id="fSel"><select id="idsel" disabled><option value="">Select town first</option></select><label for="idsel">User ID</label></div>
+<div class="f" id="fU"><input id="u" placeholder=" " autocapitalize="characters" autocomplete="username" spellcheck="false"><label for="u" id="ul">Town ID (e.g. BHOTA_SUP_PT)</label></div>
+<a href="#" class="lnk" id="tog" role="button">ID not in the list? Type it</a>
 <div class="f"><input id="p" type="password" placeholder=" " autocomplete="current-password" required><label for="p">Password</label>
 <button type="button" class="eye" id="eye" aria-label="Show password"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
 <label class="rem"><input type="checkbox" id="rm" checked> Remember my ID on this device</label>
@@ -113,13 +121,40 @@ const KEY=()=>"hub_id_"+mode;
 function setMode(m){mode=m;$("seg").classList.toggle("admin",m==="admin");$("bT").classList.toggle("on",m==="town");$("bA").classList.toggle("on",m==="admin");
   $("nt").textContent=m==="admin"?"Platform owner and town admins manage towns, IDs and users.":"Supervisors, collectors, approvers, ledger and cashier sign in here.";
   $("ul").textContent=m==="admin"?"Admin ID (e.g. BHOTA_ADMIN)":"Town ID (e.g. BHOTA_SUP_PT)";
-  $("m").textContent="";try{$("u").value=localStorage.getItem(KEY())||""}catch(e){}}
-$("bT").onclick=()=>setMode("town");$("bA").onclick=()=>setMode("admin");setMode("town");
+  $("m").textContent="";try{$("u").value=localStorage.getItem(KEY())||""}catch(e){}applyView()}
+$("bT").onclick=()=>setMode("town");$("bA").onclick=()=>setMode("admin");
+
+/* ---- Town -> ID pickers (Town login). Admin login always types the ID. ---- */
+let typed=false,towns=[];
+const applyView=()=>{const list=mode==="town"&&!typed;
+  $("fTown").classList.toggle("hide",mode!=="town");$("fSel").classList.toggle("hide",!list);
+  $("fU").classList.toggle("hide",list);$("tog").classList.toggle("hide",mode!=="town");
+  $("tog").textContent=typed?"Pick ID from list":"ID not in the list? Type it";
+  if(list)$("u").value=$("idsel").value||"";};
+$("tog").onclick=e=>{e.preventDefault();typed=!typed;applyView();if(typed)$("u").focus()};
+fetch("app/ulb_list.json").then(r=>r.json()).then(l=>{towns=l;
+  $("town").innerHTML='<option value="">Select town…</option>'+l.map(t=>'<option value="'+t.slug+'">'+t.name+'</option>').join("");
+  try{const t=localStorage.getItem("hub_town");if(t&&l.some(x=>x.slug===t)){$("town").value=t;loadIds(t,localStorage.getItem(KEY()))}}catch(e){}
+}).catch(()=>{typed=true;applyView()});
+async function loadIds(town,pick){const sel=$("idsel");
+  if(!town){sel.disabled=true;sel.innerHTML='<option value="">Select town first</option>';$("u").value="";return}
+  sel.disabled=true;sel.innerHTML='<option value="">Loading IDs…</option>';
+  try{const v=(await get(ref(db,"loginDirectory/"+town))).val()||{};
+    const ids=Object.entries(v).map(([id,l])=>({id,l:String(l)})).sort((a,b)=>a.l.localeCompare(b.l)||a.id.localeCompare(b.id));
+    sel.innerHTML='<option value="">'+(ids.length?"Select ID…":"No IDs listed for this town")+'</option>'+ids.map(x=>'<option value="'+x.id+'">'+x.id+" – "+x.l+'</option>').join("");
+    sel.disabled=!ids.length;if(pick&&ids.some(x=>x.id===pick))sel.value=pick;
+  }catch(e){sel.innerHTML='<option value="">Could not load IDs. Type the ID instead.</option>';sel.disabled=true}
+  $("u").value=sel.value||""}
+$("town").onchange=()=>loadIds($("town").value);
+$("idsel").onchange=()=>{$("u").value=$("idsel").value};
+setMode("town");
 $("eye").onclick=()=>{const p=$("p");p.type=p.type==="password"?"text":"password"};
 const fail=t=>{$("m").textContent=t;const c=$("login");c.classList.remove("shake");void c.offsetWidth;c.classList.add("shake")};
-$("login").onsubmit=async e=>{e.preventDefault();$("m").textContent="";$("go").disabled=true;$("go").textContent="Signing in…";manual=true;
+$("login").onsubmit=async e=>{e.preventDefault();$("m").textContent="";
+  if(!$("u").value.trim()){fail(mode==="town"&&!typed?"Select your town and ID.":"Enter your ID.");return}
+  $("go").disabled=true;$("go").textContent="Signing in…";manual=true;
   try{await signInWithEmailAndPassword(auth,email($("u").value),$("p").value);
-    try{$("rm").checked?localStorage.setItem(KEY(),$("u").value.trim()):localStorage.removeItem(KEY())}catch(x){}}
+    try{if($("rm").checked){localStorage.setItem(KEY(),$("u").value.trim());if(mode==="town"&&!typed&&$("town").value)localStorage.setItem("hub_town",$("town").value)}else{localStorage.removeItem(KEY());localStorage.removeItem("hub_town")}}catch(x){}}
   catch(x){fail(x.code==="auth/too-many-requests"?"Too many attempts. Please wait a few minutes.":x.code==="auth/network-request-failed"?"No internet connection.":"Wrong ID or password.")}
   $("go").disabled=false;$("go").textContent="Sign in"};
 $("out").onclick=()=>{manual=false;signOut(auth)};
