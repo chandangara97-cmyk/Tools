@@ -108,42 +108,46 @@ Office: ${profile.officeAddress}
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden my-8 print:m-0 print:p-0 print:shadow-none print:w-full border border-slate-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden my-8 print:m-0 print:p-0 print:shadow-none print:w-full print:rounded-none border border-slate-200">
         {/* Top actions toolbar */}
-        <div className="no-print flex items-center justify-between px-6 py-4 bg-slate-900 text-white">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-rose-400" />
-            <span className="font-semibold text-sm">Statutory Demand Notice Generator</span>
+        <div className="no-print flex items-center justify-between px-5 sm:px-6 py-3.5 bg-slate-900 text-white">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0" />
+            <span className="font-semibold text-sm truncate">Statutory Demand Notice</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
+              type="button"
               onClick={handleDownload}
               className="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
-              Download Notice
+              <span className="hidden sm:inline">Download</span>
             </button>
             <button
+              type="button"
               onClick={handlePrint}
               className="px-3 py-1.5 text-xs font-medium bg-rose-600 hover:bg-rose-500 text-white rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
-              Print Official Notice
+              <span className="hidden sm:inline">Print</span>
             </button>
             <button
+              type="button"
               onClick={onClose}
               className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+              aria-label="Close"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Notice Paper */}
-        <div className="p-8 sm:p-10 bg-white print:p-6 border-b border-slate-100 font-serif">
+        {/* Notice Paper — professional official document */}
+        <div className="doc-sheet !max-w-none !shadow-none !border-0 !rounded-none p-8 sm:p-10 print:p-6">
           {/* Official Emblem & Header */}
-          <div className="text-center pb-6 border-b-2 border-slate-900 font-sans">
+          <div className="doc-masthead font-sans">
             <div className="inline-flex items-center justify-center w-14 h-14 bg-rose-50 rounded-full mb-2 border border-rose-200 text-rose-700">
               <Building2 className="w-7 h-7" />
             </div>

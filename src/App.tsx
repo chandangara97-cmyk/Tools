@@ -50,7 +50,7 @@ export function App() {
         {view === 'gis-survey' && <GisPropertySurvey />}
         {view === 'wkt-kml' && <WktKmlConverter />}
         {view === 'tools-directory' && (
-          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+          <div className="page-shell page-enter py-6 sm:py-8">
             <ToolsDirectory
               onSelectTool={(id) =>
                 go(

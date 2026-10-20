@@ -526,3 +526,510 @@ h1, h2, h3, h4 { letter-spacing: -.035em; }
 .scheme-app .bg-amber-100 { color: #92400e !important; }
 .scheme-app .bg-sky-100 { color: #075985 !important; }
 .scheme-app .bg-red-100 { color: #991b1b !important; }
+
+/* ═══════════════════════════════════════════════════════════
+   PROFESSIONAL PAGE SYSTEM — clean enterprise civic UI
+   ═══════════════════════════════════════════════════════════ */
+
+/* Page shell: consistent max width, padding, vertical rhythm */
+.scheme-app .page-shell,
+.scheme-app .work-menu-page,
+.scheme-app .gis-survey-page,
+.scheme-app .tools-directory-page,
+.scheme-app .collection-panel,
+.scheme-app .assessment-panel,
+.scheme-app .reports-panel,
+.scheme-app .liability-search,
+.scheme-app .property-records,
+.scheme-app .rate-table-editor,
+.scheme-app .self-assessment,
+.scheme-app .admin-dues,
+.scheme-app .bill-maker,
+.scheme-app .citizen-pay,
+.scheme-app .town-rules {
+  max-width: 1600px;
+  margin-inline: auto;
+  padding-inline: clamp(12px, 2.5vw, 32px);
+  padding-bottom: clamp(2rem, 4vw, 3.5rem);
+}
+
+/* Page header block — title + subtitle + actions */
+.scheme-app .page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #e2eaf4;
+}
+.scheme-app .page-header h1,
+.scheme-app .page-header h2 {
+  margin: 0;
+  color: #132943;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+.scheme-app .page-header .page-kicker {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #477dff;
+  margin-bottom: 0.35rem;
+}
+.scheme-app .page-header .page-sub {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  color: #647891;
+  max-width: 42rem;
+  line-height: 1.45;
+}
+.scheme-app .page-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Metric / KPI strip */
+.scheme-app .metric-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.scheme-app .metric-card {
+  background: #fff;
+  border: 1px solid #e2eaf4;
+  border-radius: 16px;
+  padding: 1rem 1.15rem;
+  box-shadow: 0 4px 16px rgba(20, 40, 70, 0.04);
+}
+.scheme-app .metric-card .metric-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #647891;
+  margin-bottom: 0.35rem;
+}
+.scheme-app .metric-card .metric-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #132943;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+.scheme-app .metric-card .metric-hint {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #7a8eab;
+}
+.scheme-app .metric-card.accent {
+  background: linear-gradient(145deg, #f0f5ff, #fff);
+  border-color: #c5d6ff;
+}
+.scheme-app .metric-card.danger .metric-value { color: #c53030; }
+.scheme-app .metric-card.success .metric-value { color: #16805d; }
+
+/* Content cards — primary workspace surface */
+.scheme-app .content-card,
+.scheme-app .panel-card {
+  background: #fff;
+  border: 1px solid #e2eaf4;
+  border-radius: 18px;
+  box-shadow: 0 8px 28px rgba(20, 44, 83, 0.05);
+  overflow: hidden;
+}
+.scheme-app .content-card + .content-card,
+.scheme-app .panel-card + .panel-card {
+  margin-top: 1rem;
+}
+.scheme-app .content-card-header,
+.scheme-app .panel-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #eef2f8;
+  background: linear-gradient(180deg, #fafbfd 0%, #fff 100%);
+}
+.scheme-app .content-card-header h3,
+.scheme-app .panel-card-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 750;
+  color: #1b3150;
+  letter-spacing: -0.02em;
+}
+.scheme-app .content-card-body,
+.scheme-app .panel-card-body {
+  padding: 1.15rem 1.25rem;
+}
+.scheme-app .content-card-footer {
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid #eef2f8;
+  background: #f8fafc;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* Section group with divider label */
+.scheme-app .section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.5rem 0 0.85rem;
+}
+.scheme-app .section-label h3 {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #647891;
+  white-space: nowrap;
+}
+.scheme-app .section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, #e2eaf4, transparent);
+}
+
+/* Professional data tables */
+.scheme-app .data-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 14px;
+  border: 1px solid #e2eaf4;
+  background: #fff;
+}
+.scheme-app .data-table-wrap table,
+.scheme-app table.pro-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.9rem;
+}
+.scheme-app .data-table-wrap th,
+.scheme-app table.pro-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #edf3fb !important;
+  color: #405571 !important;
+  font-weight: 750;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.7rem 0.9rem;
+  text-align: left;
+  border-bottom: 1px solid #dce5f1;
+  white-space: nowrap;
+}
+.scheme-app .data-table-wrap td,
+.scheme-app table.pro-table td {
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid #eef2f8;
+  color: #263b57 !important;
+  vertical-align: middle;
+}
+.scheme-app .data-table-wrap tr:last-child td,
+.scheme-app table.pro-table tr:last-child td {
+  border-bottom: 0;
+}
+.scheme-app .data-table-wrap tr:hover td,
+.scheme-app table.pro-table tr:hover td {
+  background: #f5f8ff !important;
+}
+.scheme-app .data-table-wrap .num,
+.scheme-app table.pro-table .num,
+.scheme-app .num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Status badges */
+.scheme-app .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  border: 1px solid transparent;
+}
+.scheme-app .badge-paid,
+.scheme-app .badge-success {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+.scheme-app .badge-due,
+.scheme-app .badge-danger {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+.scheme-app .badge-pending,
+.scheme-app .badge-warn {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+.scheme-app .badge-info {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+.scheme-app .badge-neutral {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+/* Form field groups */
+.scheme-app .field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+.scheme-app .field-group label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #405571;
+  letter-spacing: 0.02em;
+}
+.scheme-app .field-group .field-hint {
+  font-size: 0.7rem;
+  color: #7a8eab;
+}
+.scheme-app .field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem 1rem;
+}
+
+/* Toolbar / filter bar */
+.scheme-app .toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  border: 1px solid #e2eaf4;
+  border-radius: 14px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 10px rgba(20, 40, 70, 0.03);
+}
+.scheme-app .toolbar input[type="search"],
+.scheme-app .toolbar input[type="text"] {
+  flex: 1;
+  min-width: 160px;
+  min-height: 42px;
+}
+
+/* Empty / loading states */
+.scheme-app .empty-state {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: #647891;
+}
+.scheme-app .empty-state .empty-icon {
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto 1rem;
+  border-radius: 16px;
+  background: #eef3fb;
+  color: #477dff;
+  display: grid;
+  place-items: center;
+}
+.scheme-app .empty-state h3 {
+  margin: 0 0 0.35rem;
+  color: #1b3150;
+  font-size: 1.05rem;
+  font-weight: 750;
+}
+.scheme-app .empty-state p {
+  margin: 0;
+  font-size: 0.9rem;
+  max-width: 28rem;
+  margin-inline: auto;
+}
+
+/* Official document / notice surface (print-ready) */
+.scheme-app .doc-sheet {
+  background: #fff;
+  color: #111;
+  border: 1px solid #cfd8e6;
+  border-radius: 4px;
+  box-shadow: 0 12px 40px rgba(20, 40, 70, 0.1);
+  padding: 2rem 2.25rem;
+  max-width: 48rem;
+  margin-inline: auto;
+  font-family: "Times New Roman", Times, Georgia, serif;
+  line-height: 1.55;
+}
+.scheme-app .doc-sheet .doc-masthead {
+  text-align: center;
+  border-bottom: 2px solid #1a2744;
+  padding-bottom: 1rem;
+  margin-bottom: 1.25rem;
+}
+.scheme-app .doc-sheet .doc-masthead h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0 0 0.25rem;
+  color: #0f1a2e;
+}
+.scheme-app .doc-sheet .doc-masthead .doc-dept {
+  font-size: 0.85rem;
+  color: #334155;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.scheme-app .doc-sheet .doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+  font-family: Inter, system-ui, sans-serif;
+}
+.scheme-app .doc-sheet .doc-body {
+  font-size: 1rem;
+}
+.scheme-app .doc-sheet .doc-amount {
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+.scheme-app .doc-sheet .doc-signature {
+  margin-top: 2.5rem;
+  text-align: right;
+  font-size: 0.9rem;
+}
+.scheme-app .doc-sheet table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.9rem;
+}
+.scheme-app .doc-sheet table th,
+.scheme-app .doc-sheet table td {
+  border: 1px solid #94a3b8;
+  padding: 0.45rem 0.65rem;
+  text-align: left;
+}
+.scheme-app .doc-sheet table th {
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
+  text-transform: none;
+  font-size: 0.8rem;
+  letter-spacing: 0;
+}
+
+/* Soft page entrance */
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.scheme-app .page-enter {
+  animation: page-in 0.28s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scheme-app .page-enter { animation: none; }
+}
+
+/* Print: professional document output */
+@media print {
+  body, .scheme-app, .scheme-app .gis-survey-page,
+  .scheme-app .work-menu-page, .scheme-app .collection-panel,
+  .scheme-app .assessment-panel, .scheme-app .reports-panel {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .scheme-navbar,
+  .scheme-app .scheme-navbar,
+  .scheme-app .sync-bar,
+  .scheme-app .page-header-actions,
+  .scheme-app .toolbar button,
+  .no-print {
+    display: none !important;
+  }
+  .scheme-app .content-card,
+  .scheme-app .panel-card,
+  .scheme-app .doc-sheet {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    break-inside: avoid;
+  }
+  .scheme-app .doc-sheet {
+    border: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  .scheme-app table th {
+    background: #eee !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Mobile refinements for professional pages */
+@media (max-width: 640px) {
+  .scheme-app .page-shell,
+  .scheme-app .work-menu-page,
+  .scheme-app .gis-survey-page,
+  .scheme-app .tools-directory-page {
+    padding-inline: 10px;
+  }
+  .scheme-app .page-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.85rem;
+  }
+  .scheme-app .metric-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  .scheme-app .metric-card {
+    padding: 0.75rem 0.85rem;
+    border-radius: 12px;
+  }
+  .scheme-app .metric-card .metric-value {
+    font-size: 1.15rem;
+  }
+  .scheme-app .content-card-header,
+  .scheme-app .content-card-body,
+  .scheme-app .panel-card-header,
+  .scheme-app .panel-card-body {
+    padding: 0.85rem 1rem;
+  }
+  .scheme-app .doc-sheet {
+    padding: 1.25rem 1rem;
+  }
+}

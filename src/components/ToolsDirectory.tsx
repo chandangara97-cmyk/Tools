@@ -39,74 +39,63 @@ export const ToolsDirectory: React.FC<ToolsDirectoryProps> = ({ onSelectTool }) 
   };
 
   return (
-    <section className="tools-directory-page space-y-6" id="tools">
-      <style>{`
-        .tools-directory-page { color:#20324b; }
-        .tools-directory-page h2 { color:#17345d !important; font-size:clamp(1.35rem,2.4vw,1.9rem); letter-spacing:-.035em; }
-        .tools-directory-page h2 span { background:#e8f1fc !important; color:#2459a9 !important; border-color:#cbdcf1 !important; }
-        .tools-directory-page p { color:#61738b !important; }
-        .tools-directory-page .bg-\\[\\#181f3d\\] { background:#fff !important; }
-        .tools-directory-page input { min-height:46px; border-radius:14px; background:#f8fbff !important; border-color:#d5e1ef !important; color:#20324b !important; }
-        .tools-directory-page button { border-radius:12px; }
-        .tools-directory-page .grid > div { border-color:#dce6f1 !important; background:#fff !important; box-shadow:0 8px 26px rgba(27,55,91,.06); }
-        .tools-directory-page .grid > div:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(27,55,91,.12); }
-        .tools-directory-page h3 { color:#1e3656 !important; }
-        @media(max-width:640px){ .tools-directory-page .grid { gap:12px; } .tools-directory-page .grid > div { padding:16px; } }
-      `}</style>
-      {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <section className="tools-directory-page page-enter space-y-6" id="tools">
+      {/* Professional page header */}
+      <header className="page-header">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            Field Tools Directory
-            <span className="text-xs font-normal text-[#aab4dc] bg-[#181f3d] border border-[#28325c] px-2 py-0.5 rounded-full">
-              {TOOLS.length} Total Tools
+          <span className="page-kicker">Field operations</span>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2.5 flex-wrap">
+            Tools Directory
+            <span className="badge badge-info text-xs font-semibold normal-case tracking-normal">
+              {TOOLS.length} tools
             </span>
           </h2>
-          <p className="text-xs sm:text-sm text-[#aab4dc] mt-1">
-            GIS property survey and KML / Shapefile converters for QGIS.
+          <p className="page-sub">
+            GIS property survey and KML / Shapefile converters for QGIS and field work.
           </p>
         </div>
-      </div>
+      </header>
 
-      {/* Search Bar & Category Chips */}
-      <div className="bg-[#181f3d] border border-[#28325c] rounded-2xl p-4 shadow-lg space-y-3">
-        <div className="relative">
-          <Search className="w-4 h-4 text-[#8790bd] absolute left-3.5 top-1/2 -translate-y-1/2" />
+      {/* Search & category toolbar */}
+      <div className="toolbar flex-col items-stretch !gap-3">
+        <div className="relative w-full">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="search"
-            placeholder="Search tool by job, e.g. bill, KML, boundary, scrutiny, TA/DA..."
+            placeholder="Search by job, e.g. bill, KML, boundary, scrutiny…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#121830] border border-[#2f3a6b] text-white text-xs sm:text-sm rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#9aa8ff]"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/80 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10"
           />
         </div>
 
-        {/* Chips */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+        <div className="flex items-center gap-2 overflow-x-auto pb-0.5 text-xs">
           <button
+            type="button"
             onClick={() => setSelectedCategory('all')}
-            className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-full font-bold transition-all whitespace-nowrap border ${
               selectedCategory === 'all'
-                ? 'bg-[#2a3464] text-[#9aa8ff] border border-[#9aa8ff]'
-                : 'bg-[#121830] text-[#aab4dc] border border-[#252e56] hover:bg-white/5'
+                ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
             }`}
           >
-            All Areas ({TOOLS.length})
+            All ({TOOLS.length})
           </button>
           {CATEGORIES.map((cat) => {
             const count = TOOLS.filter(t => t.cat === cat.id).length;
             const isSelected = selectedCategory === cat.id;
             return (
               <button
+                type="button"
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
                   isSelected
-                    ? 'bg-[#2a3464] text-white border border-[#9aa8ff]'
-                    : 'bg-[#121830] text-[#aab4dc] border border-[#252e56] hover:bg-white/5'
+                    ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                 }`}
               >
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
                 {cat.name} ({count})
               </button>
             );
@@ -115,7 +104,7 @@ export const ToolsDirectory: React.FC<ToolsDirectoryProps> = ({ onSelectTool }) 
       </div>
 
       {/* Tool Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {filteredTools.map((tool) => {
           const cat = CATEGORIES.find(c => c.id === tool.cat);
           const isFeatured = tool.featured || tool.id === 'gis_property_survey';
@@ -123,60 +112,55 @@ export const ToolsDirectory: React.FC<ToolsDirectoryProps> = ({ onSelectTool }) 
           return (
             <div
               key={tool.id}
-              className={`bg-[#181f3d] border rounded-2xl p-5 shadow-lg flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-2xl ${
-                isFeatured ? 'border-[#9aa8ff]/60 bg-gradient-to-b from-[#1d2547] to-[#181f3d]' : 'border-[#28325c]'
+              className={`content-card flex flex-col justify-between p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_16px_36px_rgba(20,44,83,0.12)] hover:border-blue-200 ${
+                isFeatured ? 'ring-1 ring-blue-200/80 border-blue-100' : ''
               }`}
             >
               <div>
-                {/* Card Top */}
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-md flex-none"
-                      style={{ backgroundColor: `${cat?.color || '#4f46e5'}25`, color: cat?.color || '#9aa8ff' }}
+                      className="w-10 h-10 rounded-xl flex items-center justify-center font-bold flex-none ring-1 ring-black/5"
+                      style={{ backgroundColor: `${cat?.color || '#4f46e5'}18`, color: cat?.color || '#477dff' }}
                     >
                       {getToolIcon(tool.icon)}
                     </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-white tracking-tight leading-snug">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-bold text-slate-800 tracking-tight leading-snug truncate">
                         {tool.title}
                       </h3>
-                      <span className="text-[10px] text-[#aab4dc] uppercase font-mono font-semibold">
+                      <span className="text-[10px] text-slate-500 uppercase font-semibold tracking-wide">
                         {tool.type} · {cat?.name}
                       </span>
                     </div>
                   </div>
 
                   {tool.isNew && (
-                    <span className="bg-[#f2b233] text-[#0d1224] text-[9.5px] font-black px-2 py-0.5 rounded tracking-wider uppercase">
-                      NEW
-                    </span>
+                    <span className="badge badge-warn shrink-0">New</span>
                   )}
                 </div>
 
-                {/* Description */}
-                <p className="text-xs text-[#d6dcf5] mt-3 leading-relaxed">
+                <p className="text-xs text-slate-600 mt-3 leading-relaxed">
                   {tool.desc}
                 </p>
 
-                {/* Use When Callout */}
-                <div className="mt-3 p-2.5 rounded-lg bg-[#121830] border border-[#252e56] text-[11px] text-[#aab4dc] leading-snug">
-                  <b className="text-[#ffe3a3]">Use when:</b> {tool.use}
+                <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-600 leading-snug">
+                  <span className="font-bold text-amber-700">Use when:</span> {tool.use}
                 </div>
               </div>
 
-              {/* Action Link / Button */}
-              <div className="pt-4 mt-4 border-t border-[#232c52] flex items-center justify-between">
-                <span className="text-[11px] font-mono text-[#8790bd]">
-                  {tool.status === 'soon' ? 'Coming Soon' : 'Runs in Browser'}
+              <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+                <span className="text-[11px] font-medium text-slate-400">
+                  {tool.status === 'soon' ? 'Coming soon' : 'Runs in browser'}
                 </span>
 
                 <button
+                  type="button"
                   onClick={() => onSelectTool(tool.id)}
                   disabled={tool.status === 'soon'}
-                  className="bg-[#4f46e5] hover:bg-[#6259f0] disabled:opacity-40 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow transition-transform active:scale-95"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 disabled:opacity-40 text-white text-xs font-bold px-3.5 py-2 shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/25 transition-all active:scale-[0.98]"
                 >
-                  Open Tool
+                  Open tool
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -186,8 +170,14 @@ export const ToolsDirectory: React.FC<ToolsDirectoryProps> = ({ onSelectTool }) 
       </div>
 
       {filteredTools.length === 0 && (
-        <div className="text-center py-12 border border-dashed border-[#28325c] rounded-2xl bg-[#181f3d] text-[#aab4dc] text-xs">
-          No tools match &ldquo;{searchQuery}&rdquo;. Try another search term or click &ldquo;All Areas&rdquo;.
+        <div className="empty-state border border-dashed border-slate-200 rounded-2xl bg-white">
+          <div className="empty-icon">
+            <Search className="w-5 h-5" />
+          </div>
+          <h3>No matching tools</h3>
+          <p>
+            Nothing matches &ldquo;{searchQuery}&rdquo;. Try another term or select All.
+          </p>
         </div>
       )}
     </section>

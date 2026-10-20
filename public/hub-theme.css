@@ -374,3 +374,169 @@ button, input, select, textarea, label { font-size: 1rem !important; }
   color: #1d304b !important;
   background: #fff !important;
 }
+
+/* ── Professional page layout for standalone tools / admin ── */
+.page-shell {
+  max-width: 1240px;
+  margin-inline: auto;
+  padding: 1.5rem clamp(12px, 3vw, 28px) 3rem;
+}
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.15rem;
+  border-bottom: 1px solid rgba(137, 164, 211, 0.18);
+}
+.page-kicker {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--hub-accent-2, #25d6c5);
+  margin-bottom: 0.3rem;
+}
+.page-header h1, .page-header h2 {
+  margin: 0;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+.page-sub {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  color: var(--hub-mute, #8da2c4);
+  max-width: 40rem;
+  line-height: 1.45;
+}
+.metric-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.metric-card {
+  background: rgba(17, 26, 45, 0.92);
+  border: 1px solid rgba(137, 164, 211, 0.18);
+  border-radius: 16px;
+  padding: 1rem 1.15rem;
+}
+.metric-card .metric-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--hub-mute);
+  margin-bottom: 0.3rem;
+}
+.metric-card .metric-value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--hub-text);
+}
+.content-card {
+  background: rgba(17, 26, 45, 0.92);
+  border: 1px solid rgba(137, 164, 211, 0.18);
+  border-radius: 18px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18), inset 0 1px rgba(255, 255, 255, 0.035);
+  overflow: hidden;
+}
+.content-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(137, 164, 211, 0.12);
+}
+.content-card-body { padding: 1.15rem 1.25rem; }
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  background: rgba(17, 26, 45, 0.92);
+  border: 1px solid rgba(137, 164, 211, 0.18);
+  border-radius: 14px;
+  margin-bottom: 1rem;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+.badge-info {
+  background: rgba(71, 125, 255, 0.15);
+  color: #9bb8ff;
+  border-color: rgba(71, 125, 255, 0.3);
+}
+.badge-success {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.28);
+}
+.badge-danger {
+  background: rgba(255, 107, 111, 0.12);
+  color: #ff8a8d;
+  border-color: rgba(255, 107, 111, 0.28);
+}
+.badge-warn {
+  background: rgba(242, 178, 51, 0.14);
+  color: #f2b233;
+  border-color: rgba(242, 178, 51, 0.3);
+}
+.empty-state {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--hub-mute);
+  border: 1px dashed rgba(137, 164, 211, 0.25);
+  border-radius: 18px;
+  background: rgba(17, 26, 45, 0.5);
+}
+.doc-sheet {
+  background: #fff;
+  color: #111;
+  border-radius: 4px;
+  padding: 2rem 2.25rem;
+  max-width: 48rem;
+  margin-inline: auto;
+  font-family: "Times New Roman", Times, Georgia, serif;
+  line-height: 1.55;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+}
+.doc-sheet .doc-masthead {
+  text-align: center;
+  border-bottom: 2px solid #1a2744;
+  padding-bottom: 1rem;
+  margin-bottom: 1.25rem;
+}
+.doc-sheet .doc-masthead h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0 0 0.25rem;
+  color: #0f1a2e !important;
+}
+@media print {
+  .hub-bar, .no-print { display: none !important; }
+  body { background: #fff !important; color: #000 !important; }
+  .doc-sheet {
+    box-shadow: none !important;
+    border: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+}

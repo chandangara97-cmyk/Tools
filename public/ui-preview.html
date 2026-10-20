@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scheme Hub 2026 — Professional UI Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #172943;
+      --muted: #647891;
+      --line: #e2eaf4;
+      --accent: #477dff;
+      --accent-2: #25d6c5;
+      --workspace: #f3f6fb;
+      --surface: #fff;
+      --command: #0a1020;
+      --command-raised: #111a2d;
+    }
+    * { box-sizing: border-box; }
+    html { font-size: 17px; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: radial-gradient(ellipse at 50% 0%, rgba(79,125,255,.06), transparent 28rem), var(--workspace);
+      color: #1d304b;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.55;
+    }
+    h1,h2,h3 { letter-spacing: -.03em; margin: 0; }
+
+    /* Navbar */
+    .navbar {
+      position: sticky; top: 0; z-index: 40;
+      background: rgba(9,16,31,.92);
+      color: #e8f0ff;
+      border-bottom: 1px solid rgba(137,164,211,.18);
+      box-shadow: 0 12px 36px rgba(0,0,0,.18);
+      backdrop-filter: blur(22px) saturate(145%);
+    }
+    .navbar-inner {
+      max-width: 1600px; margin: 0 auto;
+      min-height: 72px; padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      width: 40px; height: 40px; border-radius: 14px;
+      background: linear-gradient(145deg, #4f8cff, #21c9c3);
+      display: grid; place-items: center;
+      box-shadow: 0 0 0 5px rgba(63,131,255,.09), 0 8px 22px rgba(49,116,255,.25);
+    }
+    .brand-name { font-weight: 800; font-size: 15px; }
+    .brand-name span { color: #67e8f9; }
+    .brand-sub { font-size: 10px; text-transform: uppercase; letter-spacing: .19em; color: #8da2c4; margin-top: 2px; }
+    .nav-actions { display: flex; align-items: center; gap: 8px; }
+    .nav-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 14px; border-radius: 12px; border: 1px solid transparent;
+      font-size: 12px; font-weight: 700; color: #c8d6ef; background: transparent; cursor: pointer;
+    }
+    .nav-btn:hover { background: rgba(93,135,226,.14); color: #fff; }
+    .nav-btn.active { background: rgba(69,119,239,.19); border-color: rgba(106,151,255,.4); color: #dce8ff; }
+    .nav-btn.amber { border-color: rgba(251,191,36,.2); background: rgba(251,191,36,.1); color: #fde68a; }
+    .nav-btn.cyan { border-color: rgba(34,211,238,.2); background: rgba(34,211,238,.1); color: #a5f3fc; }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 999px;
+      background: linear-gradient(135deg, #60a5fa, #5eead4);
+      color: #0a1020; font-weight: 900; font-size: 12px;
+      display: grid; place-items: center;
+    }
+    .user-meta { font-size: 12px; }
+    .user-meta strong { display: block; color: #f1f6ff; }
+    .user-meta span { color: #8da2c4; font-size: 10px; text-transform: capitalize; }
+
+    /* Page shell */
+    .page-shell {
+      max-width: 1600px; margin: 0 auto;
+      padding: 28px clamp(12px, 2.5vw, 32px) 56px;
+    }
+    .page-header {
+      display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+      gap: 16px 24px; margin-bottom: 24px; padding-bottom: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    .page-kicker {
+      display: block; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .12em; color: var(--accent); margin-bottom: 6px;
+    }
+    .page-header h1 { font-size: clamp(1.4rem, 2.5vw, 1.85rem); font-weight: 800; color: #132943; }
+    .page-sub { margin: 6px 0 0; font-size: 14px; color: var(--muted); max-width: 42rem; }
+    .page-header-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 700;
+      border: 1px solid transparent; cursor: pointer; transition: .18s ease;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #4f8cff, #25d6c5);
+      color: #0a1020; box-shadow: 0 8px 22px rgba(71,125,255,.22);
+    }
+    .btn-primary:hover { filter: saturate(1.08); transform: translateY(-1px); }
+    .btn-ghost {
+      background: #fff; border-color: var(--line); color: #1b3150;
+    }
+    .btn-ghost:hover { border-color: #a7c4ff; box-shadow: 0 4px 14px rgba(20,40,70,.06); }
+
+    /* Metrics */
+    .metric-strip {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .metric-card {
+      background: #fff; border: 1px solid var(--line); border-radius: 16px;
+      padding: 16px 18px; box-shadow: 0 4px 16px rgba(20,40,70,.04);
+    }
+    .metric-card.accent { background: linear-gradient(145deg, #f0f5ff, #fff); border-color: #c5d6ff; }
+    .metric-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--muted); margin-bottom: 6px;
+    }
+    .metric-value {
+      font-size: 1.35rem; font-weight: 800; letter-spacing: -.02em;
+      color: #132943; font-variant-numeric: tabular-nums;
+    }
+    .metric-card.danger .metric-value { color: #c53030; }
+    .metric-card.success .metric-value { color: #16805d; }
+    .metric-hint { margin-top: 4px; font-size: 12px; color: #7a8eab; }
+
+    /* Content card */
+    .content-card {
+      background: #fff; border: 1px solid var(--line); border-radius: 18px;
+      box-shadow: 0 8px 28px rgba(20,44,83,.05); overflow: hidden; margin-bottom: 16px;
+    }
+    .content-card-header {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 16px 20px; border-bottom: 1px solid #eef2f8;
+      background: linear-gradient(180deg, #fafbfd, #fff);
+    }
+    .content-card-header h3 { font-size: 15px; font-weight: 750; color: #1b3150; }
+    .content-card-body { padding: 18px 20px; }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+      padding: 14px 16px; background: #fff; border: 1px solid var(--line);
+      border-radius: 14px; margin-bottom: 16px;
+      box-shadow: 0 2px 10px rgba(20,40,70,.03);
+    }
+    .toolbar input {
+      flex: 1; min-width: 180px; min-height: 42px;
+      border: 1px solid #d3deec; border-radius: 12px; padding: 0 14px 0 40px;
+      background: #f8fbff; font-size: 14px; color: #1b3150; outline: none;
+    }
+    .toolbar input:focus { border-color: #5487ef; box-shadow: 0 0 0 4px rgba(71,125,255,.12); }
+    .search-wrap { position: relative; flex: 1; min-width: 180px; }
+    .search-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+
+    /* Chips */
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700;
+      border: 1px solid #e2e8f0; background: #fff; color: #475569; cursor: pointer;
+    }
+    .chip.on { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; box-shadow: 0 1px 4px rgba(37,99,235,.08); }
+    .chip-dot { width: 8px; height: 8px; border-radius: 999px; }
+
+    /* Table */
+    .data-table-wrap {
+      overflow-x: auto; border-radius: 14px; border: 1px solid var(--line); background: #fff;
+    }
+    table.pro-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+    table.pro-table th {
+      background: #edf3fb; color: #405571; font-weight: 750; font-size: 11px;
+      text-transform: uppercase; letter-spacing: .04em; padding: 11px 14px;
+      text-align: left; border-bottom: 1px solid #dce5f1; white-space: nowrap;
+    }
+    table.pro-table td {
+      padding: 12px 14px; border-bottom: 1px solid #eef2f8; color: #263b57; vertical-align: middle;
+    }
+    table.pro-table tr:last-child td { border-bottom: 0; }
+    table.pro-table tr:hover td { background: #f5f8ff; }
+    .num { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+
+    /* Badges */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700;
+      border: 1px solid transparent;
+    }
+    .badge-paid { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .badge-due { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+    .badge-pending { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+    .badge-info { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+
+    /* Tool cards grid */
+    .tool-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;
+    }
+    .tool-card {
+      background: #fff; border: 1px solid var(--line); border-radius: 18px;
+      padding: 20px; box-shadow: 0 8px 28px rgba(20,44,83,.05);
+      display: flex; flex-direction: column; justify-content: space-between;
+      transition: .2s ease;
+    }
+    .tool-card:hover {
+      transform: translateY(-3px); border-color: #a7c4ff;
+      box-shadow: 0 16px 36px rgba(20,44,83,.12);
+    }
+    .tool-card.featured { ring: 1px; border-color: #c5d6ff; box-shadow: 0 8px 28px rgba(71,125,255,.08); }
+    .tool-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      display: grid; place-items: center; font-size: 18px;
+      background: rgba(71,125,255,.1); color: #477dff;
+    }
+    .tool-title { font-size: 14px; font-weight: 750; color: #1e3656; }
+    .tool-meta { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: #647891; font-weight: 600; }
+    .tool-desc { font-size: 12px; color: #475569; margin: 12px 0; line-height: 1.5; }
+    .tool-use {
+      font-size: 11px; color: #475569; background: #f8fafc; border: 1px solid #eef2f8;
+      border-radius: 12px; padding: 10px; margin-bottom: 16px;
+    }
+    .tool-use b { color: #b45309; }
+    .tool-foot {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-top: 14px; border-top: 1px solid #eef2f8; margin-top: auto;
+    }
+
+    /* Work menu hero */
+    .hero-card {
+      position: relative; overflow: hidden; border-radius: 24px; margin-bottom: 24px;
+      background: linear-gradient(135deg, #0a1020 0%, #122040 50%, #0d1a38 100%);
+      color: #fff; border: 1px solid rgba(255,255,255,.1);
+      box-shadow: 0 20px 50px rgba(10,16,32,.35);
+      padding: 24px 28px;
+    }
+    .hero-card::before {
+      content: ''; position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 90% 0%, rgba(37,214,197,.18), transparent 40%),
+        radial-gradient(ellipse at 10% 100%, rgba(79,125,255,.2), transparent 45%);
+      pointer-events: none;
+    }
+    .hero-inner { position: relative; display: flex; align-items: flex-start; gap: 16px; }
+    .hero-icon {
+      width: 48px; height: 48px; border-radius: 16px;
+      background: linear-gradient(145deg, #4f8cff, #21c9c3);
+      display: grid; place-items: center;
+      box-shadow: 0 0 0 5px rgba(63,131,255,.12), 0 10px 24px rgba(49,116,255,.35);
+    }
+    .hero-kicker { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: #67e8f9; margin-bottom: 4px; }
+    .hero-title { font-size: 1.65rem; font-weight: 900; letter-spacing: -.03em; }
+    .hero-role { font-size: 14px; font-weight: 600; color: #9bb8ff; margin-top: 4px; }
+    .hero-foot {
+      position: relative; margin-top: 16px; padding-top: 12px;
+      border-top: 1px solid rgba(96,165,250,.25);
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+      font-size: 11px; color: #94a3b8;
+    }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 999px;
+      background: rgba(16,185,129,.15); color: #6ee7b7;
+      border: 1px solid rgba(52,211,153,.25); font-weight: 600;
+    }
+    .status-dot { width: 6px; height: 6px; border-radius: 999px; background: #34d399; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* Action rows */
+    .action-row {
+      display: flex; align-items: center; gap: 14px; width: 100%;
+      padding: 16px 18px; border-radius: 16px; border: 2px solid;
+      background: linear-gradient(90deg, var(--ar-from), #fff);
+      text-align: left; cursor: pointer; margin-bottom: 10px;
+      transition: .2s ease; box-shadow: 0 4px 18px rgba(20,40,70,.04);
+    }
+    .action-row:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(20,40,70,.1); }
+    .action-row.amber { --ar-from: rgba(251,191,36,.12); border-color: #fcd34d; }
+    .action-row.rose { --ar-from: rgba(251,113,133,.1); border-color: #fda4af; }
+    .action-row.blue { --ar-from: rgba(56,189,248,.1); border-color: #7dd3fc; }
+    .action-icon {
+      width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .action-row.amber .action-icon { background: #fef3c7; color: #d97706; }
+    .action-row.rose .action-icon { background: #ffe4e6; color: #e11d48; }
+    .action-row.blue .action-icon { background: #e0f2fe; color: #0284c7; }
+    .action-title { font-size: 15px; font-weight: 750; color: #1e293b; }
+    .action-note { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+    /* Bill tiles */
+    .bill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 8px; }
+    .bill-tile {
+      min-height: 120px; padding: 16px; border-radius: 16px; color: #fff;
+      background: linear-gradient(145deg, #4f7dff, #2f4fc4);
+      box-shadow: 0 12px 28px rgba(47,79,196,.28);
+      display: flex; flex-direction: column; justify-content: space-between;
+      cursor: pointer; transition: .2s ease; position: relative; overflow: hidden;
+    }
+    .bill-tile:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(47,79,196,.4); }
+    .bill-tile-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: rgba(255,255,255,.15); display: grid; place-items: center; font-size: 18px;
+    }
+    .bill-tile-title { font-size: 14px; font-weight: 800; }
+    .bill-tile-note { font-size: 11px; color: rgba(224,231,255,.9); margin-top: 4px; }
+
+    /* Section label */
+    .section-label {
+      display: flex; align-items: center; gap: 12px; margin: 24px 0 12px;
+      font-size: 12px; font-weight: 750; text-transform: uppercase; letter-spacing: .08em; color: #647891;
+    }
+    .section-label::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, #e2eaf4, transparent);
+    }
+
+    /* Tabs demo */
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; flex-wrap: wrap; }
+    .tab {
+      padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 700;
+      border: 1px solid transparent; background: transparent; color: #647891; cursor: pointer;
+    }
+    .tab.on { background: #fff; border-color: var(--line); color: #1b3150; box-shadow: 0 2px 8px rgba(20,40,70,.05); }
+
+    .preview-label {
+      text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .14em; color: #8da2c4; padding: 12px; background: #0a1020;
+    }
+
+    @media (max-width: 640px) {
+      .navbar-inner { padding: 0 12px; }
+      .user-meta, .brand-sub { display: none; }
+      .page-shell { padding-inline: 10px; }
+      .metric-strip { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-label">Scheme Hub 2026 — Professional UI Preview</div>
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/></svg>
+        </div>
+        <div>
+          <div class="brand-name">Scheme Hub <span>2026</span></div>
+          <div class="brand-sub">Civic operations platform</div>
+        </div>
+      </div>
+      <nav class="nav-actions">
+        <button class="nav-btn active">🔧 Tools</button>
+        <button class="nav-btn amber">🔒 Admin</button>
+        <button class="nav-btn cyan">📱 Install app</button>
+        <div style="display:flex;align-items:center;gap:8px;border-left:1px solid rgba(255,255,255,.1);padding-left:12px;margin-left:4px">
+          <div class="avatar">A</div>
+          <div class="user-meta">
+            <strong>Admin User</strong>
+            <span>admin · Nerwa</span>
+          </div>
+        </div>
+        <button class="nav-btn">Sign out</button>
+      </nav>
+    </div>
+    <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(96,165,250,.4),transparent)"></div>
+  </header>
+
+  <main class="page-shell">
+    <!-- Demo tabs -->
+    <div class="tabs">
+      <button class="tab on" onclick="show('work')">Work menu</button>
+      <button class="tab" onclick="show('tools')">Tools directory</button>
+      <button class="tab" onclick="show('collection')">Collection desk</button>
+    </div>
+
+    <!-- ═══════ WORK MENU ═══════ -->
+    <div id="panel-work">
+      <div class="hero-card">
+        <div class="hero-inner">
+          <div class="hero-icon">✨</div>
+          <div>
+            <div class="hero-kicker">Command centre</div>
+            <div class="hero-title">Nerwa</div>
+            <div class="hero-role">ULB Admin · Property tax</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:2px">Asha Devi</div>
+          </div>
+        </div>
+        <div class="hero-foot">
+          <span class="status-pill"><span class="status-dot"></span> Ready</span>
+          <span>Choose a task below</span>
+        </div>
+      </div>
+
+      <button class="action-row amber">
+        <span class="action-icon">🔍</span>
+        <span style="flex:1">
+          <span class="action-title">Search dues</span>
+          <span class="action-note">By property ID or owner</span>
+        </span>
+        <span style="color:#f59e0b">›</span>
+      </button>
+      <button class="action-row rose">
+        <span class="action-icon">💳</span>
+        <span style="flex:1">
+          <span class="action-title">Pending dues</span>
+          <span class="action-note">See and update dues of every bill</span>
+        </span>
+        <span style="color:#e11d48">›</span>
+      </button>
+      <button class="action-row blue">
+        <span class="action-icon">🏛️</span>
+        <span style="flex:1">
+          <span class="action-title">Town register</span>
+          <span class="action-note">Properties, owners, units</span>
+        </span>
+        <span style="color:#0284c7">›</span>
+      </button>
+
+      <div class="section-label">Collect bills</div>
+      <div class="bill-grid">
+        <div class="bill-tile">
+          <div class="bill-tile-icon">🏠</div>
+          <div>
+            <div class="bill-tile-title">Property tax</div>
+            <div class="bill-tile-note">Annual demand</div>
+          </div>
+        </div>
+        <div class="bill-tile">
+          <div class="bill-tile-icon">💧</div>
+          <div>
+            <div class="bill-tile-title">Water bill</div>
+            <div class="bill-tile-note">Monthly / yearly</div>
+          </div>
+        </div>
+        <div class="bill-tile">
+          <div class="bill-tile-icon">🗑️</div>
+          <div>
+            <div class="bill-tile-title">Garbage bill</div>
+            <div class="bill-tile-note">Per unit</div>
+          </div>
+        </div>
+        <div class="bill-tile">
+          <div class="bill-tile-icon">🌊</div>
+          <div>
+            <div class="bill-tile-title">Sewerage</div>
+            <div class="bill-tile-note">Utility charge</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ TOOLS DIRECTORY ═══════ -->
+    <div id="panel-tools" style="display:none">
+      <header class="page-header">
+        <div>
+          <span class="page-kicker">Field operations</span>
+          <h1>Tools Directory <span class="badge badge-info" style="font-size:12px;vertical-align:middle;margin-left:8px">12 tools</span></h1>
+          <p class="page-sub">GIS property survey and KML / Shapefile converters for QGIS and field work.</p>
+        </div>
+      </header>
+
+      <div class="toolbar" style="flex-direction:column;align-items:stretch;gap:12px">
+        <div class="search-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="search" placeholder="Search by job, e.g. bill, KML, boundary, scrutiny…" />
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="chip on">All (12)</button>
+          <button class="chip"><span class="chip-dot" style="background:#477dff"></span> Survey (4)</button>
+          <button class="chip"><span class="chip-dot" style="background:#25d6c5"></span> GIS (3)</button>
+          <button class="chip"><span class="chip-dot" style="background:#f2b233"></span> Revenue (5)</button>
+        </div>
+      </div>
+
+      <div class="tool-grid">
+        <div class="tool-card featured">
+          <div>
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div class="tool-icon">🗺️</div>
+                <div>
+                  <div class="tool-title">GIS Property Survey</div>
+                  <div class="tool-meta">App · Survey</div>
+                </div>
+              </div>
+              <span class="badge badge-pending">New</span>
+            </div>
+            <p class="tool-desc">Capture property boundaries, photos, and attributes in the field with offline sync.</p>
+            <div class="tool-use"><b>Use when:</b> You need to survey holdings ward by ward with GPS accuracy.</div>
+          </div>
+          <div class="tool-foot">
+            <span style="font-size:11px;color:#94a3b8">Runs in browser</span>
+            <button class="btn btn-primary" style="padding:8px 14px;font-size:12px">Open tool →</button>
+          </div>
+        </div>
+        <div class="tool-card">
+          <div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="tool-icon" style="background:rgba(37,214,197,.12);color:#0d9488">📐</div>
+              <div>
+                <div class="tool-title">WKT / KML Converter</div>
+                <div class="tool-meta">Tool · GIS</div>
+              </div>
+            </div>
+            <p class="tool-desc">Convert between WKT, KML, and GeoJSON for QGIS workflows.</p>
+            <div class="tool-use"><b>Use when:</b> Exporting survey polygons for desktop GIS.</div>
+          </div>
+          <div class="tool-foot">
+            <span style="font-size:11px;color:#94a3b8">Runs in browser</span>
+            <button class="btn btn-primary" style="padding:8px 14px;font-size:12px">Open tool →</button>
+          </div>
+        </div>
+        <div class="tool-card">
+          <div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="tool-icon" style="background:rgba(242,178,51,.12);color:#b45309">📊</div>
+              <div>
+                <div class="tool-title">Self-Assessment Calculator</div>
+                <div class="tool-meta">Citizen · Revenue</div>
+              </div>
+            </div>
+            <p class="tool-desc">Citizen-facing estimator for holding tax, cess, and early-bird rebate.</p>
+            <div class="tool-use"><b>Use when:</b> Helping owners estimate annual tax before payment.</div>
+          </div>
+          <div class="tool-foot">
+            <span style="font-size:11px;color:#94a3b8">Runs in browser</span>
+            <button class="btn btn-primary" style="padding:8px 14px;font-size:12px">Open tool →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ COLLECTION DESK ═══════ -->
+    <div id="panel-collection" style="display:none">
+      <header class="page-header">
+        <div>
+          <span class="page-kicker">Revenue collection</span>
+          <h1>Property tax — Nerwa</h1>
+          <p class="page-sub">FY 2026-27 · Demand, interest, and receipts for the active financial year.</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost">Export CSV</button>
+          <button class="btn btn-primary">Raise demand</button>
+        </div>
+      </header>
+
+      <div class="metric-strip">
+        <div class="metric-card accent">
+          <div class="metric-label">Total demand</div>
+          <div class="metric-value">₹18,42,500</div>
+          <div class="metric-hint">312 properties</div>
+        </div>
+        <div class="metric-card success">
+          <div class="metric-label">Collected</div>
+          <div class="metric-value">₹11,06,200</div>
+          <div class="metric-hint">60% of demand</div>
+        </div>
+        <div class="metric-card danger">
+          <div class="metric-label">Outstanding</div>
+          <div class="metric-value">₹7,36,300</div>
+          <div class="metric-hint">incl. interest</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Receipts today</div>
+          <div class="metric-value">24</div>
+          <div class="metric-hint">₹1,28,400</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="search" placeholder="Search property ID, owner, or receipt…" />
+        </div>
+        <button class="chip on">All</button>
+        <button class="chip">Due</button>
+        <button class="chip">Paid</button>
+        <button class="chip">Partial</button>
+      </div>
+
+      <div class="content-card">
+        <div class="content-card-header">
+          <h3>Property ledger</h3>
+          <span class="badge badge-info">Showing 5 of 312</span>
+        </div>
+        <div class="data-table-wrap" style="border:0;border-radius:0">
+          <table class="pro-table">
+            <thead>
+              <tr>
+                <th>Property ID</th>
+                <th>Owner</th>
+                <th>Use</th>
+                <th class="num">Demand</th>
+                <th class="num">Paid</th>
+                <th class="num">Due</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight:600;font-family:ui-monospace,monospace;font-size:13px">0206001-W03-042</td>
+                <td>Ramesh Kumar</td>
+                <td>Residential</td>
+                <td class="num">₹12,450</td>
+                <td class="num">₹12,450</td>
+                <td class="num">₹0</td>
+                <td><span class="badge badge-paid">Paid</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;font-family:ui-monospace,monospace;font-size:13px">0206001-W01-018</td>
+                <td>Sita Devi</td>
+                <td>Commercial</td>
+                <td class="num">₹28,900</td>
+                <td class="num">₹10,000</td>
+                <td class="num">₹19,280</td>
+                <td><span class="badge badge-pending">Partial</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;font-family:ui-monospace,monospace;font-size:13px">0206001-W05-007</td>
+                <td>Himachal Traders</td>
+                <td>Commercial</td>
+                <td class="num">₹45,200</td>
+                <td class="num">₹0</td>
+                <td class="num">₹48,116</td>
+                <td><span class="badge badge-due">Due</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;font-family:ui-monospace,monospace;font-size:13px">0206001-W02-091</td>
+                <td>Priya Sharma</td>
+                <td>Residential</td>
+                <td class="num">₹8,120</td>
+                <td class="num">₹8,120</td>
+                <td class="num">₹0</td>
+                <td><span class="badge badge-paid">Paid</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;font-family:ui-monospace,monospace;font-size:13px">0206001-W04-033</td>
+                <td>Vikram Singh</td>
+                <td>Mixed use</td>
+                <td class="num">₹19,600</td>
+                <td class="num">₹5,000</td>
+                <td class="num">₹15,232</td>
+                <td><span class="badge badge-pending">Partial</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function show(id) {
+      ['work','tools','collection'].forEach(p => {
+        document.getElementById('panel-' + p).style.display = p === id ? 'block' : 'none';
+      });
+      document.querySelectorAll('.tab').forEach((t,i) => {
+        t.classList.toggle('on', ['work','tools','collection'][i] === id);
+      });
+    }
+  </script>
+</body>
+</html>
