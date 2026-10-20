@@ -76,37 +76,53 @@ const ActionRow: React.FC<{
   );
 };
 
-/* ── Collect-bill tiles (strong accent) ── */
+/* ── Collect-bill tiles (cashier desk accents) ── */
+const BILL_TILE_TONE: Record<HeadId, string> = {
+  property_tax: 'from-blue-600 via-blue-500 to-indigo-600 shadow-blue-500/30 hover:shadow-blue-500/45',
+  water: 'from-cyan-600 via-sky-500 to-blue-600 shadow-cyan-500/30 hover:shadow-cyan-500/45',
+  garbage: 'from-emerald-600 via-teal-500 to-green-700 shadow-emerald-500/30 hover:shadow-emerald-500/45',
+  sewerage: 'from-violet-600 via-purple-500 to-indigo-700 shadow-violet-500/30 hover:shadow-violet-500/45',
+  other: 'from-slate-600 via-slate-500 to-slate-700 shadow-slate-500/25 hover:shadow-slate-500/40',
+};
+
 const BillTile: React.FC<{
   icon: React.ReactNode;
   title: string;
   note?: string;
+  head?: HeadId;
   onClick: () => void;
-}> = ({ icon, title, note, onClick }) => (
+}> = ({ icon, title, note, head, onClick }) => (
   <button
     type="button"
     onClick={onClick}
-    className="group relative text-left overflow-hidden rounded-2xl min-h-[120px] p-4
+    className={`group relative text-left overflow-hidden rounded-2xl min-h-[128px] p-4
       flex flex-col justify-between text-white
-      bg-gradient-to-br from-[#4f7dff] via-[#4568e8] to-[#2f4fc4]
-      shadow-[0_12px_28px_rgba(47,79,196,0.28)]
-      hover:shadow-[0_18px_40px_rgba(47,79,196,0.4)]
+      bg-gradient-to-br ${head ? BILL_TILE_TONE[head] : BILL_TILE_TONE.property_tax}
+      shadow-[0_12px_28px_rgba(47,79,196,0.22)]
+      hover:shadow-[0_18px_40px_rgba(47,79,196,0.35)]
       hover:-translate-y-1 active:translate-y-0
-      transition-all duration-200"
+      transition-all duration-200 ring-1 ring-white/10`}
   >
     <span
-      className="pointer-events-none absolute -right-6 -top-6 w-24 h-24 rounded-full
-        bg-white/10 blur-xl group-hover:bg-cyan-300/20 transition-colors"
+      className="pointer-events-none absolute -right-6 -top-6 w-28 h-28 rounded-full
+        bg-white/10 blur-xl group-hover:bg-white/20 transition-colors"
       aria-hidden
     />
-    <span className="relative w-10 h-10 rounded-xl bg-white/15 grid place-items-center backdrop-blur-sm">
+    <span className="pointer-events-none absolute bottom-0 left-0 right-0 h-1/2
+      bg-gradient-to-t from-black/15 to-transparent" aria-hidden />
+    <span className="relative w-11 h-11 rounded-xl bg-white/20 grid place-items-center backdrop-blur-sm
+      ring-1 ring-white/25 group-hover:scale-105 transition-transform">
       {icon}
     </span>
     <span className="relative">
       <span className="block text-[15px] font-extrabold leading-tight tracking-tight">{title}</span>
       {note && (
-        <span className="block text-[11px] text-indigo-100/90 mt-1 font-medium">{note}</span>
+        <span className="block text-[11px] text-white/85 mt-1 font-medium">{note}</span>
       )}
+      <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider
+        text-white/70 group-hover:text-white transition-colors">
+        Open counter <span aria-hidden>→</span>
+      </span>
     </span>
   </button>
 );
@@ -267,13 +283,14 @@ export const WorkMenu: React.FC<Props> = ({ townName, tabs, bills, onChoose }) =
 
         {/* Collect bills */}
         {has('collection') && bills.length > 0 && (
-          <Group title="Collect bills">
+          <Group title={role === 'cashier' ? 'Payment counters' : 'Collect bills'}>
             {bills.map((h) => (
               <BillTile
                 key={h}
+                head={h}
                 icon={BILL_ICON[h]}
                 title={BILL_NAME[h]}
-                note="Demand & payment"
+                note={role === 'cashier' ? 'Search · take payment · print receipt' : 'Demand & payment'}
                 onClick={() => onChoose({ tab: 'collection', head: h })}
               />
             ))}

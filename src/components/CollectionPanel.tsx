@@ -28,9 +28,9 @@ interface Props {
 }
 
 export const money = (n: number) => `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const inp = 'bg-[#121830] border border-[#2f3a6b] text-white text-xs rounded p-1.5';
-const card = 'bg-[#181f3d] border border-[#28325c] rounded-xl p-4 shadow-lg';
-const btn = 'inline-flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-40';
+const inp = 'bg-white border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-2 shadow-sm focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none';
+const card = 'bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-[0_8px_28px_rgba(20,44,83,0.06)]';
+const btn = 'inline-flex items-center gap-1.5 text-sm font-bold px-3.5 py-2.5 rounded-xl disabled:opacity-40 transition-all active:scale-[0.98]';
 export const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 
 function receiptHtml(o: {
@@ -85,6 +85,9 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
   const period = monthly ? month : fy;
   const assessments = useAssessments(townKey, fy);
   const [q, setQ] = useState('');
+  const [filterWard, setFilterWard] = useState('');
+  const [filterName, setFilterName] = useState('');
+  const [filterDue, setFilterDue] = useState<'all' | 'due' | 'paid'>('all');
   const [sel, setSel] = useState<string | null>(() => readStep('csel', '') || null);
   const selNav = useStepBack('csel', sel ?? '', (v: string) => setSel(v || null), '');
   const [msg, setMsg] = useState('');
@@ -143,11 +146,37 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
     });
   };
 
+  const wardOptions = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach(({ r }) => {
+      const w = String(r.ward ?? '').trim();
+      if (w) set.add(w);
+    });
+    return [...set].sort((a, b) => {
+      const na = parseInt(a.replace(/\D/g, ''), 10);
+      const nb = parseInt(b.replace(/\D/g, ''), 10);
+      if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+      return a.localeCompare(b, undefined, { numeric: true });
+    });
+  }, [rows]);
+
   const list = useMemo(() => {
     const t = q.trim().toLowerCase();
-    const f = rows.filter(({ r }) => !t || [r.id, r.owner, r.hno, r.ward].some((x) => String(x).toLowerCase().includes(t)));
+    const name = filterName.trim().toLowerCase();
+    const ward = filterWard.trim().toLowerCase();
+    const f = rows.filter(({ r, led }) => {
+      if (ward && String(r.ward ?? '').trim().toLowerCase() !== ward) return false;
+      if (name && !String(r.owner ?? '').toLowerCase().includes(name)) return false;
+      if (filterDue === 'due' && !(led.totalDue > 0.004)) return false;
+      if (filterDue === 'paid' && led.totalDue > 0.004) return false;
+      if (t && ![r.id, r.owner, r.hno, r.ward].some((x) => String(x).toLowerCase().includes(t))) return false;
+      return true;
+    });
     return f.sort((a, b) => b.led.totalDue - a.led.totalDue).slice(0, 100);
-  }, [rows, q]);
+  }, [rows, q, filterWard, filterName, filterDue]);
+
+  const filtersActive = !!(filterWard || filterName.trim() || filterDue !== 'all' || q.trim());
+  const clearFilters = () => { setQ(''); setFilterWard(''); setFilterName(''); setFilterDue('all'); };
 
   const exportLedger = () => {
     const head = ['Property ID', 'Ward', 'Owner', 'Year', 'Due date', 'Demand', 'Adjustments', 'Rebate', 'Paid tax', 'Paid interest', 'Tax due', 'Interest due', 'Total due'];
@@ -160,9 +189,9 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
   const selected = sel ? rows.find(({ r }) => r.id === sel) : undefined;
 
   return (
-    <div className="space-y-4">
+    <div className="collection-panel cashier-desk page-enter space-y-4">
       {(settings.status === 'placeholder' || settings.interestPctPerMonth === null) && (
-        <div className="rounded-lg p-3 text-xs bg-[#f2b233]/20 text-[#ffe3a3] border border-[#f2b233]/40 flex gap-2">
+        <div className="rounded-lg p-3 text-xs bg-amber-50 text-amber-900 border border-amber-200 flex gap-2">
           <AlertTriangle className="w-4 h-4 flex-none mt-0.5" />
           <span>
             {settingsSaved ? 'Collection rules are saved but marked placeholder.' : 'No collection rules saved for this town yet.'}{' '}
@@ -173,7 +202,7 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
       )}
 
       {needUnits > 0 && (
-        <div className="rounded-lg p-3 text-xs bg-[#f2b233]/20 text-[#ffe3a3] border border-[#f2b233]/40 flex gap-2">
+        <div className="rounded-lg p-3 text-xs bg-amber-50 text-amber-900 border border-amber-200 flex gap-2">
           <AlertTriangle className="w-4 h-4 flex-none mt-0.5" />
           <span>{needUnits} building(s) are mixed or other use and have no units, so they get no {headLabel(activeHead).toLowerCase()} bill. Open each in the survey form and add its shops and flats under "Units in this building".</span>
         </div>
@@ -181,15 +210,17 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
 
       <nav className="flex flex-wrap gap-2" aria-label="Collection pages">
         {([
-          { id: 'overview', title: 'Overview' },
-          { id: 'properties', title: 'Collect payment' },
-          ...(canSetPayableRates(role) ? [{ id: 'update', title: 'Update dues' }] : []),
-          ...(canEditRates(role) ? [{ id: 'settings', title: 'Due date & interest' }] : []),
-          ...(canSetPayableRates(role) ? [{ id: 'rates', title: 'Fixed amounts' }] : []),
-          ...(canSeeAudit(role) ? [{ id: 'audit', title: 'Audit trail' }] : []),
-        ] as { id: 'overview' | 'properties' | 'update' | 'settings' | 'rates' | 'audit'; title: string }[]).map((item) => (
+          // Cashiers live on Collect payment; put it first so the counter is one tap away
+          ...(canCollect(role) ? [{ id: 'properties' as const, title: 'Collect payment' }] : []),
+          { id: 'overview' as const, title: 'Overview' },
+          ...(!canCollect(role) ? [{ id: 'properties' as const, title: 'Collect payment' }] : []),
+          ...(canSetPayableRates(role) ? [{ id: 'update' as const, title: 'Update dues' }] : []),
+          ...(canEditRates(role) ? [{ id: 'settings' as const, title: 'Due date & interest' }] : []),
+          ...(canSetPayableRates(role) ? [{ id: 'rates' as const, title: 'Fixed amounts' }] : []),
+          ...(canSeeAudit(role) ? [{ id: 'audit' as const, title: 'Audit trail' }] : []),
+        ]).map((item) => (
           <button key={item.id} type="button" onClick={() => setCollectionPage(item.id)}
-            className={`text-sm font-bold px-4 py-2.5 rounded-xl border transition-all ${collectionPage === item.id ? 'bg-[#4f46e5] border-[#9aa8ff] text-white' : 'bg-[#121830]/70 border-[#2f3a6b] text-[#aab4dc] hover:border-[#9aa8ff]/70 hover:text-white'}`}>
+            className={`text-sm font-bold px-4 py-2.5 rounded-xl border transition-all ${collectionPage === item.id ? 'bg-gradient-to-r from-blue-600 to-cyan-500 border-transparent text-white shadow-md shadow-blue-500/25' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300 hover:text-slate-900 hover:shadow-sm'}`}>
             {item.title}
           </button>
         ))}
@@ -197,7 +228,7 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
 
       {collectionPage === 'overview' && <div className={`${card} space-y-3`}>
         <div className="flex flex-wrap items-center gap-3">
-          <h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider flex items-center gap-2"><Landmark className="w-4 h-4" /> {headLabel(activeHead)} · demand &amp; collection</h3>
+          <h3 className="text-sm font-bold text-blue-700 uppercase tracking-wider flex items-center gap-2"><Landmark className="w-4 h-4" /> {headLabel(activeHead)} · demand &amp; collection</h3>
           {monthly ? (
             <select value={month} onChange={(e) => setMonth(e.target.value)} className={inp} aria-label="Billing month">
               {monthKeys(11, 1).map((k) => <option key={k} value={k}>{periodLabel(k)}</option>)}
@@ -207,59 +238,182 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
               {[-1, 0, 1].map((d) => { const y = parseInt(thisFy.slice(0, 4), 10) + d; const l = `${y}-${String((y + 1) % 100).padStart(2, '0')}`; return <option key={l} value={l}>{l}</option>; })}
             </select>
           )}
-          <span className="text-[11px] text-[#aab4dc]">Due date for {periodLabel(period)}: {dueDateOf(period, settings)}</span>
+          <span className="text-[11px] text-slate-500">Due date for {periodLabel(period)}: {dueDateOf(period, settings)}</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div className="bg-[#121830] rounded-lg p-3"><span className="text-[#aab4dc] block">Tax outstanding</span><b className="text-lg font-mono text-white">{money(totals.principal)}</b></div>
-          <div className="bg-[#121830] rounded-lg p-3"><span className="text-[#aab4dc] block">Interest outstanding</span><b className="text-lg font-mono text-[#ffe3a3]">{money(totals.interest)}</b></div>
-          <div className="bg-[#121830] rounded-lg p-3"><span className="text-[#aab4dc] block">Properties with dues</span><b className="text-lg font-mono text-white">{totals.withDues}</b></div>
-          <div className="bg-[#121830] rounded-lg p-3"><span className="text-[#aab4dc] block">Demand raised for {periodLabel(period)}</span><b className="text-lg font-mono text-white">{activeHead === 'property_tax' ? `${alreadyDemanded} / ${approvedCount}` : `${rows.filter(({ entries }) => entries.some((e) => e.id === `demand_${period}`)).length} / ${fixedTargets.length}`}</b></div>
+          <div className="bg-gradient-to-br from-slate-50 to-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Tax outstanding</span>
+            <b className="text-xl font-mono text-slate-900 tracking-tight">{money(totals.principal)}</b>
+          </div>
+          <div className="bg-gradient-to-br from-amber-50 to-white rounded-2xl p-4 border border-amber-200/60 shadow-sm">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700/80 block mb-1">Interest outstanding</span>
+            <b className="text-xl font-mono text-amber-800 tracking-tight">{money(totals.interest)}</b>
+          </div>
+          <div className="bg-gradient-to-br from-rose-50 to-white rounded-2xl p-4 border border-rose-200/50 shadow-sm">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700/80 block mb-1">Properties with dues</span>
+            <b className="text-xl font-mono text-rose-900 tracking-tight">{totals.withDues}</b>
+          </div>
+          <div className="bg-gradient-to-br from-blue-50 to-white rounded-2xl p-4 border border-blue-200/60 shadow-sm">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700/80 block mb-1">Demand · {periodLabel(period)}</span>
+            <b className="text-xl font-mono text-blue-900 tracking-tight">{activeHead === 'property_tax' ? `${alreadyDemanded} / ${approvedCount}` : `${rows.filter(({ entries }) => entries.some((e) => e.id === `demand_${period}`)).length} / ${fixedTargets.length}`}</b>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           {canManageLedger(role) && activeHead === 'property_tax' && (
-            <button type="button" disabled={busy || approvedCount === alreadyDemanded} onClick={generate} className={`${btn} bg-[#4f46e5] text-white`}>
+            <button type="button" disabled={busy || approvedCount === alreadyDemanded} onClick={generate} className={`${btn} bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-md shadow-blue-500/20`}>
               Generate demand for {fy}
             </button>
           )}
           {canManageLedger(role) && (
-            <button type="button" disabled={busy || fixedPending === 0} onClick={generateFixed} className={`${btn} bg-[#f2b233] text-[#2b1d00]`}>
+            <button type="button" disabled={busy || fixedPending === 0} onClick={generateFixed} className={`${btn} bg-amber-400 text-amber-950`}>
               {monthly ? `Generate ${periodLabel(period)} bills` : 'Generate demand from fixed amounts'} ({fixedPending})
             </button>
           )}
-          <button type="button" onClick={exportLedger} disabled={!rows.some(({ led }) => led.rows.length)} className={`${btn} bg-[#1d2547] text-[#aab4dc] border border-[#2f3a6b]`}>
+          <button type="button" onClick={exportLedger} disabled={!rows.some(({ led }) => led.rows.length)} className={`${btn} bg-slate-100 text-slate-500 border border-slate-200`}>
             <Download className="w-3.5 h-3.5" /> Ledger summary (CSV)
           </button>
         </div>
-        {msg && <p className="text-xs text-[#ffe3a3]">{msg}</p>}
+        {msg && <p className="text-xs text-amber-700">{msg}</p>}
       </div>}
 
-      {collectionPage === 'properties' && <div className={`${card} space-y-3`}>
-        <div className="flex items-center gap-2">
-          <Search className="w-4 h-4 text-[#aab4dc]" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search property ID, owner, house no., ward" className={`${inp} flex-1`} />
+      {collectionPage === 'properties' && <div className={`${card} space-y-4`}>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-extrabold text-slate-800 tracking-tight">Find property</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Filter by ward and owner name, then open to see full details and take payment.</p>
+          </div>
+          {filtersActive && (
+            <button type="button" onClick={clearFilters} className="text-xs font-bold text-blue-600 hover:text-blue-800 px-2 py-1">
+              Clear filters
+            </button>
+          )}
         </div>
-        <div className="overflow-x-auto">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Ward no.
+            <select
+              value={filterWard}
+              onChange={(e) => setFilterWard(e.target.value)}
+              className={`${inp} w-full mt-1.5`}
+              aria-label="Filter by ward number"
+            >
+              <option value="">All wards</option>
+              {wardOptions.map((w) => (
+                <option key={w} value={w}>Ward {w}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Owner / name
+            <input
+              value={filterName}
+              onChange={(e) => setFilterName(e.target.value)}
+              placeholder="Type owner name…"
+              className={`${inp} w-full mt-1.5`}
+              aria-label="Filter by owner name"
+            />
+          </label>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Due status
+            <select
+              value={filterDue}
+              onChange={(e) => setFilterDue(e.target.value as 'all' | 'due' | 'paid')}
+              className={`${inp} w-full mt-1.5`}
+              aria-label="Filter by due status"
+            >
+              <option value="all">All</option>
+              <option value="due">Has dues</option>
+              <option value="paid">Cleared / no dues</option>
+            </select>
+          </label>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Property ID / house no.
+            <div className="relative mt-1.5">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="ID or house / plot…"
+                className={`${inp} w-full !pl-9`}
+                aria-label="Search property ID or house number"
+              />
+            </div>
+          </label>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <span className="font-semibold text-slate-700">{list.length}</span> shown
+          {filterWard && <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 font-semibold">Ward {filterWard}</span>}
+          {filterName.trim() && <span className="px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-100 font-semibold">Name: {filterName.trim()}</span>}
+          {filterDue === 'due' && <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-100 font-semibold">Has dues</span>}
+          {filterDue === 'paid' && <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold">Cleared</span>}
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="w-full text-xs text-left">
-            <thead className="text-[#aab4dc] border-b border-[#28325c]">
-              <tr><th className="p-2">Property</th><th className="p-2">Ward</th><th className="p-2 text-right">Fixed amount</th><th className="p-2 text-right">Tax due</th><th className="p-2 text-right">Interest</th><th className="p-2 text-right">Total</th><th className="p-2"></th></tr>
+            <thead className="text-slate-500 border-b border-slate-200 bg-slate-50">
+              <tr>
+                <th className="p-2.5">Property / owner</th>
+                <th className="p-2.5">Ward</th>
+                <th className="p-2.5 text-right">Fixed amount</th>
+                <th className="p-2.5 text-right">Tax due</th>
+                <th className="p-2.5 text-right">Interest</th>
+                <th className="p-2.5 text-right">Total</th>
+                <th className="p-2.5"></th>
+              </tr>
             </thead>
             <tbody>
               {list.map(({ r, led }) => (
-                <tr key={r.id} className={`border-b border-[#20284b] text-white ${sel === r.id ? 'bg-[#1d2547]' : ''}`}>
-                  <td className="p-2 font-mono">{r.id}<div className="text-[10px] text-[#aab4dc] font-sans">{r.owner}</div></td>
-                  <td className="p-2">{r.ward}</td>
-                  <td className="p-2 text-right text-[#ffe3a3]">{fixedAmountFor(rates, r.use) === null ? '—' : money(fixedAmountFor(rates, r.use) as number)}<div className="text-[10px] text-[#aab4dc]">{r.use}</div></td>
-                  <td className="p-2 text-right">{money(led.principalDue)}</td>
-                  <td className="p-2 text-right">{money(led.interestDue)}</td>
-                  <td className="p-2 text-right font-bold">{money(led.totalDue)}</td>
-                  <td className="p-2"><button type="button" className="text-[#9aa8ff] font-bold" onClick={() => (sel === r.id ? selNav.back() : selNav.go(r.id))}>{sel === r.id ? 'Close' : 'Open'}</button></td>
+                <tr key={r.id} className={`border-b border-slate-100 text-slate-800 hover:bg-slate-50/80 ${sel === r.id ? 'bg-blue-50' : ''}`}>
+                  <td className="p-2.5">
+                    <div className="font-mono text-[12px] font-semibold text-slate-900">{r.id}</div>
+                    <div className="text-[11px] text-slate-600 font-sans mt-0.5">{r.owner || '—'}</div>
+                    {r.hno ? <div className="text-[10px] text-slate-400">House / plot {r.hno}</div> : null}
+                  </td>
+                  <td className="p-2.5">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-semibold">
+                      {r.ward || '—'}
+                    </span>
+                  </td>
+                  <td className="p-2.5 text-right text-amber-700 font-mono">
+                    {fixedAmountFor(rates, r.use) === null ? '—' : money(fixedAmountFor(rates, r.use) as number)}
+                    <div className="text-[10px] text-slate-500 font-sans">{r.use}</div>
+                  </td>
+                  <td className="p-2.5 text-right font-mono">{money(led.principalDue)}</td>
+                  <td className="p-2.5 text-right font-mono">{money(led.interestDue)}</td>
+                  <td className="p-2.5 text-right font-bold font-mono">
+                    <span className={led.totalDue > 0.004 ? 'text-rose-700' : 'text-emerald-700'}>{money(led.totalDue)}</span>
+                  </td>
+                  <td className="p-2.5">
+                    <button
+                      type="button"
+                      className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${
+                        sel === r.id
+                          ? 'bg-slate-100 border-slate-200 text-slate-700'
+                          : 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                      onClick={() => (sel === r.id ? selNav.back() : selNav.go(r.id))}
+                    >
+                      {sel === r.id ? 'Close' : 'Open details'}
+                    </button>
+                  </td>
                 </tr>
               ))}
-              {!list.length && <tr><td colSpan={7} className="p-4 text-center text-[#aab4dc]">No matching properties.</td></tr>}
+              {!list.length && (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                    <div className="font-semibold text-slate-700 mb-1">No matching properties</div>
+                    <div className="text-xs">Try another ward, name, or clear filters.</div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
-          {rows.length > 100 && <p className="text-[10px] text-[#8790bd] mt-1">Showing the 100 highest dues. Search to find others.</p>}
         </div>
+        {(filtersActive ? list.length === 100 : rows.length > 100) && (
+          <p className="text-[10px] text-slate-400">Showing up to 100 rows (highest dues first). Narrow with ward or name to find others.</p>
+        )}
       </div>}
 
       {selected && collectionPage === 'properties' && (
@@ -276,7 +430,7 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
 
       {collectionPage === 'settings' && canEditRates(role) && (
         <div className={card}>
-          <button type="button" className="text-xs font-bold text-[#9aa8ff]" onClick={() => setShowSettings(!showSettings)}>
+          <button type="button" className="text-xs font-bold text-blue-600" onClick={() => setShowSettings(!showSettings)}>
             {showSettings ? 'Close' : 'Enter / edit'} {headLabel(activeHead)} due date, interest and rebate rules for {townName}
           </button>
           {showSettings && <SettingsEditor key={JSON.stringify(settings)} initial={settings} busy={busy} onSave={(s) => void run('Collection rules saved', async () => { await saveHeadSettings(townKey, activeHead, s); setShowSettings(false); })} />}
@@ -287,10 +441,10 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
 
       {collectionPage === 'audit' && canSeeAudit(role) && (
         <div className={card}>
-          <h4 className="text-xs font-bold text-[#aab4dc] uppercase tracking-wider mb-2">Audit log (latest 60)</h4>
-          <div className="max-h-64 overflow-y-auto text-[11px] font-mono space-y-1 text-[#d6dcf5]">
+          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Audit log (latest 60)</h4>
+          <div className="max-h-64 overflow-y-auto text-[11px] font-mono space-y-1 text-slate-600">
             {audit.map((a) => <div key={a.id}>{new Date(a.at).toLocaleString('en-IN')} · {a.by.slice(0, 6)} · <b>{a.action}</b>{a.propertyId ? ` · ${a.propertyId}` : ''} · {a.detail}</div>)}
-            {!audit.length && <div className="text-[#8790bd]">Nothing logged yet.</div>}
+            {!audit.length && <div className="text-slate-400">Nothing logged yet.</div>}
           </div>
         </div>
       )}
@@ -368,19 +522,29 @@ const PropertyLedger: React.FC<{
 
   return (
     <div className={`${card} space-y-4`}>
-      <div>
-        <h3 className="text-sm font-bold text-white font-mono">{rec.id}</h3>
-        <p className="text-xs text-[#aab4dc]">{rec.owner} · ward {rec.ward} · house/plot {rec.hno}</p>
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-blue-600 mb-1">Property details</p>
+            <h3 className="text-base font-extrabold text-slate-900 font-mono tracking-tight">{rec.id}</h3>
+            <p className="text-sm font-semibold text-slate-800 mt-1">{rec.owner || '—'}</p>
+          </div>
+          <div className="text-right text-xs text-slate-600 space-y-1">
+            <div><span className="text-slate-400 font-medium">Ward</span> <span className="font-bold text-slate-800 ml-1">{rec.ward || '—'}</span></div>
+            <div><span className="text-slate-400 font-medium">House / plot</span> <span className="font-bold text-slate-800 ml-1">{rec.hno || '—'}</span></div>
+            <div><span className="text-slate-400 font-medium">Use</span> <span className="font-bold text-slate-800 ml-1">{rec.use || '—'}</span></div>
+          </div>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-xs text-left">
-          <thead className="text-[#aab4dc] border-b border-[#28325c]">
+          <thead className="text-slate-500 border-b border-slate-200">
             <tr><th className="p-2">Year</th><th className="p-2">Due on</th><th className="p-2 text-right">Demand</th><th className="p-2 text-right">Rebate</th><th className="p-2 text-right">Paid</th><th className="p-2 text-right">Tax due</th><th className="p-2 text-right">Interest due</th></tr>
           </thead>
           <tbody>
             {led.rows.map((x) => (
-              <tr key={x.fy} className="border-b border-[#20284b] text-white">
+              <tr key={x.fy} className="border-b border-slate-100 text-slate-800">
                 <td className="p-2">{periodLabel(x.fy)}</td><td className="p-2">{x.dueDate}</td>
                 <td className="p-2 text-right">{money(x.demand + x.adjustments)}</td>
                 <td className="p-2 text-right">{money(x.rebate)}</td>
@@ -389,44 +553,56 @@ const PropertyLedger: React.FC<{
                 <td className="p-2 text-right">{money(x.interestDue)}</td>
               </tr>
             ))}
-            {!led.rows.length && <tr><td colSpan={7} className="p-3 text-center text-[#aab4dc]">No demand raised for this property yet.</td></tr>}
+            {!led.rows.length && <tr><td colSpan={7} className="p-3 text-center text-slate-500">No demand raised for this property yet.</td></tr>}
           </tbody>
         </table>
-        <p className="text-sm font-bold text-[#ffe3a3] mt-2">Total due today: {money(led.totalDue)}</p>
-        {led.warnings.map((w) => <p key={w} className="text-[11px] text-[#ffe3a3]">⚠ {w}</p>)}
+        <p className="text-base font-extrabold text-rose-700 mt-3 flex items-center gap-2">
+          <span className="inline-block w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+          Total due today: <span className="font-mono tracking-tight">{money(led.totalDue)}</span>
+        </p>
+        {led.warnings.map((w) => <p key={w} className="text-[11px] text-amber-700">⚠ {w}</p>)}
       </div>
 
       {canCollect(role) && led.totalDue > 0 && (
-        <div className="bg-[#121830] rounded-lg p-3 space-y-2">
-          <h4 className="text-xs font-bold text-[#9aa8ff] uppercase tracking-wider flex items-center gap-1"><Receipt className="w-3.5 h-3.5" /> Take payment</h4>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <label className="text-[11px] text-[#aab4dc]">Amount (₹)<input type="number" inputMode="decimal" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className={`${inp} w-full mt-1`} /></label>
-            <label className="text-[11px] text-[#aab4dc]">Date<input type="date" max={today} value={date} onChange={(e) => setDate(e.target.value || today)} className={`${inp} w-full mt-1`} /></label>
-            <label className="text-[11px] text-[#aab4dc]">Mode
+        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-sky-50 rounded-2xl p-4 sm:p-5 space-y-3 border-2 border-emerald-200/80 shadow-[0_10px_28px_rgba(16,185,129,0.1)]">
+          <div className="pointer-events-none absolute -right-10 -top-10 w-36 h-36 rounded-full bg-emerald-400/15 blur-2xl" aria-hidden />
+          <h4 className="relative text-sm font-extrabold text-emerald-900 tracking-tight flex flex-wrap items-center gap-2">
+            <span className="w-9 h-9 rounded-xl bg-emerald-500 text-white grid place-items-center shadow-md shadow-emerald-500/35">
+              <Receipt className="w-4 h-4" />
+            </span>
+            Take payment
+            <span className="sm:ml-auto text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-full font-mono">
+              Due {money(led.totalDue)}
+            </span>
+          </h4>
+          <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <label className="text-[11px] font-semibold text-slate-600">Amount (₹)<input type="number" inputMode="decimal" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className={`${inp} w-full mt-1`} /></label>
+            <label className="text-[11px] font-semibold text-slate-600">Date<input type="date" max={today} value={date} onChange={(e) => setDate(e.target.value || today)} className={`${inp} w-full mt-1`} /></label>
+            <label className="text-[11px] font-semibold text-slate-600">Mode
               <select value={mode} onChange={(e) => setMode(e.target.value as PayMode)} className={`${inp} w-full mt-1`}>
                 <option value="cash">Cash</option><option value="upi">UPI</option><option value="cheque">Cheque</option><option value="other">Other</option>
               </select>
             </label>
-            {mode !== 'cash' && <label className="text-[11px] text-[#aab4dc]">{mode === 'cheque' ? 'Cheque no.' : mode === 'upi' ? 'UPI txn ID' : 'Reference'}<input value={refNo} onChange={(e) => setRefNo(e.target.value)} className={`${inp} w-full mt-1`} /></label>}
+            {mode !== 'cash' && <label className="text-[11px] font-semibold text-slate-600">{mode === 'cheque' ? 'Cheque no.' : mode === 'upi' ? 'UPI txn ID' : 'Reference'}<input value={refNo} onChange={(e) => setRefNo(e.target.value)} className={`${inp} w-full mt-1`} /></label>}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <label className="text-[11px] text-[#aab4dc]">Paid by (if not the owner)<input value={payer} onChange={(e) => setPayer(e.target.value)} className={`${inp} w-full mt-1`} /></label>
-            <label className="text-[11px] text-[#aab4dc]">Note<input value={note} onChange={(e) => setNote(e.target.value)} className={`${inp} w-full mt-1`} /></label>
+          <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <label className="text-[11px] font-semibold text-slate-600">Paid by (if not the owner)<input value={payer} onChange={(e) => setPayer(e.target.value)} className={`${inp} w-full mt-1`} /></label>
+            <label className="text-[11px] font-semibold text-slate-600">Note<input value={note} onChange={(e) => setNote(e.target.value)} className={`${inp} w-full mt-1`} /></label>
           </div>
           {rebateFy && (
-            <label className="flex items-center gap-2 text-xs text-[#ffe3a3]">
-              <input type="checkbox" checked={useRebate} onChange={(e) => setUseRebate(e.target.checked)} />
-              Allow early-payment rebate for {rebateFy} ({money(ledAt.rows.find((r) => r.fy === rebateFy)?.rebateAvailable || 0)}), needs full payment
+            <label className="relative flex items-center gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+              <input type="checkbox" checked={useRebate} onChange={(e) => setUseRebate(e.target.checked)} className="rounded" />
+              Allow early-payment rebate for {rebateFy} ({money(ledAt.rows.find((r) => r.fy === rebateFy)?.rebateAvailable || 0)}) — needs full payment
             </label>
           )}
-          <div className="flex flex-wrap items-center gap-2">
-            {fixedAmount !== null && <button type="button" onClick={() => setAmount(String(Math.min(fixedAmount, ledAt.totalDue)))} className={`${btn} bg-[#f2b233] text-[#2b1d00]`}>Fill fixed amount ({money(fixedAmount)} {rec.use})</button>}
-            <button type="button" onClick={fillFull} className={`${btn} bg-[#1d2547] text-[#aab4dc] border border-[#2f3a6b]`}>Fill full amount</button>
-            <button type="button" disabled={busy || !preview?.ok} onClick={() => void submit()} className={`${btn} bg-[#4f46e5] text-white`}>Record payment</button>
+          <div className="relative flex flex-wrap items-center gap-2 pt-1">
+            {fixedAmount !== null && <button type="button" onClick={() => setAmount(String(Math.min(fixedAmount, ledAt.totalDue)))} className={`${btn} bg-amber-400 text-amber-950 hover:bg-amber-300`}>Fill fixed ({money(fixedAmount)})</button>}
+            <button type="button" onClick={fillFull} className={`${btn} bg-white text-slate-700 border border-slate-200 hover:border-slate-300`}>Fill full amount</button>
+            <button type="button" disabled={busy || !preview?.ok} onClick={() => void submit()} className={`${btn} bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40`}>Record payment</button>
           </div>
-          {preview && !preview.ok && <p className="text-[11px] text-red-300">{preview.error}</p>}
+          {preview && !preview.ok && <p className="text-[11px] text-red-600">{preview.error}</p>}
           {preview?.ok && (
-            <div className="text-[11px] text-[#d6dcf5] font-mono">
+            <div className="text-[11px] text-slate-600 font-mono">
               {preview.allocation?.parts.map((p) => <div key={p.fy}>{periodLabel(p.fy)}: interest {money(p.interest)}, tax {money(p.principal)}</div>)}
               {preview.rebate > 0 && <div>Rebate {money(preview.rebate)} will be posted with this payment.</div>}
               <div>Balance after: {money(preview.result?.totalDue || 0)}</div>
@@ -436,49 +612,49 @@ const PropertyLedger: React.FC<{
       )}
 
       {canManageLedger(role) && led.rows.length > 0 && (
-        <details className="bg-[#121830] rounded-lg p-3">
-          <summary className="text-xs font-bold text-[#aab4dc] cursor-pointer">Adjust a year's demand (e.g. after re-assessment)</summary>
+        <details className="bg-slate-50 rounded-xl p-3.5 border border-slate-100">
+          <summary className="text-xs font-bold text-slate-500 cursor-pointer">Adjust a year's demand (e.g. after re-assessment)</summary>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
-            <label className="text-[11px] text-[#aab4dc]">Year<select value={adjFy} onChange={(e) => setAdjFy(e.target.value)} className={`${inp} w-full mt-1`}>{led.rows.map((x) => <option key={x.fy} value={x.fy}>{periodLabel(x.fy)}</option>)}</select></label>
-            <label className="text-[11px] text-[#aab4dc]">Amount (+ more, − less)<input type="number" step="0.01" value={adjAmt} onChange={(e) => setAdjAmt(e.target.value)} className={`${inp} w-full mt-1`} /></label>
-            <label className="text-[11px] text-[#aab4dc] col-span-2">Reason<input value={adjWhy} onChange={(e) => setAdjWhy(e.target.value)} className={`${inp} w-full mt-1`} /></label>
+            <label className="text-[11px] text-slate-500">Year<select value={adjFy} onChange={(e) => setAdjFy(e.target.value)} className={`${inp} w-full mt-1`}>{led.rows.map((x) => <option key={x.fy} value={x.fy}>{periodLabel(x.fy)}</option>)}</select></label>
+            <label className="text-[11px] text-slate-500">Amount (+ more, − less)<input type="number" step="0.01" value={adjAmt} onChange={(e) => setAdjAmt(e.target.value)} className={`${inp} w-full mt-1`} /></label>
+            <label className="text-[11px] text-slate-500 col-span-2">Reason<input value={adjWhy} onChange={(e) => setAdjWhy(e.target.value)} className={`${inp} w-full mt-1`} /></label>
           </div>
-          <button type="button" disabled={busy || !adjFy || !parseFloat(adjAmt) || !adjWhy.trim()} onClick={() => void submitAdjust()} className={`${btn} bg-[#2a3464] text-[#9aa8ff] mt-2`}>Post adjustment</button>
+          <button type="button" disabled={busy || !adjFy || !parseFloat(adjAmt) || !adjWhy.trim()} onClick={() => void submitAdjust()} className={`${btn} bg-slate-800 text-white mt-2`}>Post adjustment</button>
         </details>
       )}
 
       <div className="overflow-x-auto">
-        <h4 className="text-xs font-bold text-[#aab4dc] uppercase tracking-wider mb-1">Entries</h4>
+        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Entries</h4>
         <table className="w-full text-xs text-left">
-          <thead className="text-[#aab4dc] border-b border-[#28325c]"><tr><th className="p-2">Date</th><th className="p-2">Type</th><th className="p-2">Year</th><th className="p-2 text-right">Amount</th><th className="p-2">Receipt / detail</th><th className="p-2"></th></tr></thead>
+          <thead className="text-slate-500 border-b border-slate-200"><tr><th className="p-2">Date</th><th className="p-2">Type</th><th className="p-2">Year</th><th className="p-2 text-right">Amount</th><th className="p-2">Receipt / detail</th><th className="p-2"></th></tr></thead>
           <tbody>
             {sorted.map((e) => {
               const isCancelled = cancelled.has(e.id);
               return (
-                <tr key={e.id} className={`border-b border-[#20284b] ${isCancelled || e.type === 'reversal' ? 'text-[#8790bd]' : 'text-white'}`}>
+                <tr key={e.id} className={`border-b border-slate-100 ${isCancelled || e.type === 'reversal' ? 'text-slate-400' : 'text-slate-800'}`}>
                   <td className="p-2">{e.date}</td>
                   <td className={`p-2 ${isCancelled ? 'line-through' : ''}`}>{e.type}</td>
                   <td className="p-2">{periodLabel(e.fy)}</td>
                   <td className={`p-2 text-right ${isCancelled ? 'line-through' : ''}`}>{money(e.amount)}</td>
                   <td className="p-2 text-[11px]">
                     {e.receiptNo && <span className="font-mono">{e.receiptNo}</span>} {e.mode ? `${e.mode}${e.ref ? ' ' + e.ref : ''}` : ''} {e.reason ? `· ${e.reason}` : ''} {e.note ? `· ${e.note}` : ''}
-                    {isCancelled && <b className="text-red-300"> · reversed</b>}
+                    {isCancelled && <b className="text-red-600"> · reversed</b>}
                   </td>
                   <td className="p-2 whitespace-nowrap">
                     {e.type === 'payment' && (
                       <>
-                        <button type="button" title="Print receipt" className="text-[#9aa8ff] mr-2" onClick={() => printReceipt(e, false)}><Printer className="inline w-3.5 h-3.5" /></button>
-                        <button type="button" title="Download receipt" className="text-[#9aa8ff] mr-2" onClick={() => printReceipt(e, true)}><Download className="inline w-3.5 h-3.5" /></button>
+                        <button type="button" title="Print receipt" className="text-blue-600 mr-2" onClick={() => printReceipt(e, false)}><Printer className="inline w-3.5 h-3.5" /></button>
+                        <button type="button" title="Download receipt" className="text-blue-600 mr-2" onClick={() => printReceipt(e, true)}><Download className="inline w-3.5 h-3.5" /></button>
                       </>
                     )}
                     {canManageLedger(role) && e.type !== 'reversal' && e.type !== 'rebate' && !isCancelled && (
-                      <button type="button" disabled={busy} title="Reverse this entry" className="text-red-300" onClick={() => reverse(e)}><Undo2 className="inline w-3.5 h-3.5" /> Reverse</button>
+                      <button type="button" disabled={busy} title="Reverse this entry" className="text-red-600" onClick={() => reverse(e)}><Undo2 className="inline w-3.5 h-3.5" /> Reverse</button>
                     )}
                   </td>
                 </tr>
               );
             })}
-            {!sorted.length && <tr><td colSpan={6} className="p-3 text-center text-[#aab4dc]">No entries.</td></tr>}
+            {!sorted.length && <tr><td colSpan={6} className="p-3 text-center text-slate-500">No entries.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -524,21 +700,21 @@ const ManualDues: React.FC<{ townKey: string; head: HeadId; monthly: boolean; ro
 
   return (
     <div className={`${card} space-y-4`}>
-      <h3 className="text-lg font-bold text-white">Update dues of {headLabel(head)}</h3>
-      <label className="text-[11px] text-[#aab4dc] block">Property ID or owner
+      <h3 className="text-lg font-bold text-slate-800">Update dues of {headLabel(head)}</h3>
+      <label className="text-[11px] text-slate-500 block">Property ID or owner
         <input value={q} onChange={(e) => { setQ(e.target.value); setPid(null); }} className={fld} placeholder="Type at least 2 letters" />
       </label>
       {!cur && found.map(({ r, led }) => (
-        <button key={r.id} type="button" onClick={() => setPid(r.id)} className="stub w-full text-left bg-[#121830] border border-[#2f3a6b] hover:border-[#9aa8ff] p-3 flex justify-between gap-3">
-          <span className="min-w-0"><span className="block font-bold text-white truncate">{r.owner}</span><span className="block text-xs text-[#aab4dc]">{r.id} · Ward {r.ward}</span></span>
+        <button key={r.id} type="button" onClick={() => setPid(r.id)} className="stub w-full text-left bg-white border border-slate-200 hover:border-blue-300 hover:shadow-md p-3 flex justify-between gap-3">
+          <span className="min-w-0"><span className="block font-bold text-slate-800 truncate">{r.owner}</span><span className="block text-xs text-slate-500">{r.id} · Ward {r.ward}</span></span>
           <span className="slab font-bold text-[#ff6b6f] whitespace-nowrap">{money(led.totalDue)}</span>
         </button>
       ))}
       {cur && (
         <>
-          <div className="bg-[#121830] rounded-lg p-3 text-sm">
-            <b className="text-white">{cur.r.owner}</b> <span className="text-[#aab4dc]">· {cur.r.id}</span>
-            <div className="mt-1 text-[#aab4dc]">Due now on {headLabel(head)}: <b className="text-[#ff6b6f]">{money(cur.led.totalDue)}</b></div>
+          <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-100 text-sm">
+            <b className="text-slate-800">{cur.r.owner}</b> <span className="text-slate-500">· {cur.r.id}</span>
+            <div className="mt-1 text-slate-500">Due now on {headLabel(head)}: <b className="text-[#ff6b6f]">{money(cur.led.totalDue)}</b></div>
             {cur.led.rows.length > 0 && (
               <div className="mt-2 overflow-x-auto"><table className="w-full text-xs"><tbody>
                 {cur.led.rows.map((x) => <tr key={x.fy} className="border-t border-[#252e56]"><td className="py-1">{periodLabel(x.fy)}</td><td className="text-right">{money(x.principalDue + x.interestDue)}</td></tr>)}
@@ -548,21 +724,21 @@ const ManualDues: React.FC<{ townKey: string; head: HeadId; monthly: boolean; ro
           <div className="flex gap-2">
             {([['add', 'Add charge or arrears'], ['cut', 'Reduce or waive']] as const).map(([m, label]) => (
               <button key={m} type="button" onClick={() => setMode(m)} aria-pressed={mode === m}
-                className={`flex-1 text-sm font-bold px-3 py-2.5 rounded-xl border ${mode === m ? 'bg-[#4f46e5] border-[#9aa8ff] text-white' : 'bg-[#0d1224] border-[#2f3a6b] text-[#aab4dc]'}`}>{label}</button>
+                className={`flex-1 text-sm font-bold px-3 py-2.5 rounded-xl border ${mode === m ? 'bg-gradient-to-r from-blue-600 to-cyan-500 border-transparent text-white shadow-md shadow-blue-500/25' : 'bg-white border-slate-200 text-slate-500'}`}>{label}</button>
             ))}
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <label className="text-[11px] text-[#aab4dc]">{monthly ? 'Month' : 'Financial year'}
+            <label className="text-[11px] text-slate-500">{monthly ? 'Month' : 'Financial year'}
               {monthly
                 ? <input type="month" value={period} onChange={(e) => e.target.value && choosePeriod(e.target.value)} className={fld} />
                 : <select value={period} onChange={(e) => choosePeriod(e.target.value)} className={fld}>{fyOptions.map((k) => <option key={k}>{k}</option>)}</select>}
             </label>
-            <label className="text-[11px] text-[#aab4dc]">Amount (₹)<input type="number" inputMode="decimal" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className={fld} /></label>
-            <label className="text-[11px] text-[#aab4dc]">Effective date<input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={fld} /></label>
-            <label className="text-[11px] text-[#aab4dc]">Reason<input value={why} onChange={(e) => setWhy(e.target.value)} className={fld} placeholder="For example: arrears from old register" /></label>
+            <label className="text-[11px] text-slate-500">Amount (₹)<input type="number" inputMode="decimal" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className={fld} /></label>
+            <label className="text-[11px] text-slate-500">Effective date<input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={fld} /></label>
+            <label className="text-[11px] text-slate-500">Reason<input value={why} onChange={(e) => setWhy(e.target.value)} className={fld} placeholder="For example: arrears from old register" /></label>
           </div>
-          <p className="text-[11px] text-[#8790bd]">Interest on an added amount runs from the due date of its period when the effective date is on or before it. For arrears of an earlier period, keep the date at the start of that period.</p>
-          <button type="button" disabled={busy || !ok} onClick={submit} className={`${btn} bg-[#f2b233] text-[#2b1d00]`}>{mode === 'add' ? 'Add to dues' : 'Reduce dues'}</button>
+          <p className="text-[11px] text-slate-400">Interest on an added amount runs from the due date of its period when the effective date is on or before it. For arrears of an earlier period, keep the date at the start of that period.</p>
+          <button type="button" disabled={busy || !ok} onClick={submit} className={`${btn} bg-amber-400 text-amber-950`}>{mode === 'add' ? 'Add to dues' : 'Reduce dues'}</button>
         </>
       )}
     </div>
@@ -585,34 +761,34 @@ export const RateRow: React.FC<{ head: HeadId; initial: PayableRates | undefined
     setErr(''); onSave(head, r);
   };
   return (
-    <div className="bg-[#121830] rounded-lg p-3 space-y-2">
-      <h4 className="text-xs font-bold text-[#ffe3a3] uppercase tracking-wider">{headLabel(head)}</h4>
+    <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-100 space-y-2">
+      <h4 className="text-xs font-bold text-amber-700 uppercase tracking-wider">{headLabel(head)}</h4>
       <div className="grid sm:grid-cols-2 gap-3">
-        <label className="text-[11px] text-[#aab4dc]">Residential (₹ per property per {per})<input type="number" inputMode="decimal" min="0" step="0.01" value={res} onChange={(e) => setRes(e.target.value)} className={`${inp} w-full mt-1`} /></label>
-        <label className="text-[11px] text-[#aab4dc]">Commercial (₹ per property per {per})<input type="number" inputMode="decimal" min="0" step="0.01" value={com} onChange={(e) => setCom(e.target.value)} className={`${inp} w-full mt-1`} /></label>
+        <label className="text-[11px] text-slate-500">Residential (₹ per property per {per})<input type="number" inputMode="decimal" min="0" step="0.01" value={res} onChange={(e) => setRes(e.target.value)} className={`${inp} w-full mt-1`} /></label>
+        <label className="text-[11px] text-slate-500">Commercial (₹ per property per {per})<input type="number" inputMode="decimal" min="0" step="0.01" value={com} onChange={(e) => setCom(e.target.value)} className={`${inp} w-full mt-1`} /></label>
       </div>
       {head !== 'property_tax' && (
         <fieldset className="flex gap-2" aria-label="How often this bill is charged">
           {(['yearly', 'monthly'] as const).map((f) => (
             <button key={f} type="button" onClick={() => setFreq(f)} aria-pressed={freq === f}
-              className={`text-sm font-bold px-4 py-2 rounded-xl border ${freq === f ? 'bg-[#4f46e5] border-[#9aa8ff] text-white' : 'bg-[#0d1224] border-[#2f3a6b] text-[#aab4dc]'}`}>
+              className={`text-sm font-bold px-4 py-2 rounded-xl border ${freq === f ? 'bg-gradient-to-r from-blue-600 to-cyan-500 border-transparent text-white shadow-md shadow-blue-500/25' : 'bg-white border-slate-200 text-slate-500'}`}>
               {f === 'monthly' ? 'Charged every month' : 'Charged once a year'}
             </button>
           ))}
         </fieldset>
       )}
-      {err && <p className="text-xs text-red-300">{err}</p>}
-      <button type="button" disabled={busy} onClick={save} className={`${btn} bg-[#4f46e5] text-white`}>Save {headLabel(head)} amounts</button>
+      {err && <p className="text-xs text-red-600">{err}</p>}
+      <button type="button" disabled={busy} onClick={save} className={`${btn} bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-md shadow-blue-500/20`}>Save {headLabel(head)} amounts</button>
     </div>
   );
 };
 
 const RateFiller: React.FC<{ townName: string; heads: HeadId[]; all: Record<string, PayableRates>; busy: boolean; onSave: (h: HeadId, r: { residential: number | null; commercial: number | null; frequency: 'yearly' | 'monthly' }) => void }> = ({ townName, heads, all, busy, onSave }) => (
   <div className={`${card} space-y-3`}>
-    <h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider">Fixed amounts payable · {townName}</h3>
+    <h3 className="text-sm font-bold text-blue-700 uppercase tracking-wider">Fixed amounts payable · {townName}</h3>
     
     {heads.map((h) => <RateRow key={h} head={h} initial={all[h]} busy={busy} onSave={onSave} townName={townName} />)}
-    <p className="text-[11px] text-[#8790bd]">Changing these does not alter demands already generated; use an adjustment for those. Every change is written to the audit trail.</p>
+    <p className="text-[11px] text-slate-400">Changing these does not alter demands already generated; use an adjustment for those. Every change is written to the audit trail.</p>
   </div>
 );
 
@@ -624,8 +800,8 @@ export const SettingsEditor: React.FC<{ initial: CollectionSettings; busy: boole
   const num = (v: string) => (v === '' ? NaN : Number(v));
   const md = (label: string, m: number, d: number, set: (m: number, d: number) => void) => (
     <div className="flex items-end gap-2">
-      <label className="text-[11px] text-[#aab4dc]">{label}<select value={m} onChange={(e) => set(Number(e.target.value), d)} className={`${inp} w-full mt-1`}>{MONTHS.map((n, i) => <option key={n} value={i + 1}>{n}</option>)}</select></label>
-      <label className="text-[11px] text-[#aab4dc]">Day<input type="number" min={1} max={31} value={d} onChange={(e) => set(m, num(e.target.value))} className={`${inp} w-16 mt-1`} /></label>
+      <label className="text-[11px] text-slate-500">{label}<select value={m} onChange={(e) => set(Number(e.target.value), d)} className={`${inp} w-full mt-1`}>{MONTHS.map((n, i) => <option key={n} value={i + 1}>{n}</option>)}</select></label>
+      <label className="text-[11px] text-slate-500">Day<input type="number" min={1} max={31} value={d} onChange={(e) => set(m, num(e.target.value))} className={`${inp} w-16 mt-1`} /></label>
     </div>
   );
   const save = () => {
@@ -638,21 +814,21 @@ export const SettingsEditor: React.FC<{ initial: CollectionSettings; busy: boole
     <div className="mt-3 space-y-3 text-xs">
       <div className="grid sm:grid-cols-2 gap-3">
         {md('Due date: month', s.dueMonth, s.dueDay, (m, d) => setS({ ...s, dueMonth: m, dueDay: d }))}
-        <label className="text-[11px] text-[#aab4dc]">Clause for due date<input value={s.clauses.due || ''} onChange={(e) => setS({ ...s, clauses: { ...s.clauses, due: e.target.value } })} className={`${inp} w-full mt-1`} /></label>
-        <label className="text-[11px] text-[#aab4dc]">Interest % per month, or part of a month (blank = none)<input type="number" step="0.01" value={s.interestPctPerMonth ?? ''} onChange={(e) => setS({ ...s, interestPctPerMonth: e.target.value === '' ? null : num(e.target.value) })} className={`${inp} w-full mt-1`} /></label>
-        <label className="text-[11px] text-[#aab4dc]">Grace days after due date<input type="number" min={0} value={s.interestGraceDays} onChange={(e) => setS({ ...s, interestGraceDays: num(e.target.value) })} className={`${inp} w-full mt-1`} /></label>
-        <label className="text-[11px] text-[#aab4dc] sm:col-span-2">Clause for interest<input value={s.clauses.interest || ''} onChange={(e) => setS({ ...s, clauses: { ...s.clauses, interest: e.target.value } })} className={`${inp} w-full mt-1`} /></label>
-        <label className="text-[11px] text-[#aab4dc]">Early-payment rebate % (0 = none)<input type="number" step="0.01" value={s.rebatePct} onChange={(e) => setS({ ...s, rebatePct: num(e.target.value) })} className={`${inp} w-full mt-1`} /></label>
+        <label className="text-[11px] text-slate-500">Clause for due date<input value={s.clauses.due || ''} onChange={(e) => setS({ ...s, clauses: { ...s.clauses, due: e.target.value } })} className={`${inp} w-full mt-1`} /></label>
+        <label className="text-[11px] text-slate-500">Interest % per month, or part of a month (blank = none)<input type="number" step="0.01" value={s.interestPctPerMonth ?? ''} onChange={(e) => setS({ ...s, interestPctPerMonth: e.target.value === '' ? null : num(e.target.value) })} className={`${inp} w-full mt-1`} /></label>
+        <label className="text-[11px] text-slate-500">Grace days after due date<input type="number" min={0} value={s.interestGraceDays} onChange={(e) => setS({ ...s, interestGraceDays: num(e.target.value) })} className={`${inp} w-full mt-1`} /></label>
+        <label className="text-[11px] text-slate-500 sm:col-span-2">Clause for interest<input value={s.clauses.interest || ''} onChange={(e) => setS({ ...s, clauses: { ...s.clauses, interest: e.target.value } })} className={`${inp} w-full mt-1`} /></label>
+        <label className="text-[11px] text-slate-500">Early-payment rebate % (0 = none)<input type="number" step="0.01" value={s.rebatePct} onChange={(e) => setS({ ...s, rebatePct: num(e.target.value) })} className={`${inp} w-full mt-1`} /></label>
         {md('Rebate last date: month', s.rebateMonth, s.rebateDay, (m, d) => setS({ ...s, rebateMonth: m, rebateDay: d }))}
-        <label className="text-[11px] text-[#aab4dc] sm:col-span-2">Clause for rebate<input value={s.clauses.rebate || ''} onChange={(e) => setS({ ...s, clauses: { ...s.clauses, rebate: e.target.value } })} className={`${inp} w-full mt-1`} /></label>
-        <label className="text-[11px] text-[#aab4dc] sm:col-span-2">Notes<textarea value={s.notes} onChange={(e) => setS({ ...s, notes: e.target.value })} rows={2} className={`${inp} w-full mt-1`} /></label>
-        <label className="text-[11px] text-[#aab4dc]">Status
+        <label className="text-[11px] text-slate-500 sm:col-span-2">Clause for rebate<input value={s.clauses.rebate || ''} onChange={(e) => setS({ ...s, clauses: { ...s.clauses, rebate: e.target.value } })} className={`${inp} w-full mt-1`} /></label>
+        <label className="text-[11px] text-slate-500 sm:col-span-2">Notes<textarea value={s.notes} onChange={(e) => setS({ ...s, notes: e.target.value })} rows={2} className={`${inp} w-full mt-1`} /></label>
+        <label className="text-[11px] text-slate-500">Status
           <select value={s.status} onChange={(e) => setS({ ...s, status: e.target.value as CollectionSettings['status'] })} className={`${inp} w-full mt-1`}><option value="placeholder">placeholder</option><option value="approved">approved (notified rules)</option></select>
         </label>
       </div>
-      <p className="text-[11px] text-[#8790bd]">Interest is simple, charged at the start of each month after the due date on the tax still unpaid at that moment. Payments clear interest first, then tax, oldest year first. Changing these rules changes the dues shown for all properties from now on.</p>
-      {err && <p className="text-red-300">{err}</p>}
-      <button type="button" disabled={busy} onClick={save} className={`${btn} bg-[#4f46e5] text-white`}>Save rules</button>
+      <p className="text-[11px] text-slate-400">Interest is simple, charged at the start of each month after the due date on the tax still unpaid at that moment. Payments clear interest first, then tax, oldest year first. Changing these rules changes the dues shown for all properties from now on.</p>
+      {err && <p className="text-red-600">{err}</p>}
+      <button type="button" disabled={busy} onClick={save} className={`${btn} bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-md shadow-blue-500/20`}>Save rules</button>
     </div>
   );
 };

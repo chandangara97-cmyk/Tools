@@ -1033,3 +1033,46 @@ h1, h2, h3, h4 { letter-spacing: -.035em; }
     padding: 1.25rem 1rem;
   }
 }
+
+
+/* ═══ Cashier desk — collection panel polish ═══ */
+.scheme-app .cashier-desk,
+.scheme-app .collection-panel {
+  color: #1d304b;
+}
+.scheme-app .cashier-desk nav[aria-label="Collection pages"] {
+  gap: 0.5rem;
+  padding: 0.35rem;
+  background: #fff;
+  border: 1px solid #e2eaf4;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(20, 40, 70, 0.03);
+}
+.scheme-app .cashier-desk .metric-like,
+.scheme-app .cashier-desk [class*="bg-slate-50"].rounded-xl {
+  transition: box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.scheme-app .cashier-desk [class*="bg-slate-50"].rounded-xl:hover {
+  border-color: #c5d6ff;
+  box-shadow: 0 6px 18px rgba(71, 125, 255, 0.08);
+}
+.scheme-app .cashier-desk table th {
+  background: #edf3fb !important;
+  color: #405571 !important;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 750;
+}
+.scheme-app .cashier-desk table td {
+  color: #263b57 !important;
+}
+.scheme-app .cashier-desk table tr:hover td {
+  background: #f5f8ff !important;
+}
+.scheme-app .cashier-desk input[type="number"],
+.scheme-app .cashier-desk input[type="date"],
+.scheme-app .cashier-desk input[type="text"],
+.scheme-app .cashier-desk select {
+  min-height: 42px;
+}

@@ -1,19 +1,20 @@
-# Scheme Hub 2026 — Professional UI update
+Scheme Hub — Cashier full update (UI + filters)
 
-Copy these files into your Tools-main project (same paths):
+Copy these files into Tools-main (same paths):
 
+  src/components/CollectionPanel.tsx
+  src/components/WorkMenu.tsx
   src/index.css
-  src/App.tsx
-  src/components/ToolsDirectory.tsx
-  src/components/DemandNoticeModal.tsx
-  public/hub-theme.css
 
-Optional preview (open in browser, no build needed):
-  public/ui-preview.html
+Includes:
+1) Professional light cashier desk UI
+   - Light cards, metric KPIs, green Take payment panel
+   - Collect payment tab first for cashiers
+   - Colour-coded bill tiles on Work menu
 
-What changed:
-- Professional page shell, headers, metric cards, toolbars, tables, badges
-- Tools Directory restyled to light workspace cards
-- Demand notice uses official doc-sheet layout
-- Standalone pages (hub-theme.css) get matching patterns
-- Print styles for official documents
+2) Property filters on Collect payment
+   - Ward no. dropdown
+   - Owner / name text filter
+   - Due status (All / Has dues / Cleared)
+   - Property ID / house no. search
+   - Clear filters + chips + Open details card
