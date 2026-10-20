@@ -106,5 +106,24 @@ export function expandForHead(records: PropertyRecord[], head: HeadId, ledgers: 
   return out;
 }
 
+/**
+ * What one building will be billed for a unit head, counted the same way expandForHead bills it:
+ * every ACTIVE unit is one bill (Residential or Commercial). A building with no units at all is one implicit
+ * unit of its own use. A mixed/unknown building with no units bills nothing (needsUnits).
+ */
+export interface UnitBilling { residential: number; commercial: number; total: number; implicit: boolean }
+export function unitBilling(rec: PropertyRecord): UnitBilling {
+  const units = unitList(rec);
+  if (units.length) {
+    const act = units.filter((u) => u.active);
+    const residential = act.filter((u) => u.use === 'Residential').length;
+    const commercial = act.filter((u) => u.use === 'Commercial').length;
+    return { residential, commercial, total: residential + commercial, implicit: false };
+  }
+  const residential = rec.use === 'Residential' ? 1 : 0;
+  const commercial = rec.use === 'Commercial' ? 1 : 0;
+  return { residential, commercial, total: residential + commercial, implicit: true };
+}
+
 /** Ledger keys (property part) that belong to one building in a unit-billed head. */
 export const belongsTo = (pid: string, key: string) => key === pid || key.startsWith(pid + UNIT_SEP);

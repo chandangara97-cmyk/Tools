@@ -7,7 +7,7 @@ import React, { useMemo, useState } from 'react';
 import { X, Plus, Trash2, CheckCircle2, Building2 } from 'lucide-react';
 import type { PropertyRecord } from '../utils/gisUtils';
 import {
-  PropertyUnit, unitList, unitsToRecord, nextUnitId, UNIT_SEP, isUnitHead, needsUnits,
+  PropertyUnit, unitList, unitsToRecord, nextUnitId, isUnitHead, needsUnits, unitBilling,
 } from '../services/units';
 import type { HeadId } from '../services/heads';
 import { headLabel } from '../services/heads';
@@ -54,13 +54,15 @@ export const UnitVerifyModal: React.FC<Props> = ({
       .filter((r) => r && r.id && r.town === townName)
       .map((r) => {
         const units = unitList(r);
-        const res = units.filter((u) => u.active && u.use === 'Residential');
-        const com = units.filter((u) => u.active && u.use === 'Commercial');
         const inactive = units.filter((u) => !u.active);
-        const resAmt = (fixedAmountFor(rates, 'Residential') ?? 0) * res.length;
-        const comAmt = (fixedAmountFor(rates, 'Commercial') ?? 0) * com.length;
+        // Count exactly what the demand engine bills: every active unit, or the building itself when it has no units.
+        const b = unitBilling(r);
+        const resRate = fixedAmountFor(rates, 'Residential') ?? 0;
+        const comRate = fixedAmountFor(rates, 'Commercial') ?? 0;
+        const resAmt = resRate * b.residential;
+        const comAmt = comRate * b.commercial;
         const needs = needsUnits(r);
-        return { rec: r, units, res, com, inactive, resAmt, comAmt, total: resAmt + comAmt, needs };
+        return { rec: r, units, resN: b.residential, comN: b.commercial, unitsN: b.total, resRate, comRate, inactive, resAmt, comAmt, total: resAmt + comAmt, needs };
       })
       .sort((a, b) => a.rec.id.localeCompare(b.rec.id));
   }, [records, townName, rates]);
@@ -130,8 +132,9 @@ export const UnitVerifyModal: React.FC<Props> = ({
     setBusy(false);
   };
 
-  const totalRes = structures.reduce((a, s) => a + s.res.length, 0);
-  const totalCom = structures.reduce((a, s) => a + s.com.length, 0);
+  const totalRes = structures.reduce((a, s) => a + s.resN, 0);
+  const totalCom = structures.reduce((a, s) => a + s.comN, 0);
+  const totalAmt = structures.reduce((a, s) => a + s.total, 0);
   const needCount = structures.filter((s) => s.needs).length;
 
   return (
@@ -162,6 +165,8 @@ export const UnitVerifyModal: React.FC<Props> = ({
         <div className="px-4 py-2 bg-[#0d1224] border-b border-[#28325c] flex flex-wrap gap-3 text-xs">
           <span className="text-[#aab4dc]">Active Residential: <b className="text-white">{totalRes}</b></span>
           <span className="text-[#aab4dc]">Active Commercial: <b className="text-white">{totalCom}</b></span>
+          <span className="text-[#aab4dc]">Total units: <b className="text-white">{totalRes + totalCom}</b></span>
+          <span className="text-[#aab4dc]">Full month: <b className="text-white">{money(totalAmt)}</b></span>
           {needCount > 0 && (
             <span className="text-[#f2b233] font-bold">{needCount} mixed building{needCount > 1 ? 's' : ''} still need units</span>
           )}
@@ -172,7 +177,7 @@ export const UnitVerifyModal: React.FC<Props> = ({
           {structures.length === 0 && (
             <p className="text-sm text-[#aab4dc] p-4 text-center">No properties in this town for this head.</p>
           )}
-          {structures.map(({ rec, res, com, inactive, resAmt, comAmt, total, needs }) => {
+          {structures.map(({ rec, resN, comN, unitsN, resRate, comRate, resAmt, comAmt, total, needs }) => {
             const isOpen = expanded === rec.id;
             return (
               <div key={rec.id} className="rounded-xl border border-[#28325c] bg-[#181f3d] overflow-hidden">
@@ -195,7 +200,7 @@ export const UnitVerifyModal: React.FC<Props> = ({
                     ) : unitHead ? (
                       <>
                         <div className="text-[#aab4dc]">
-                          R <b className="text-white">{res.length}</b> · C <b className="text-white">{com.length}</b>
+                          R <b className="text-white">{resN}</b> · C <b className="text-white">{comN}</b> · {unitsN} unit{unitsN === 1 ? '' : 's'}
                         </div>
                         <div className="text-white font-bold">{money(total)}</div>
                       </>
@@ -336,8 +341,8 @@ export const UnitVerifyModal: React.FC<Props> = ({
                     {msg && <p className="text-xs text-[#aab4dc]">{msg}</p>}
                     {(resAmt > 0 || comAmt > 0) && (
                       <p className="text-[11px] text-[#8790bd]">
-                        This structure → Residential {money(resAmt)} + Commercial {money(comAmt)} = <b className="text-white">{money(total)}</b>
-                        {' '}(after save, list refreshes on next open)
+                        This structure → {resN} Residential × {money(resRate)} = {money(resAmt)} + {comN} Commercial × {money(comRate)} = {money(comAmt)} = <b className="text-white">{money(total)}</b>
+                        {' '}({unitsN} unit{unitsN === 1 ? '' : 's'}; after save, list refreshes on next open)
                       </p>
                     )}
                   </div>
