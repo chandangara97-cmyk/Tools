@@ -2,50 +2,257 @@
 @tailwind components;
 @tailwind utilities;
 
+/* —— Larger readable type scale (requested) —— */
+html {
+  font-size: 17px; /* was ~16px browser default */
+}
+@media (min-width: 640px) {
+  html { font-size: 18px; }
+}
+.scheme-app {
+  font-size: 1rem;
+  line-height: 1.55;
+}
+.scheme-app h1 { font-size: clamp(1.6rem, 3vw, 2.1rem); }
+.scheme-app h2 { font-size: clamp(1.35rem, 2.4vw, 1.75rem); }
+.scheme-app h3 { font-size: clamp(1.15rem, 2vw, 1.35rem); }
+.scheme-app button,
+.scheme-app input,
+.scheme-app select,
+.scheme-app textarea {
+  font-size: 1rem;
+}
+.scheme-app .text-xs { font-size: 0.8125rem !important; }   /* ~13–14.5px */
+.scheme-app .text-sm { font-size: 0.9375rem !important; }  /* ~16–17px */
+.scheme-app .text-base { font-size: 1.0625rem !important; }
+.scheme-app .text-lg { font-size: 1.1875rem !important; }
+.scheme-app .text-xl { font-size: 1.375rem !important; }
+.scheme-app .text-2xl { font-size: 1.625rem !important; }
+.scheme-app table th,
+.scheme-app table td {
+  font-size: 0.95rem;
+}
+
+
+
 :root {
   color-scheme: light;
-  --ink: #f4f7fb;
+  --ink: #172943;
   --slip: #ffffff;
-  --rule: #dbe3ee;
+  --rule: #dce5f1;
   --stamp: #b7791f;
   --due: #c53030;
   --paid: #16805d;
+  --command: #0a1020;
+  --command-raised: #111a2d;
+  --command-line: rgba(137, 164, 211, .18);
+  --accent: #477dff;
+  --accent-2: #25d6c5;
+  --workspace: #f3f6fb;
+  --surface: #ffffff;
+  --muted: #64748b;
 }
 
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 body {
   margin: 0;
   padding: 0;
-  background-color: #f4f7fb;
-  color: #1f2937;
-  font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: #f3f6fb;
+  color: #1d304b;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+button, input, select, textarea { font: inherit; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, a {
+  transition: color .18s ease, background-color .18s ease, border-color .18s ease,
+    box-shadow .18s ease, transform .18s ease;
+}
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid rgba(76, 156, 255, .75);
+  outline-offset: 3px;
+}
+h1, h2, h3, h4 { letter-spacing: -.035em; }
+.num, td, th, input, select { font-variant-numeric: tabular-nums; }
+
+/* Adaptive shell: dark command centre surrounding bright, readable workspaces. */
+.scheme-app {
+  --page-ink: #172943;
+  --page-muted: #667891;
+  --page-line: #dce5f1;
+  --page-accent: #3268d8;
+  min-height: 100vh;
+  color: #1d304b;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(79, 125, 255, .06), transparent 28rem),
+    #f3f6fb;
+}
+.scheme-app main { max-width: 1600px; margin-inline: auto; }
+.scheme-app button, .scheme-app a, .scheme-app input, .scheme-app select, .scheme-app textarea {
+  transition: background-color .18s ease, border-color .18s ease, box-shadow .18s ease,
+    transform .18s ease, color .18s ease;
+}
+.scheme-app button:hover:not(:disabled) { filter: saturate(1.06); }
+.scheme-app button:active:not(:disabled) { transform: translateY(1px); }
+
+/* Bright work surface for the GIS survey and municipal records. */
+.scheme-app .gis-survey-page {
+  min-height: calc(100vh - 70px);
+  background: linear-gradient(180deg, #f2f6fc 0%, #f7f9fd 100%) !important;
+  color: #1d304b !important;
+}
+.scheme-app .gis-survey-page > .bg-\[\#141a36\] {
+  background: linear-gradient(110deg, #0c1426, #121f38) !important;
+  border-color: rgba(130, 160, 207, .24) !important;
+  color: #edf4ff !important;
+  box-shadow: 0 10px 30px rgba(8, 17, 36, .14);
+}
+.scheme-app .gis-survey-page .bg-\[\#0d1224\],
+.scheme-app .gis-survey-page .bg-\[\#121830\],
+.scheme-app .gis-survey-page .bg-\[\#141a36\],
+.scheme-app .gis-survey-page .bg-\[\#181f3d\],
+.scheme-app .gis-survey-page .bg-\[\#1d2547\],
+.scheme-app .gis-survey-page .bg-\[\#232c52\] { background-color: #fff !important; }
+.scheme-app .gis-survey-page .border-\[\#28325c\],
+.scheme-app .gis-survey-page .border-\[\#2f3a6b\],
+.scheme-app .gis-survey-page .border-\[\#2a3464\] { border-color: #dce5f1 !important; }
+.scheme-app .gis-survey-page .text-white { color: #1d304b !important; }
+.scheme-app .gis-survey-page .text-\[\#9aa8ff\],
+.scheme-app .gis-survey-page .text-\[\#aab4dc\],
+.scheme-app .gis-survey-page .text-\[\#d6dcf5\],
+.scheme-app .gis-survey-page .text-\[\#8790bd\] { color: #657891 !important; }
+.scheme-app .gis-survey-page input,
+.scheme-app .gis-survey-page select,
+.scheme-app .gis-survey-page textarea {
+  background: #fff !important;
+  border-color: #cbd8e8 !important;
+  color: #1d304b !important;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(20, 40, 70, .025);
+}
+.scheme-app .gis-survey-page input:focus,
+.scheme-app .gis-survey-page select:focus,
+.scheme-app .gis-survey-page textarea:focus {
+  border-color: #5487ef !important;
+  box-shadow: 0 0 0 4px rgba(71, 125, 255, .12);
+}
+.scheme-app .gis-survey-page button { border-radius: 12px; }
+.scheme-app .gis-survey-page .rounded-2xl,
+.scheme-app .gis-survey-page .rounded-3xl { box-shadow: 0 8px 28px rgba(29, 54, 91, .065); }
+.scheme-app .gis-survey-page table { border-collapse: separate; border-spacing: 0; }
+.scheme-app .gis-survey-page th {
+  background: #edf3fb;
+  color: #405571;
+  font-weight: 750;
+  letter-spacing: .025em;
+  text-transform: uppercase;
+  font-size: .69rem;
+}
+.scheme-app .gis-survey-page td { color: #263b57; }
+.scheme-app .gis-survey-page tr:hover td { background-color: #f5f8ff; }
+
+/* Tools directory cards. */
+.scheme-app .tools-directory-page { color: #1c304c !important; }
+.scheme-app .tools-directory-page .grid > div {
+  background: rgba(255,255,255,.96) !important;
+  border: 1px solid #dce5f1 !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 26px rgba(20, 44, 83, .06) !important;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.scheme-app .tools-directory-page .grid > div:hover {
+  transform: translateY(-3px);
+  border-color: #a7c4ff !important;
+  box-shadow: 0 18px 42px rgba(20, 44, 83, .12) !important;
+}
+.scheme-app .tools-directory-page h2, .scheme-app .tools-directory-page h3 { color: #1b3150 !important; }
+.scheme-app .tools-directory-page p { color: #667891 !important; }
+.scheme-app .tools-directory-page h2 span {
+  background: #eaf1ff !important;
+  border-color: #cddcff !important;
+  color: #315fc0 !important;
+}
+.scheme-app .tools-directory-page input {
+  min-height: 46px;
+  border-radius: 13px;
+  background: #fff !important;
+  border-color: #d3deec !important;
+  color: #1b3150 !important;
+}
+.scheme-app .tools-directory-page button { border-radius: 12px; }
+
+/* Existing converter/admin dark panels get a more polished command-centre treatment. */
+.scheme-app .min-h-screen.bg-\[\#0d1224\] {
+  background: radial-gradient(ellipse at 85% 0%, rgba(40, 110, 230, .16), transparent 36rem), #0a1020 !important;
+}
+.scheme-app .min-h-screen.bg-\[\#0d1224\] .bg-\[\#181f3d\] {
+  background: rgba(17, 26, 45, .92) !important;
+  border-color: var(--command-line) !important;
+  border-radius: 22px !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .22), inset 0 1px rgba(255,255,255,.035);
+}
+.scheme-app .min-h-screen.bg-\[\#0d1224\] input,
+.scheme-app .min-h-screen.bg-\[\#0d1224\] textarea {
+  background: #0b1324 !important;
+  border-color: #2b3c59 !important;
+  border-radius: 12px;
+}
+.scheme-app .min-h-screen.bg-\[\#0d1224\] button {
+  border-radius: 12px;
+  box-shadow: 0 8px 22px rgba(60, 105, 255, .14);
 }
 
-/* Headings are set like a receipt book: slab serif. Numbers line up in columns. */
-h1, h2, h3, .slab {
-  font-family: 'Zilla Slab', Rockwell, 'Roboto Slab', Georgia, serif;
-  letter-spacing: -0.005em;
+/* Navigation is the persistent dark command bar. */
+.scheme-app .scheme-navbar {
+  background: rgba(9, 16, 31, .88) !important;
+  color: #e8f0ff !important;
+  border-color: rgba(137, 164, 211, .18) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, .18) !important;
+  backdrop-filter: blur(22px) saturate(145%);
 }
-.num, td, th, b, input, select { font-variant-numeric: tabular-nums; }
+.scheme-app .scheme-navbar button:hover, .scheme-app .scheme-navbar a:hover {
+  background: rgba(93, 135, 226, .14) !important;
+  color: #fff !important;
+}
+.scheme-app .scheme-navbar .hub-nav-active {
+  background: rgba(69, 119, 239, .19) !important;
+  border-color: rgba(106, 151, 255, .4) !important;
+  color: #dce8ff !important;
+}
+.scheme-app .scheme-navbar .hub-brand-mark {
+  background: linear-gradient(145deg, #4f8cff, #21c9c3) !important;
+  box-shadow: 0 0 0 5px rgba(63, 131, 255, .09), 0 8px 22px rgba(49, 116, 255, .25);
+}
+.scheme-app .scheme-navbar .hub-brand-name { color: #f1f6ff !important; }
+.scheme-app .scheme-navbar .hub-brand-subtitle { color: #8da2c4 !important; }
 
-/* A stub: the card every menu choice is drawn on. The left edge is perforated like a torn receipt. */
+/* Retain bill-stub and paid/due stamp utility classes used by existing screens. */
+:root { --ink: #f4f7fb; --slip: #fff; --rule: #dbe3ee; }
 .stub {
   position: relative;
-  border-radius: 6px 14px 14px 6px;
+  border-radius: 14px;
   padding-left: 1.6rem !important;
-  background-image: radial-gradient(circle at 0.55rem center, #f4f7fb 0 4px, transparent 4.5px);
+  background-image: radial-gradient(circle at .55rem center, #f4f7fb 0 4px, transparent 4.5px);
   background-size: 1.1rem 1.1rem;
   background-repeat: repeat-y;
   background-position: 0 0;
 }
 .stub::after {
   content: '';
-  position: absolute; top: 8px; bottom: 8px; left: 1.1rem;
+  position: absolute;
+  top: 8px; bottom: 8px; left: 1.1rem;
   border-left: 2px dashed rgba(100, 116, 139, .35);
   pointer-events: none;
 }
-
-/* The one loud thing: the total liability, struck like a rubber stamp. */
+.scheme-app .gis-survey-page .stub { border-radius: 16px !important; padding-left: 1rem !important; background-image: none !important; }
+.scheme-app .gis-survey-page .stub::after { display: none; }
+.scheme-app .gis-survey-page .stub:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 34px rgba(35, 76, 145, .13);
+  border-color: #94b7ff !important;
+}
 .stamp {
   display: inline-block;
   border: 3px solid var(--due);
@@ -53,140 +260,836 @@ h1, h2, h3, .slab {
   border-radius: 10px;
   padding: .25rem .9rem;
   transform: rotate(-1.5deg);
-  font-family: 'Zilla Slab', Rockwell, Georgia, serif;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1.1;
-  box-shadow: inset 0 0 0 2px rgba(255, 107, 111, .25);
+  box-shadow: inset 0 0 0 2px rgba(255, 107, 111, .16);
 }
-.stamp.clear { border-color: var(--paid); color: var(--paid); box-shadow: inset 0 0 0 2px rgba(52, 211, 153, .25); }
+.stamp.clear { border-color: var(--paid); color: var(--paid); }
 
-:focus-visible { outline: 3px solid #ffe3a3; outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
-
-/* Custom scrollbars */
-::-webkit-scrollbar { width: 7px; height: 7px; }
-::-webkit-scrollbar-track { background: #0a0e1c; }
-::-webkit-scrollbar-thumb { background: #2a3464; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #9aa8ff; }
-
-@media print {
-  body { background-color: #fff !important; color: #000 !important; }
-}
-
-
-
-/* SCHEME HUB — complete light civic workspace design system */
-:root {
-  color-scheme: light;
-  --sh-bg: #f3f6fb;
-  --sh-surface: #ffffff;
-  --sh-surface-soft: #f8faff;
-  --sh-ink: #17243a;
-  --sh-muted: #65748b;
-  --sh-line: #dfe7f1;
-  --sh-blue: #2459a9;
-  --sh-blue-deep: #173e78;
-  --sh-teal: #087f8c;
-  --sh-gold: #d69b32;
-  --sh-danger: #b93838;
-  --sh-success: #147d5a;
-  --sh-radius: 16px;
-  --sh-shadow: 0 8px 24px rgba(24, 48, 82, .065);
-}
-html { background: var(--sh-bg); }
-body {
-  background: var(--sh-bg) !important;
-  color: var(--sh-ink) !important;
-  font-family: Inter, 'Public Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-#root { min-height: 100vh; }
-h1, h2, h3, h4 { color: var(--sh-ink); letter-spacing: -.025em; }
-p { line-height: 1.55; }
-::selection { background: #dbeafe; color: #173e78; }
-
-/* Rebuild the visual language consistently across every React screen. */
-#root .min-h-screen { background: var(--sh-bg) !important; color: var(--sh-ink) !important; }
-#root header.sticky {
-  background: rgba(255,255,255,.94) !important;
-  color: var(--sh-ink) !important;
-  border-color: var(--sh-line) !important;
-  box-shadow: 0 4px 18px rgba(26, 48, 78, .055) !important;
-  backdrop-filter: blur(18px);
-}
-#root main, #root section, #root article, #root aside { color: inherit; }
-#root .rounded-xl, #root .rounded-2xl, #root .rounded-lg {
-  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
-}
-#root .bg-white, #root .bg-white\/95, #root .bg-white\/90 { background-color: #fff !important; }
-#root .shadow, #root .shadow-sm, #root .shadow-md, #root .shadow-lg, #root .shadow-xl {
-  box-shadow: var(--sh-shadow) !important;
-}
-#root .border-slate-100, #root .border-slate-200, #root .border-slate-300,
-#root .border-gray-100, #root .border-gray-200, #root .border-gray-300 { border-color: var(--sh-line) !important; }
-#root .text-slate-900, #root .text-gray-900, #root .text-slate-800, #root .text-gray-800 { color: var(--sh-ink) !important; }
-#root .text-slate-700, #root .text-gray-700 { color: #33445d !important; }
-#root .text-slate-600, #root .text-gray-600, #root .text-slate-500, #root .text-gray-500 { color: var(--sh-muted) !important; }
-#root .bg-slate-50, #root .bg-gray-50, #root .bg-slate-100, #root .bg-gray-100 { background-color: var(--sh-surface-soft) !important; }
-#root .bg-blue-700, #root .bg-blue-800, #root .bg-indigo-600 { background-color: var(--sh-blue) !important; }
-#root .hover\:bg-blue-800:hover, #root .hover\:bg-blue-700:hover, #root .hover\:bg-indigo-700:hover { background-color: var(--sh-blue-deep) !important; }
-#root button, #root [role="button"] { transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
-#root button:active, #root [role="button"]:active { transform: translateY(1px); }
-#root button:focus-visible, #root a:focus-visible, #root input:focus-visible, #root select:focus-visible, #root textarea:focus-visible {
-  outline: 3px solid rgba(37, 99, 235, .25) !important; outline-offset: 2px;
-}
-#root input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-#root select, #root textarea {
-  color-scheme: light; background: #fff !important; color: var(--sh-ink) !important;
-  border: 1px solid #cbd7e6 !important; border-radius: 10px;
-  min-height: 40px; box-shadow: inset 0 1px 1px rgba(20,40,70,.025);
-}
-#root input::placeholder, #root textarea::placeholder { color: #8b99ad !important; opacity: 1; }
-#root input:focus, #root select:focus, #root textarea:focus { border-color: #5b8bd1 !important; box-shadow: 0 0 0 3px rgba(36,89,169,.10) !important; }
-#root table { border-collapse: separate; border-spacing: 0; width: 100%; }
-#root th { color: #4c5f78; font-size: .72rem; text-transform: uppercase; letter-spacing: .055em; font-weight: 750; }
-#root td, #root th { border-color: var(--sh-line) !important; }
-#root tr:hover td { background-color: #f7faff; }
-#root .stub { background-color: #fff !important; background-image: none; border: 1px solid var(--sh-line); border-radius: 14px; padding-left: 1rem !important; }
-#root .stub::after { display: none; }
-#root .stamp { transform: none; border-radius: 8px; box-shadow: none; }
-
-/* Prevent legacy dark utility classes from leaving dark islands in any view. */
-#root .bg-\[\#0d1224\], #root .bg-\[\#121830\], #root .bg-\[\#141a36\],
-#root .bg-\[\#181f3d\], #root .bg-\[\#1d2547\], #root .bg-\[\#232c52\],
-#root .bg-slate-900, #root .bg-gray-900, #root .bg-slate-950 {
-  background-color: #fff !important; color: var(--sh-ink) !important;
-}
-#root .bg-slate-800, #root .bg-slate-800\/80, #root .bg-gray-800, #root .bg-slate-700 { background-color: #f6f9fd !important; }
-#root .border-\[\#28325c\], #root .border-\[\#2f3a6b\], #root .border-\[\#2a3464\] { border-color: var(--sh-line) !important; }
-#root .text-white { color: var(--sh-ink) !important; }
-#root .bg-blue-600 .text-white, #root .bg-blue-700 .text-white,
-#root button.bg-blue-600, #root button.bg-blue-700, #root button.bg-indigo-600,
-#root a.bg-blue-600, #root a.bg-blue-700 { color: #fff !important; }
-#root .text-\[\#aab4dc\], #root .text-\[\#d6dcf5\] { color: var(--sh-muted) !important; }
-#root .bg-emerald-500\/15, #root .bg-emerald-600\/10 { background-color: #e8f7f0 !important; }
-
-/* Workspace header / page spacing */
-#root header.sticky > div { min-height: 68px; }
-#root header.sticky button:hover { background-color: #edf4ff; }
-#root .max-w-7xl { max-width: 1440px; }
-#root .p-4, #root .p-5, #root .p-6 { box-sizing: border-box; }
-#root .rounded-2xl { border-radius: var(--sh-radius) !important; }
-#root .rounded-xl { border-radius: 13px !important; }
-#root .rounded-lg { border-radius: 10px !important; }
-
-/* Scrollbars, maps and small screens */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #edf2f8; }
-::-webkit-scrollbar-thumb { background: #c3cfde; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #93a6bf; }
-.leaflet-container { border-radius: 14px; border: 1px solid var(--sh-line); z-index: 0; }
+::-webkit-scrollbar-track { background: #0a1020; }
+::-webkit-scrollbar-thumb { background: #344361; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #6685bf; }
+
 @media (max-width: 640px) {
-  #root header.sticky > div { min-height: 60px; }
-  #root .max-w-7xl { width: 100%; }
-  #root .rounded-2xl { border-radius: 13px !important; }
-  #root input:not([type="checkbox"]):not([type="radio"]), #root select, #root textarea { font-size: 16px; }
-  #root table { font-size: .82rem; }
+  .scheme-app { overflow-x: clip; }
+  .scheme-app main { padding-inline: 0; }
+  .scheme-app .gis-survey-page { overflow-x: hidden; }
+  .scheme-app .gis-survey-page table { min-width: 720px; }
+  .scheme-app .scheme-navbar > div { padding-inline: 12px; gap: 8px; }
+  .scheme-app .hub-brand-name { font-size: 13px; }
+  .scheme-app .hub-brand-subtitle { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
-@media print { body, #root, #root .min-h-screen { background: #fff !important; color: #000 !important; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+@media print {
+  body, .scheme-app, .scheme-app .gis-survey-page { background: #fff !important; color: #000 !important; }
+  .scheme-navbar { display: none !important; }
+}
+
+/* ═══ Full-site React coverage: collection, assessment, reports, login, etc. ═══ */
+
+.scheme-app .collection-panel,
+.scheme-app .assessment-panel,
+.scheme-app .reports-panel,
+.scheme-app .liability-search,
+.scheme-app .property-records,
+.scheme-app .rate-table-editor,
+.scheme-app .self-assessment,
+.scheme-app .admin-dues,
+.scheme-app .bill-maker,
+.scheme-app .citizen-pay,
+.scheme-app .work-menu,
+.scheme-app .town-rules,
+.scheme-app .login-gate {
+  color: #1d304b;
+}
+
+/* Dark panels that should become polished command cards */
+.scheme-app [class*="bg-[#0"],
+.scheme-app [class*="bg-[#1"] {
+  /* leave utility classes; targeted overrides below */
+}
+
+/* Modals / dialogs */
+.scheme-app .fixed.inset-0,
+.scheme-app [role="dialog"] {
+  /* backdrop stays dark */
+}
+.scheme-app [role="dialog"] > div,
+.scheme-app .rounded-2xl.bg-white,
+.scheme-app .rounded-3xl.bg-white {
+  border-radius: 20px !important;
+  box-shadow: 0 24px 70px rgba(20, 40, 70, 0.18) !important;
+}
+
+/* Tables across all React panels */
+.scheme-app table th {
+  background: #edf3fb !important;
+  color: #405571 !important;
+  font-weight: 750;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  font-size: 0.69rem;
+}
+.scheme-app table td { color: #263b57; }
+.scheme-app table tr:hover td { background-color: #f5f8ff; }
+
+/* Primary buttons in React */
+.scheme-app button.bg-indigo-600,
+.scheme-app button.bg-\[\#4f46e5\],
+.scheme-app button.bg-\[\#2459a9\],
+.scheme-app .btn-primary {
+  background: linear-gradient(135deg, #4f8cff, #25d6c5) !important;
+  color: #0a1020 !important;
+  border: 0 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 8px 22px rgba(71, 125, 255, 0.22) !important;
+}
+
+/* Sync bar */
+.scheme-app .sync-bar,
+.scheme-app [class*="SyncBar"] {
+  background: rgba(9, 16, 31, 0.92) !important;
+  border-color: rgba(137, 164, 211, 0.18) !important;
+  color: #e8f0ff !important;
+}
+
+/* Login gate inside React */
+.scheme-app .login-gate input,
+.scheme-app [class*="LoginGate"] input {
+  background: #0b1324 !important;
+  border-color: #2b3c59 !important;
+  color: #e8f0ff !important;
+  border-radius: 12px !important;
+}
+
+/* Work menu — full makeover workspace under dark command nav */
+.scheme-app .work-menu-page {
+  color: #1d304b;
+  padding-top: 0.25rem;
+}
+.scheme-app .work-menu-page h2,
+.scheme-app .work-menu-page h3 {
+  letter-spacing: -0.03em;
+}
+@media (max-width: 640px) {
+  .scheme-app .work-menu-page {
+    padding-inline: 2px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CONTRAST FIX — never same colour for text and background
+   ═══════════════════════════════════════════════════════════ */
+
+/* Default: light workspace text on the app shell after the dark navbar */
+.scheme-app {
+  color: #1d304b;
+}
+.scheme-app main,
+.scheme-app > main,
+.scheme-app .work-menu-page,
+.scheme-app .gis-survey-page,
+.scheme-app .tools-directory-page,
+.scheme-app [class*="Panel"],
+.scheme-app [class*="panel"] {
+  color: #1d304b;
+}
+
+/* Any forced-white panels must use dark ink */
+.scheme-app .bg-white,
+.scheme-app [class*="bg-white"],
+.scheme-app .gis-survey-page .bg-\[\#0d1224\],
+.scheme-app .gis-survey-page .bg-\[\#121830\],
+.scheme-app .gis-survey-page .bg-\[\#141a36\],
+.scheme-app .gis-survey-page .bg-\[\#181f3d\],
+.scheme-app .gis-survey-page .bg-\[\#1d2547\],
+.scheme-app .gis-survey-page .bg-\[\#232c52\] {
+  color: #1d304b !important;
+}
+
+/* text-white on a light workspace → dark ink (except inside accent tiles / navbar / dark hero) */
+.scheme-app .gis-survey-page .text-white,
+.scheme-app .work-menu-page .text-white,
+.scheme-app .tools-directory-page .text-white {
+  color: #1d304b !important;
+}
+
+/* Keep light text where the surface is truly dark */
+.scheme-app .scheme-navbar,
+.scheme-app .scheme-navbar * {
+  color: inherit;
+}
+.scheme-app .scheme-navbar {
+  color: #e8f0ff !important;
+}
+.scheme-app .work-menu-page header,
+.scheme-app .work-menu-page header h2,
+.scheme-app .work-menu-page header p,
+.scheme-app .work-menu-page header span {
+  /* hero card is dark — keep light type */
+  color: inherit;
+}
+.scheme-app .work-menu-page header {
+  color: #e8f0ff;
+}
+
+/* Blue gradient bill tiles: force white text */
+.scheme-app .work-menu-page button.group.relative.text-left,
+.scheme-app button.bg-gradient-to-br.from-\[\#4f7dff\],
+.scheme-app [class*="from-[#4f7dff]"],
+.scheme-app [class*="from-[#4f46e5]"] {
+  color: #ffffff !important;
+}
+.scheme-app [class*="from-[#4f7dff]"] *,
+.scheme-app [class*="from-[#4f46e5]"] * {
+  color: inherit;
+}
+
+/* Generic light surfaces */
+.scheme-app .rounded-2xl.bg-white,
+.scheme-app .rounded-3xl.bg-white,
+.scheme-app .bg-\[\#f4f7fb\],
+.scheme-app .bg-\[\#f2f6fc\],
+.scheme-app .bg-\[\#f7f9fd\],
+.scheme-app .bg-\[\#f8fafc\] {
+  color: #1d304b !important;
+}
+
+/* Dark command panels that stay dark (converters / admin tools) */
+.scheme-app .min-h-screen.bg-\[\#0d1224\],
+.scheme-app .min-h-screen.bg-\[\#0a1020\] {
+  color: #e8f0ff !important;
+  background: #0a1020 !important;
+}
+.scheme-app .min-h-screen.bg-\[\#0d1224\] .text-white,
+.scheme-app .min-h-screen.bg-\[\#0a1020\] .text-white {
+  color: #ffffff !important;
+}
+
+/* Inputs always readable */
+.scheme-app input,
+.scheme-app select,
+.scheme-app textarea {
+  color: #1d304b !important;
+  background: #ffffff !important;
+  border-color: #cbd8e8 !important;
+}
+.scheme-app input::placeholder,
+.scheme-app textarea::placeholder {
+  color: #7a8eab !important;
+  opacity: 1;
+}
+
+/* On dark tool pages, inputs stay dark field + light text */
+.scheme-app .min-h-screen.bg-\[\#0d1224\] input,
+.scheme-app .min-h-screen.bg-\[\#0d1224\] select,
+.scheme-app .min-h-screen.bg-\[\#0d1224\] textarea,
+.scheme-app .min-h-screen.bg-\[\#0a1020\] input,
+.scheme-app .min-h-screen.bg-\[\#0a1020\] select,
+.scheme-app .min-h-screen.bg-\[\#0a1020\] textarea {
+  color: #e8f0ff !important;
+  background: #0b1324 !important;
+  border-color: #2b3c59 !important;
+}
+
+/* Tables */
+.scheme-app table {
+  color: #1d304b;
+}
+.scheme-app table th {
+  color: #405571 !important;
+  background: #edf3fb !important;
+}
+.scheme-app table td {
+  color: #263b57 !important;
+}
+
+/* Muted labels must not vanish on light bg */
+.scheme-app .text-\[\#aab4dc\],
+.scheme-app .text-\[\#9aa8ff\],
+.scheme-app .text-\[\#d6dcf5\],
+.scheme-app .text-\[\#8790bd\] {
+  color: #5b6f8a !important;
+}
+.scheme-app .scheme-navbar .text-\[\#aab4dc\],
+.scheme-app .scheme-navbar .text-\[\#9aa8ff\],
+.scheme-app .work-menu-page header .text-\[\#aab4dc\],
+.scheme-app .work-menu-page header .text-\[\#9aa8ff\] {
+  color: #8da2c4 !important;
+}
+
+/* Sync bar / chips on light page */
+.scheme-app .bg-emerald-100 { color: #065f46 !important; }
+.scheme-app .bg-amber-100 { color: #92400e !important; }
+.scheme-app .bg-sky-100 { color: #075985 !important; }
+.scheme-app .bg-red-100 { color: #991b1b !important; }
+
+/* ═══════════════════════════════════════════════════════════
+   PROFESSIONAL PAGE SYSTEM — clean enterprise civic UI
+   ═══════════════════════════════════════════════════════════ */
+
+/* Page shell: consistent max width, padding, vertical rhythm */
+.scheme-app .page-shell,
+.scheme-app .work-menu-page,
+.scheme-app .gis-survey-page,
+.scheme-app .tools-directory-page,
+.scheme-app .collection-panel,
+.scheme-app .assessment-panel,
+.scheme-app .reports-panel,
+.scheme-app .liability-search,
+.scheme-app .property-records,
+.scheme-app .rate-table-editor,
+.scheme-app .self-assessment,
+.scheme-app .admin-dues,
+.scheme-app .bill-maker,
+.scheme-app .citizen-pay,
+.scheme-app .town-rules {
+  max-width: 1600px;
+  margin-inline: auto;
+  padding-inline: clamp(12px, 2.5vw, 32px);
+  padding-bottom: clamp(2rem, 4vw, 3.5rem);
+}
+
+/* Page header block — title + subtitle + actions */
+.scheme-app .page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #e2eaf4;
+}
+.scheme-app .page-header h1,
+.scheme-app .page-header h2 {
+  margin: 0;
+  color: #132943;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+.scheme-app .page-header .page-kicker {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #477dff;
+  margin-bottom: 0.35rem;
+}
+.scheme-app .page-header .page-sub {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  color: #647891;
+  max-width: 42rem;
+  line-height: 1.45;
+}
+.scheme-app .page-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Metric / KPI strip */
+.scheme-app .metric-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.scheme-app .metric-card {
+  background: #fff;
+  border: 1px solid #e2eaf4;
+  border-radius: 16px;
+  padding: 1rem 1.15rem;
+  box-shadow: 0 4px 16px rgba(20, 40, 70, 0.04);
+}
+.scheme-app .metric-card .metric-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #647891;
+  margin-bottom: 0.35rem;
+}
+.scheme-app .metric-card .metric-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #132943;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+.scheme-app .metric-card .metric-hint {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #7a8eab;
+}
+.scheme-app .metric-card.accent {
+  background: linear-gradient(145deg, #f0f5ff, #fff);
+  border-color: #c5d6ff;
+}
+.scheme-app .metric-card.danger .metric-value { color: #c53030; }
+.scheme-app .metric-card.success .metric-value { color: #16805d; }
+
+/* Content cards — primary workspace surface */
+.scheme-app .content-card,
+.scheme-app .panel-card {
+  background: #fff;
+  border: 1px solid #e2eaf4;
+  border-radius: 18px;
+  box-shadow: 0 8px 28px rgba(20, 44, 83, 0.05);
+  overflow: hidden;
+}
+.scheme-app .content-card + .content-card,
+.scheme-app .panel-card + .panel-card {
+  margin-top: 1rem;
+}
+.scheme-app .content-card-header,
+.scheme-app .panel-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #eef2f8;
+  background: linear-gradient(180deg, #fafbfd 0%, #fff 100%);
+}
+.scheme-app .content-card-header h3,
+.scheme-app .panel-card-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 750;
+  color: #1b3150;
+  letter-spacing: -0.02em;
+}
+.scheme-app .content-card-body,
+.scheme-app .panel-card-body {
+  padding: 1.15rem 1.25rem;
+}
+.scheme-app .content-card-footer {
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid #eef2f8;
+  background: #f8fafc;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* Section group with divider label */
+.scheme-app .section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.5rem 0 0.85rem;
+}
+.scheme-app .section-label h3 {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #647891;
+  white-space: nowrap;
+}
+.scheme-app .section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, #e2eaf4, transparent);
+}
+
+/* Professional data tables */
+.scheme-app .data-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 14px;
+  border: 1px solid #e2eaf4;
+  background: #fff;
+}
+.scheme-app .data-table-wrap table,
+.scheme-app table.pro-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.9rem;
+}
+.scheme-app .data-table-wrap th,
+.scheme-app table.pro-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #edf3fb !important;
+  color: #405571 !important;
+  font-weight: 750;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.7rem 0.9rem;
+  text-align: left;
+  border-bottom: 1px solid #dce5f1;
+  white-space: nowrap;
+}
+.scheme-app .data-table-wrap td,
+.scheme-app table.pro-table td {
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid #eef2f8;
+  color: #263b57 !important;
+  vertical-align: middle;
+}
+.scheme-app .data-table-wrap tr:last-child td,
+.scheme-app table.pro-table tr:last-child td {
+  border-bottom: 0;
+}
+.scheme-app .data-table-wrap tr:hover td,
+.scheme-app table.pro-table tr:hover td {
+  background: #f5f8ff !important;
+}
+.scheme-app .data-table-wrap .num,
+.scheme-app table.pro-table .num,
+.scheme-app .num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Status badges */
+.scheme-app .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  border: 1px solid transparent;
+}
+.scheme-app .badge-paid,
+.scheme-app .badge-success {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+.scheme-app .badge-due,
+.scheme-app .badge-danger {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+.scheme-app .badge-pending,
+.scheme-app .badge-warn {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+.scheme-app .badge-info {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+.scheme-app .badge-neutral {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+/* Form field groups */
+.scheme-app .field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+.scheme-app .field-group label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #405571;
+  letter-spacing: 0.02em;
+}
+.scheme-app .field-group .field-hint {
+  font-size: 0.7rem;
+  color: #7a8eab;
+}
+.scheme-app .field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem 1rem;
+}
+
+/* Toolbar / filter bar */
+.scheme-app .toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  border: 1px solid #e2eaf4;
+  border-radius: 14px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 10px rgba(20, 40, 70, 0.03);
+}
+.scheme-app .toolbar input[type="search"],
+.scheme-app .toolbar input[type="text"] {
+  flex: 1;
+  min-width: 160px;
+  min-height: 42px;
+}
+
+/* Empty / loading states */
+.scheme-app .empty-state {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: #647891;
+}
+.scheme-app .empty-state .empty-icon {
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto 1rem;
+  border-radius: 16px;
+  background: #eef3fb;
+  color: #477dff;
+  display: grid;
+  place-items: center;
+}
+.scheme-app .empty-state h3 {
+  margin: 0 0 0.35rem;
+  color: #1b3150;
+  font-size: 1.05rem;
+  font-weight: 750;
+}
+.scheme-app .empty-state p {
+  margin: 0;
+  font-size: 0.9rem;
+  max-width: 28rem;
+  margin-inline: auto;
+}
+
+/* Official document / notice surface (print-ready) */
+.scheme-app .doc-sheet {
+  background: #fff;
+  color: #111;
+  border: 1px solid #cfd8e6;
+  border-radius: 4px;
+  box-shadow: 0 12px 40px rgba(20, 40, 70, 0.1);
+  padding: 2rem 2.25rem;
+  max-width: 48rem;
+  margin-inline: auto;
+  font-family: "Times New Roman", Times, Georgia, serif;
+  line-height: 1.55;
+}
+.scheme-app .doc-sheet .doc-masthead {
+  text-align: center;
+  border-bottom: 2px solid #1a2744;
+  padding-bottom: 1rem;
+  margin-bottom: 1.25rem;
+}
+.scheme-app .doc-sheet .doc-masthead h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0 0 0.25rem;
+  color: #0f1a2e;
+}
+.scheme-app .doc-sheet .doc-masthead .doc-dept {
+  font-size: 0.85rem;
+  color: #334155;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.scheme-app .doc-sheet .doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+  font-family: Inter, system-ui, sans-serif;
+}
+.scheme-app .doc-sheet .doc-body {
+  font-size: 1rem;
+}
+.scheme-app .doc-sheet .doc-amount {
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+.scheme-app .doc-sheet .doc-signature {
+  margin-top: 2.5rem;
+  text-align: right;
+  font-size: 0.9rem;
+}
+.scheme-app .doc-sheet table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.9rem;
+}
+.scheme-app .doc-sheet table th,
+.scheme-app .doc-sheet table td {
+  border: 1px solid #94a3b8;
+  padding: 0.45rem 0.65rem;
+  text-align: left;
+}
+.scheme-app .doc-sheet table th {
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
+  text-transform: none;
+  font-size: 0.8rem;
+  letter-spacing: 0;
+}
+
+/* Soft page entrance */
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.scheme-app .page-enter {
+  animation: page-in 0.28s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scheme-app .page-enter { animation: none; }
+}
+
+/* Print: professional document output */
+@media print {
+  body, .scheme-app, .scheme-app .gis-survey-page,
+  .scheme-app .work-menu-page, .scheme-app .collection-panel,
+  .scheme-app .assessment-panel, .scheme-app .reports-panel {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .scheme-navbar,
+  .scheme-app .scheme-navbar,
+  .scheme-app .sync-bar,
+  .scheme-app .page-header-actions,
+  .scheme-app .toolbar button,
+  .no-print {
+    display: none !important;
+  }
+  .scheme-app .content-card,
+  .scheme-app .panel-card,
+  .scheme-app .doc-sheet {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    break-inside: avoid;
+  }
+  .scheme-app .doc-sheet {
+    border: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  .scheme-app table th {
+    background: #eee !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Mobile refinements for professional pages */
+@media (max-width: 640px) {
+  .scheme-app .page-shell,
+  .scheme-app .work-menu-page,
+  .scheme-app .gis-survey-page,
+  .scheme-app .tools-directory-page {
+    padding-inline: 10px;
+  }
+  .scheme-app .page-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.85rem;
+  }
+  .scheme-app .metric-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  .scheme-app .metric-card {
+    padding: 0.75rem 0.85rem;
+    border-radius: 12px;
+  }
+  .scheme-app .metric-card .metric-value {
+    font-size: 1.15rem;
+  }
+  .scheme-app .content-card-header,
+  .scheme-app .content-card-body,
+  .scheme-app .panel-card-header,
+  .scheme-app .panel-card-body {
+    padding: 0.85rem 1rem;
+  }
+  .scheme-app .doc-sheet {
+    padding: 1.25rem 1rem;
+  }
+}
+
+
+/* ═══ Cashier desk — collection panel polish ═══ */
+.scheme-app .cashier-desk,
+.scheme-app .collection-panel {
+  color: #1d304b;
+}
+.scheme-app .cashier-desk nav[aria-label="Collection pages"] {
+  gap: 0.5rem;
+  padding: 0.35rem;
+  background: #fff;
+  border: 1px solid #e2eaf4;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(20, 40, 70, 0.03);
+}
+.scheme-app .cashier-desk .metric-like,
+.scheme-app .cashier-desk [class*="bg-slate-50"].rounded-xl {
+  transition: box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.scheme-app .cashier-desk [class*="bg-slate-50"].rounded-xl:hover {
+  border-color: #c5d6ff;
+  box-shadow: 0 6px 18px rgba(71, 125, 255, 0.08);
+}
+.scheme-app .cashier-desk table th {
+  background: #edf3fb !important;
+  color: #405571 !important;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 750;
+}
+.scheme-app .cashier-desk table td {
+  color: #263b57 !important;
+}
+.scheme-app .cashier-desk table tr:hover td {
+  background: #f5f8ff !important;
+}
+.scheme-app .cashier-desk input[type="number"],
+.scheme-app .cashier-desk input[type="date"],
+.scheme-app .cashier-desk input[type="text"],
+.scheme-app .cashier-desk select {
+  min-height: 42px;
+}
+
+
+/* ── Dark header fixes (text was being turned dark on dark surfaces) ── */
+/* Work-menu hero card */
+.scheme-app .work-menu-page header .hero-kicker { color: #67e8f9 !important; text-shadow: 0 1px 8px rgba(0,0,0,.5); }
+.scheme-app .work-menu-page header .hero-title  { color: #ffffff !important; text-shadow: 0 2px 12px rgba(0,0,0,.55); }
+.scheme-app .work-menu-page header .hero-role   { color: #b6ccff !important; text-shadow: 0 1px 8px rgba(0,0,0,.5); }
+.scheme-app .work-menu-page header .hero-name   { color: #dbe5f5 !important; }
+.scheme-app .work-menu-page header .hero-foot,
+.scheme-app .work-menu-page header .hero-hint   { color: #c3cfe3 !important; }
+/* "Menu" / page-title bar of the GIS survey shell */
+.scheme-app .gis-survey-page > .bg-\[\#141a36\] h1,
+.scheme-app .gis-survey-page > .bg-\[\#141a36\] .text-white { color: #ffffff !important; }
+.scheme-app .gis-survey-page > .bg-\[\#141a36\] .text-\[\#9aa8ff\],
+.scheme-app .gis-survey-page > .bg-\[\#141a36\] .text-\[\#aab4dc\] { color: #c3d0ea !important; }
+/* amber role label on the light sync strip */
+.scheme-app .gis-survey-page .text-\[\#ffe3a3\] { color: #b45309 !important; }
