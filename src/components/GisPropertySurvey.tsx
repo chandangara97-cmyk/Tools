@@ -65,6 +65,8 @@ import {
   FileCheck,
   Info,
   Landmark,
+  Receipt,
+  Wallet,
 } from 'lucide-react';
 
 // Towns are keyed by NAME ("Bhota"), so cloud data is saved under the town name.
@@ -978,6 +980,12 @@ const GisPropertySurveyInner: React.FC = () => {
         .gis-survey-page button { transition:all .18s ease; }
         .gis-survey-page button:hover { filter:brightness(.98); }
         .gis-survey-page .rounded-2xl,.gis-survey-page .rounded-3xl { box-shadow:0 7px 25px rgba(24,55,88,.055); }
+        .gis-workspace-layout{display:grid;grid-template-columns:238px minmax(0,1fr);gap:22px;align-items:start}
+        .gis-sidebar{position:sticky;top:104px;align-self:start;overflow:hidden;border:1px solid #d7e3f0;border-radius:20px;background:rgba(255,255,255,.94);box-shadow:0 12px 32px rgba(26,61,96,.08)}
+        .gis-sidebar-heading{padding:18px 16px 15px;background:linear-gradient(125deg,rgba(13,37,72,.94),rgba(20,91,126,.88)),url('/counter-bg/property_tax.svg') center/cover;color:white;display:flex;flex-direction:column;gap:5px}
+        .gis-sidebar-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;color:#b8e9f4}.gis-sidebar-heading strong{font-size:16px;color:#fff}.gis-sidebar-town{display:flex;align-items:center;gap:5px;font-size:11px;color:#e0efff;margin-top:3px}
+        .gis-sidebar-nav{padding:9px;display:grid;gap:4px}.gis-sidebar-link{display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:8px 9px;border:1px solid transparent;border-radius:12px;background:transparent;color:#526780;text-align:left;font-size:12px;font-weight:700}.gis-sidebar-link:hover{background:#f0f6ff;border-color:#dce9fb}.gis-sidebar-link.is-active{background:linear-gradient(100deg,#e7f0ff,#f3f8ff);border-color:#bcd4fa;color:#174ea6;box-shadow:inset 3px 0 #3979db}.gis-sidebar-icon{display:grid;place-items:center;flex:none;width:29px;height:29px;border-radius:9px;background:#f0f5fb;color:#607d9c}.gis-sidebar-link.is-active .gis-sidebar-icon{background:#d5e6ff;color:#245bb0}.gis-sidebar-arrow{margin-left:auto;font-size:20px;color:#9aaec5}.gis-sidebar-back{display:flex;align-items:center;gap:8px;margin:3px 3px 2px;padding:10px;border-top:1px solid #e7eef6;color:#245ca7;font-size:12px;font-weight:800;text-align:left}.gis-sidebar-tip{display:flex;gap:8px;padding:13px 14px;background:#f5f9ff;border-top:1px solid #e1eaf5;color:#647b95;font-size:10px;line-height:1.5}.gis-sidebar-tip svg{flex:none;color:#3f80d8}.gis-sidebar-tip b{display:block;color:#294b70;font-size:11px;margin-bottom:2px}
+        @media(max-width:900px){.gis-workspace-layout{grid-template-columns:minmax(0,1fr);gap:12px}.gis-sidebar{position:relative;top:auto}.gis-sidebar-heading{padding:12px 14px}.gis-sidebar-heading strong{font-size:14px}.gis-sidebar-nav{display:flex;overflow-x:auto;gap:6px;padding:8px}.gis-sidebar-link{flex:0 0 auto;width:auto;min-height:40px;padding:6px 9px}.gis-sidebar-link>span:nth-child(2){white-space:nowrap}.gis-sidebar-arrow,.gis-sidebar-tip{display:none}.gis-sidebar-back{flex:none;white-space:nowrap;border-top:0;border-left:1px solid #e7eef6;margin:0;padding:8px 10px}}
         @media(max-width:640px){ .gis-survey-page { overflow-x:hidden; } .gis-survey-page table { min-width:720px; } }
       `}</style>
       {/* Slim header: where you are, and a way back to the menu (not shown to search-only logins) */}
@@ -1053,7 +1061,29 @@ const GisPropertySurveyInner: React.FC = () => {
           onOpenConflict={(id) => { const r = records.find(x => x.id === id); if (r) handleEditRecord(r); }}
         />
         )}
-        <ErrorBoundary resetKey={`${activeTab}:${billHead ?? ''}`} onBack={() => openTab('menu', null)}>
+        <div className={!searchOnly && activeTab !== 'menu' ? 'gis-workspace-layout' : 'min-w-0'}>
+        {!searchOnly && activeTab !== 'menu' && (
+          <aside className="gis-sidebar" aria-label="Section navigation">
+            <div className="gis-sidebar-heading">
+              <span className="gis-sidebar-kicker">WORKSPACE</span>
+              <strong>Navigate sections</strong>
+              <span className="gis-sidebar-town"><MapPin className="w-3.5 h-3.5" /> {currentTown.n}</span>
+            </div>
+            <nav className="gis-sidebar-nav">
+              {tabs.map((tab) => {
+                const title = tab === 'collection' ? (billHead ? BILL_NAME[billHead] : 'Collection') : PAGE_TITLE[tab];
+                const icon = tab === 'search' ? <Compass /> : tab === 'survey' ? <PenTool /> : tab === 'map-editor' ? <Layers /> : tab === 'records' ? <Building2 /> : tab === 'assessment' ? <FileCheck /> : tab === 'collection' ? <Receipt /> : tab === 'reports' ? <FileSpreadsheet /> : tab === 'exports' ? <Download /> : tab === 'dues' ? <Wallet /> : tab === 'rules' ? <Info /> : tab === 'register' ? <Landmark /> : tab === 'units' ? <Building2 /> : <Database />;
+                return <button key={tab} type="button" onClick={() => openTab(tab, tab === 'collection' ? billHead : null)} className={`gis-sidebar-link ${activeTab === tab ? 'is-active' : ''}`} aria-current={activeTab === tab ? 'page' : undefined}>
+                  <span className="gis-sidebar-icon">{React.cloneElement(icon as React.ReactElement, { className: 'w-[17px] h-[17px]' })}</span><span>{title}</span><span className="gis-sidebar-arrow">›</span>
+                </button>;
+              })}
+              {activeTab !== 'menu' && !singleDest && <button type="button" onClick={() => openTab('menu', null)} className="gis-sidebar-back"><ArrowLeft className="w-4 h-4" /> All sections</button>}
+            </nav>
+            <div className="gis-sidebar-tip"><Sparkles className="w-4 h-4" /><span><b>Quick tip</b>Choose one section at a time. Your town selection stays in place as you move around.</span></div>
+          </aside>
+        )}
+        <div className="min-w-0">
+      <ErrorBoundary resetKey={`${activeTab}:${billHead ?? ''}`} onBack={() => openTab('menu', null)}>
         {activeTab === 'menu' && (
           <WorkMenu townName={currentTown.n} tabs={tabs} bills={bills} onChoose={choose} />
         )}
@@ -2070,6 +2100,8 @@ const GisPropertySurveyInner: React.FC = () => {
           </div>
         )}
         </ErrorBoundary>
+        </div>
+      </div>
       </div>
     </div>
   );

@@ -206,6 +206,9 @@ export const WorkMenu: React.FC<Props> = ({ townName, tabs, bills, onChoose }) =
         bg-gradient-to-br from-[#0a1020] via-[#122040] to-[#0d1a38]
         text-white shadow-[0_20px_50px_rgba(10,16,32,0.35)]
         border border-white/10">
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-35"
+          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}login-bg-himachal.png)` }} />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#08152c]/95 via-[#10284b]/80 to-[#10284b]/45" aria-hidden />
         <div
           className="pointer-events-none absolute inset-0
             bg-[radial-gradient(ellipse_at_90%_0%,rgba(37,214,197,0.18),transparent_40%),
