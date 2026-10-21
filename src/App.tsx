@@ -7,6 +7,7 @@ import { AndroidAppModal } from './components/AndroidAppModal';
 import { useAuth } from './services/auth';
 import { isSearchOnly } from './services/access';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { DemoSwitcher } from './components/DemoSwitcher';
 import { useHistoryBack } from './hooks/useHistoryBack';
 
 export function App() {
@@ -65,6 +66,8 @@ export function App() {
           </div>
         )}
       </ErrorBoundary>
+
+      <DemoSwitcher />
 
       {exitHint && (
         <div

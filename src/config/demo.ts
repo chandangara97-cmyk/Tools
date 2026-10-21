@@ -11,11 +11,36 @@ const DEMO_DEFAULT = true;
 export const DEMO_MODE: boolean =
   (import.meta.env.VITE_DEMO_MODE ?? String(DEMO_DEFAULT)) !== 'false';
 
-/** Who the demo visitor is. Change role/ulb to demo a different login (e.g. role 'cashier', ulb 'Bhota'). */
+export type DemoRole = 'admin' | 'supervisor' | 'surveyor' | 'assessor' | 'cashier' | 'monitor' | 'public';
+export interface DemoProfileT { role: DemoRole; ulb: string; head: string | null; }
+
+const KEY = 'demo_profile_v1';
+const DEFAULT: DemoProfileT = { role: 'admin', ulb: '*', head: null };
+
+/** Who the demo visitor is. Chosen with the on-screen switcher, or the address ?as=cashier&town=Bhota&head=garbage */
+export function getDemoProfile(): DemoProfileT {
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.get('as')) {
+      const role = q.get('as') as DemoRole;
+      const p = { role, ulb: q.get('town') || (role === 'admin' ? '*' : 'Bhota'), head: q.get('head') };
+      localStorage.setItem(KEY, JSON.stringify(p));
+      return p;
+    }
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved?.role) return { ...DEFAULT, ...saved };
+  } catch { /* ignore */ }
+  return DEFAULT;
+}
+
+export function setDemoProfile(p: DemoProfileT) {
+  try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* ignore */ }
+  const u = new URL(location.href); u.searchParams.delete('as'); u.searchParams.delete('town'); u.searchParams.delete('head');
+  location.replace(u.toString());
+}
+
 export const DEMO_PROFILE = {
   uid: 'demo-user',
   email: 'demo@propertytax.app',
-  name: 'Demo Admin',
-  role: 'admin' as const,
-  ulb: '*',
+  name: 'Demo user',
 };

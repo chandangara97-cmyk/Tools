@@ -3,7 +3,7 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signOut as fbSignOut, U
 import { ref, get } from 'firebase/database';
 import { auth, db } from '../firebase';
 import { HeadId, HEAD_LIST } from './heads';
-import { DEMO_MODE, DEMO_PROFILE } from '../config/demo';
+import { DEMO_MODE, DEMO_PROFILE, getDemoProfile } from '../config/demo';
 
 /** surveyor = data collector, monitor = read-only view of the whole ULB, public = general public (dues search only). */
 export type Role = 'surveyor' | 'supervisor' | 'assessor' | 'cashier' | 'admin' | 'monitor' | 'public';
@@ -102,8 +102,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (DEMO_MODE) {
       // No password: skip Firebase Auth entirely and open as the demo profile.
-      setUser(DEMO_USER); setRole(DEMO_PROFILE.role); setUlb(DEMO_PROFILE.ulb); setHead(null);
-      setDisplayName(DEMO_PROFILE.name); setDeviceBlock(''); setLoading(false);
+      const dp = getDemoProfile();
+      setUser(DEMO_USER); setRole(dp.role); setUlb(dp.ulb);
+      setHead(dp.head && HEAD_LIST.some((x) => x.id === dp.head) ? (dp.head as HeadId) : null);
+      setDisplayName(`Demo ${dp.role}`); setDeviceBlock(''); setLoading(false);
       return;
     }
     const apply = (r: Role | null, u: string | null, name: string, h: HeadId | null = null): boolean => {

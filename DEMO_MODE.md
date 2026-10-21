@@ -13,8 +13,8 @@ The app opens straight into the work menu as a platform admin ("Demo Admin", all
 ## Deploy the open rules
     firebase deploy --only database
 
-## Change who the demo user is
-Edit `DEMO_PROFILE` in `src/config/demo.ts` (e.g. `role: 'cashier'`, `ulb: 'Bhota'`).
+## Switching role during the demo
+Tap the yellow **DEMO** button (bottom-left) and pick Role, Town (and Bill head for a supervisor). The page reloads as that login. Or open a link such as `/app/?as=cashier&town=Bhota`. Only `admin` can be "All towns"; every other role needs one town.
 
 ## NOT covered by demo mode
 - `admin_users.html` (create/delete logins) still needs a real admin sign-in.
