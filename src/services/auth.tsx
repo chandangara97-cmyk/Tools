@@ -91,22 +91,21 @@ function guardDevice(ulb: string | null): string {
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<Role | null>(null);
-  const [ulb, setUlb] = useState<string | null>(null);
-  const [head, setHead] = useState<HeadId | null>(null);
-  const [displayName, setDisplayName] = useState('');
+  // In demo mode the login is known immediately, so the very first render already has the right role and town.
+  const dp = DEMO_MODE ? getDemoProfile() : null;
+  const demoHead = dp?.head && HEAD_LIST.some((x) => x.id === dp.head) ? (dp.head as HeadId) : null;
+  const [user, setUser] = useState<User | null>(DEMO_MODE ? DEMO_USER : null);
+  const [role, setRole] = useState<Role | null>(dp ? dp.role : null);
+  const [ulb, setUlb] = useState<string | null>(dp ? dp.ulb : null);
+  const [head, setHead] = useState<HeadId | null>(demoHead);
+  const [displayName, setDisplayName] = useState(dp ? `Demo ${dp.role}` : '');
   const [deviceBlock, setDeviceBlock] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!DEMO_MODE);
 
   useEffect(() => {
     if (DEMO_MODE) {
       // No password: skip Firebase Auth entirely and open as the demo profile.
-      const dp = getDemoProfile();
-      setUser(DEMO_USER); setRole(dp.role); setUlb(dp.ulb);
-      setHead(dp.head && HEAD_LIST.some((x) => x.id === dp.head) ? (dp.head as HeadId) : null);
-      setDisplayName(`Demo ${dp.role}`); setDeviceBlock(''); setLoading(false);
-      return;
+      return; // state was already set from the demo profile above
     }
     const apply = (r: Role | null, u: string | null, name: string, h: HeadId | null = null): boolean => {
       const block = guardDevice(u);

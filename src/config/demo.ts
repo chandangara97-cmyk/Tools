@@ -34,7 +34,11 @@ export function getDemoProfile(): DemoProfileT {
 }
 
 export function setDemoProfile(p: DemoProfileT) {
-  try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* ignore */ }
+  try {
+    // a different town must not inherit the previous town's locally cached records (cloud data reloads on its own)
+    if (getDemoProfile().ulb !== p.ulb) localStorage.removeItem('gis_survey_properties_v2');
+    localStorage.setItem(KEY, JSON.stringify(p));
+  } catch { /* ignore */ }
   const u = new URL(location.href); u.searchParams.delete('as'); u.searchParams.delete('town'); u.searchParams.delete('head');
   location.replace(u.toString());
 }
