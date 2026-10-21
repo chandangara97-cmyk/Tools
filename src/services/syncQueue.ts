@@ -6,6 +6,8 @@ import { ref, set, remove, runTransaction } from 'firebase/database';
 import { auth, db, cloudWatchConnection } from '../firebase';
 import type { PropertyRecord } from '../utils/gisUtils';
 import { hnoDupKey, upnDupKey, wardKey } from './ids';
+import { getCurrentUid } from './auth';
+import { DEMO_MODE } from '../config/demo';
 
 export interface QueuedPhoto { id: string; data: string }
 
@@ -49,7 +51,7 @@ export function dupKeysFor(rec: Pick<PropertyRecord, 'ward' | 'hno' | 'upn'>): s
 
 // ---------------- queueing ----------------
 export function queueSave(town: string, rec: PropertyRecord, photos: QueuedPhoto[], previous?: PropertyRecord) {
-  const uid = auth.currentUser?.uid || '';
+  const uid = getCurrentUid();
   const now = Date.now();
   const full: PropertyRecord = JSON.parse(JSON.stringify({
     ...rec,
@@ -149,7 +151,7 @@ async function runOp(op: Op): Promise<'done' | 'conflict'> {
 }
 
 export async function flush() {
-  if (flushing || !connected || !auth.currentUser) return;
+  if (flushing || !connected || (!DEMO_MODE && !auth.currentUser)) return;
   flushing = true; changed();
   try {
     while (queue.length) {

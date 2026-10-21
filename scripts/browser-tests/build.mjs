@@ -55,6 +55,7 @@ export const useAuth = () => ({ role: window.__role || 'cashier', head: null, di
 export const canEditRates = (r) => r === 'admin'; export const canSetPayableRates = (r) => r === 'admin';
 export const canCollect = (r) => r === 'cashier' || r === 'admin'; export const canManageLedger = (r) => r === 'supervisor' || r === 'admin';
 export const canSeeAudit = (r) => r === 'supervisor' || r === 'admin' || r === 'monitor';
+export const getCurrentUid = () => 'test-uid';
 export const AuthProvider = ({ children }) => children;` }));
   },
 };

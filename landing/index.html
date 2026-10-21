@@ -112,6 +112,8 @@ import{initializeApp}from"https://www.gstatic.com/firebasejs/11.0.0/firebase-app
 import{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 import{getDatabase,ref,get}from"https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 const APP_URL="app/"; /* where the survey & collection app lives */
+const DEMO_MODE=true; /* true = skip the login page and open the app directly (demo). Set false to require login again. Add ?login=1 to the address to see the login form anyway. */
+if(DEMO_MODE&&!/[?&]login=1/.test(location.search)){location.replace(APP_URL)}
 const app=initializeApp({apiKey:"AIzaSyBJw_9j0wP1dY42wfYYDk_3kIMNKZqHujQ",authDomain:"propertytax-1b855.firebaseapp.com",databaseURL:"https://propertytax-1b855-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"propertytax-1b855",appId:"1:1062167049262:web:1270c8199c81addce11bbf"});
 const auth=getAuth(app),db=getDatabase(app),$=i=>document.getElementById(i);
 const email=v=>{v=v.trim().toLowerCase();return v.includes("@")?v:v+"@propertytax.app"};

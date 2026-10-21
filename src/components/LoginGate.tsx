@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../services/auth';
+import { DEMO_MODE } from '../config/demo';
 
 // The ONE sign-in page is the site root (landing/index.html). This gate no longer has its own form:
 // anyone who is not signed in is sent there. Deployed base is ".../app/", so the login page is one level up.
@@ -11,6 +12,7 @@ const loginPageUrl = (): string | null => {
 
 export const LoginGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, role, ulb, loading, deviceBlock, signOut } = useAuth();
+  if (DEMO_MODE) return <>{children}</>; // demo: no sign-in page, no password
 
   useEffect(() => {
     if (loading || user) return;

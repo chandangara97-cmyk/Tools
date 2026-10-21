@@ -1,6 +1,7 @@
 import React from 'react';
 import { LogOut, Cloud, CloudOff, AlertTriangle, UploadCloud } from 'lucide-react';
 import { useAuth } from '../services/auth';
+import { DEMO_MODE } from '../config/demo';
 import { ROLE_LABEL } from '../services/access';
 import { BILL_NAME } from './WorkMenu';
 import { useSyncState, discardConflict, flush } from '../services/syncQueue';
@@ -32,9 +33,9 @@ export const SyncBar: React.FC<Props> = ({ localOnlyCount, canMigrate, onMigrate
         <span className="ml-auto text-[#aab4dc]">
           {displayName} · <b className="text-[#ffe3a3]">{role ? ROLE_LABEL[role] : ''}{head ? ` · ${BILL_NAME[head]}` : ''}</b>
         </span>
-        <button type="button" onClick={() => void signOut()} className="inline-flex items-center gap-1 text-[#9aa8ff] font-bold">
+        {!DEMO_MODE && <button type="button" onClick={() => void signOut()} className="inline-flex items-center gap-1 text-[#9aa8ff] font-bold">
           <LogOut className="w-3 h-3" /> Sign out
-        </button>
+        </button>}
       </div>
 
       {s.storageFull && (

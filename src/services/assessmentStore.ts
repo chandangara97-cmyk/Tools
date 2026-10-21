@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ref, set, onValue } from 'firebase/database';
 import { auth, db } from '../firebase';
 import { placeholderRateTable, RateTable, CalcResult } from './assessment';
+import { getCurrentUid } from './auth';
 
 export type AssessmentStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
 
@@ -56,4 +57,4 @@ export function saveAssessment(a: Assessment) {
   return set(ref(db, `assessments/${a.town}/${a.fy}/${a.propertyId}`), clean(a));
 }
 
-export const currentUid = () => auth.currentUser?.uid || '';
+export const currentUid = () => getCurrentUid();

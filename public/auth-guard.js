@@ -2,7 +2,9 @@
    Include in <head> (classic script, no defer):  <script src="../auth-guard.js"></script>
    If nobody is signed in, the page is sent to the one login page (site root).
    Sign-in happens ONLY on that page; Firebase keeps the session for the whole site. */
+var DEMO_MODE = true;   /* true = no sign-in needed (demo). Set to false to require login again. */
 (function () {
+  if (DEMO_MODE) return;   /* demo: page opens straight away, no password */
   var me = document.currentScript;
   var landing = me ? new URL('../', me.src).href : '../';   /* auth-guard.js lives in /app/, login is one level up */
   var root = document.documentElement;

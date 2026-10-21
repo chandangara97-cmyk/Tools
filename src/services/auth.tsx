@@ -3,6 +3,7 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signOut as fbSignOut, U
 import { ref, get } from 'firebase/database';
 import { auth, db } from '../firebase';
 import { HeadId, HEAD_LIST } from './heads';
+import { DEMO_MODE, DEMO_PROFILE } from '../config/demo';
 
 /** surveyor = data collector, monitor = read-only view of the whole ULB, public = general public (dues search only). */
 export type Role = 'surveyor' | 'supervisor' | 'assessor' | 'cashier' | 'admin' | 'monitor' | 'public';
@@ -60,6 +61,9 @@ export const useAuth = () => {
   return c;
 };
 
+/** Stand-in for a signed-in Firebase user while DEMO_MODE is on. */
+const DEMO_USER = { uid: DEMO_PROFILE.uid, email: DEMO_PROFILE.email, displayName: DEMO_PROFILE.name, isAnonymous: true } as unknown as User;
+
 const cacheKey = (uid: string) => `ptax_profile_${uid}`;
 const DEVICE_ULB_KEY = 'ptax_device_ulb';
 const QUEUE_KEY = 'ptax_queue_v1';
@@ -96,6 +100,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (DEMO_MODE) {
+      // No password: skip Firebase Auth entirely and open as the demo profile.
+      setUser(DEMO_USER); setRole(DEMO_PROFILE.role); setUlb(DEMO_PROFILE.ulb); setHead(null);
+      setDisplayName(DEMO_PROFILE.name); setDeviceBlock(''); setLoading(false);
+      return;
+    }
     const apply = (r: Role | null, u: string | null, name: string, h: HeadId | null = null): boolean => {
       const block = guardDevice(u);
       setDeviceBlock(block);
@@ -129,10 +139,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = useCallback(async (userIdOrEmail: string, password: string) => {
+    if (DEMO_MODE) return;
     await signInWithEmailAndPassword(auth, toLoginEmail(userIdOrEmail), password);
   }, []);
-  const signOut = useCallback(async () => { await fbSignOut(auth); }, []);
+  const signOut = useCallback(async () => { if (DEMO_MODE) return; await fbSignOut(auth); }, []);
 
   const isSuper = ulb === ALL_ULBS;
   return <Ctx.Provider value={{ user, role, ulb, head, isSuper, displayName, loading, deviceBlock, signIn, signOut }}>{children}</Ctx.Provider>;
 };
+
+/** Current user id: the demo id in DEMO_MODE, otherwise the Firebase Auth uid. */
+export const getCurrentUid = (): string => (DEMO_MODE ? DEMO_PROFILE.uid : auth.currentUser?.uid || '');
