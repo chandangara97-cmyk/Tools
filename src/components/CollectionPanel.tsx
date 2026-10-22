@@ -1,8 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useStepBack, readStep } from '../hooks/useStepBack';
-import { AlertTriangle, Printer, Download, Undo2, Receipt, Search, Landmark } from 'lucide-react';
+import { AlertTriangle, Printer, Download, Undo2, Receipt, Search, Landmark, QrCode, Share2, X } from 'lucide-react';
 import type { PropertyRecord } from '../utils/gisUtils';
 import { triggerFileDownload } from '../utils/gisUtils';
+import { generateUpiUrl, generateQrDataUrl, defaultTownVpa, generateVerificationQr } from '../services/upiService';
+import { formatReceiptWhatsApp, openWhatsAppChat } from '../utils/whatsapp';
+import { generateThermalReceiptHtml } from '../utils/receiptPrinting';
 import { useAuth, canCollect, canManageLedger, canSeeAudit, canEditRates, canSetPayableRates } from '../services/auth';
 import { HeadId, HEAD_LIST, headLabel, useTownHeads } from '../services/heads';
 import { expandForHead, isUnitHead, needsUnits } from '../services/units';
@@ -35,9 +38,9 @@ export const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
 
 function receiptHtml(o: {
   head: HeadId; town: string; rec: PropertyRecord; pay: LedgerEntry; rebate?: LedgerEntry; cancelled: boolean;
-  parts: { fy: string; interest: number; principal: number }[]; balanceAfter: number;
+  parts: { fy: string; interest: number; principal: number }[]; balanceAfter: number; advanceCredit?: number;
 }) {
-  const { head, town, rec, pay, rebate, cancelled, parts, balanceAfter } = o;
+  const { head, town, rec, pay, rebate, cancelled, parts, balanceAfter, advanceCredit } = o;
   const rows = parts.map((p) => `<tr><td>${esc(periodLabel(p.fy))}</td><td class="r">${money(p.principal)}</td><td class="r">${money(p.interest)}</td></tr>`).join('');
   return `<!doctype html><html><head><meta charset="utf-8"><title>Receipt ${esc(pay.receiptNo)}</title>
 <style>body{font-family:Arial,sans-serif;font-size:13px;margin:24px;color:#111}h1{font-size:18px;margin:0}h2{font-size:14px;margin:2px 0 14px}
@@ -53,6 +56,7 @@ ${cancelled ? '<div class="stamp">CANCELLED</div>' : ''}
 <table><tr><th>Financial year</th><th class="r">Tax</th><th class="r">Interest</th></tr>${rows}</table>
 ${rebate ? `<p>Early-payment rebate allowed with this payment (${esc(rebate.fy)}): ${money(rebate.amount)}</p>` : ''}
 <p class="big">Amount received: ${money(pay.amount)}</p><p>${esc(rupeesInWords(pay.amount))}</p>
+${advanceCredit && advanceCredit > 0 ? `<p style="color:#047857;font-weight:bold">Advance credit held: ${money(advanceCredit)}</p>` : ''}
 <p>Balance due after this payment: ${money(balanceAfter)}</p>
 <div class="sig"><span>Payer</span><span>Cashier</span></div></body></html>`;
 }
@@ -384,6 +388,11 @@ export const CollectionPanel: React.FC<Props> = ({ lockedHead, townKey, townName
                   <td className="p-2.5 text-right font-mono">{money(led.interestDue)}</td>
                   <td className="p-2.5 text-right font-bold font-mono">
                     <span className={led.totalDue > 0.004 ? 'text-rose-700' : 'text-emerald-700'}>{money(led.totalDue)}</span>
+                    {led.advanceBalance > 0 && (
+                      <div className="text-[10px] text-emerald-600 font-semibold font-sans">
+                        Adv {money(led.advanceBalance)}
+                      </div>
+                    )}
                   </td>
                   <td className="p-2.5">
                     <button
@@ -508,11 +517,92 @@ const PropertyLedger: React.FC<{
   const printReceipt = (pay: LedgerEntry, download: boolean) => {
     const rebate = entries.find((x) => x.type === 'rebate' && x.receiptNo === pay.receiptNo);
     const parts = led.allocations[pay.id]?.parts || [];
+    const unalloc = led.allocations[pay.id]?.unallocated || 0;
     const upTo = entries.filter((x) => x.at <= Math.max(pay.at, rebate?.at || 0) && !(x.type === 'reversal'));
-    const balanceAfter = computeLedger(upTo, settings, pay.date).totalDue;
-    const html = receiptHtml({ head, town, rec, pay, rebate, cancelled: cancelled.has(pay.id), parts, balanceAfter });
+    const res = computeLedger(upTo, settings, pay.date);
+    const balanceAfter = res.totalDue;
+    const advanceCredit = unalloc > 0 ? unalloc : res.advanceBalance;
+    const html = receiptHtml({ head, town, rec, pay, rebate, cancelled: cancelled.has(pay.id), parts, balanceAfter, advanceCredit });
     if (download) triggerFileDownload(html, `Receipt_${(pay.receiptNo || pay.id).replace(/[^A-Za-z0-9]/g, '_')}.html`, 'text/html');
     else printHtml(html);
+  };
+
+  const [counterQrUrl, setCounterQrUrl] = useState('');
+  const [counterUpiUri, setCounterUpiUri] = useState('');
+  const [showCounterQr, setShowCounterQr] = useState(false);
+
+  const handleOpenCounterUpi = async () => {
+    const payAmt = amt > 0 ? amt : ledAt.totalDue;
+    if (!(payAmt > 0)) { alert('Please enter an amount or ensure dues exist'); return; }
+    const vpa = defaultTownVpa(town);
+    const uri = generateUpiUrl({
+      vpa,
+      payeeName: `${town} Municipal Council`,
+      amount: payAmt,
+      transactionNote: `${headLabel(head)} ${rec.id} W${rec.ward}`,
+      transactionRef: `RC_${rec.id.replace(/\W/g, '')}_${Date.now().toString(36)}`,
+    });
+    setCounterUpiUri(uri);
+    const qr = await generateQrDataUrl(uri, 260);
+    setCounterQrUrl(qr);
+    setShowCounterQr(true);
+  };
+
+  const printThermalReceipt = async (pay: LedgerEntry, width: 58 | 80 = 58) => {
+    const rebate = entries.find((x) => x.type === 'rebate' && x.receiptNo === pay.receiptNo);
+    const parts = led.allocations[pay.id]?.parts || [];
+    const unalloc = led.allocations[pay.id]?.unallocated || 0;
+    const upTo = entries.filter((x) => x.at <= Math.max(pay.at, rebate?.at || 0) && !(x.type === 'reversal'));
+    const res = computeLedger(upTo, settings, pay.date);
+    const balanceAfter = res.totalDue;
+    const advanceCredit = unalloc > 0 ? unalloc : res.advanceBalance;
+    const qr = await generateVerificationQr('receipt', pay.receiptNo || pay.id, town, rec.id);
+    const html = generateThermalReceiptHtml(
+      {
+        town,
+        headName: headLabel(head),
+        receiptNo: pay.receiptNo || pay.id,
+        date: pay.date,
+        propertyId: rec.id,
+        ownerName: rec.owner,
+        ward: rec.ward,
+        houseNo: rec.hno,
+        payerName: pay.payer,
+        mode: pay.mode || 'cash',
+        refNo: pay.ref,
+        parts,
+        amount: pay.amount,
+        rebate: rebate?.amount,
+        balanceDueAfter: balanceAfter,
+        advanceCredit,
+        qrDataUrl: qr,
+        cashierName: role ? `${role.toUpperCase()}` : 'CASHIER',
+      },
+      width,
+    );
+    printHtml(html);
+  };
+
+  const sendReceiptWhatsApp = (pay: LedgerEntry) => {
+    const phone = window.prompt(`Enter WhatsApp number for ${rec.owner}:`, '') || '';
+    if (!phone.trim()) return;
+    const unalloc = led.allocations[pay.id]?.unallocated || 0;
+    const upTo = entries.filter((x) => x.at <= pay.at && !(x.type === 'reversal'));
+    const balanceAfter = computeLedger(upTo, settings, pay.date).totalDue;
+    const text = formatReceiptWhatsApp({
+      town,
+      receiptNo: pay.receiptNo || pay.id,
+      date: pay.date,
+      propertyId: rec.id,
+      ownerName: rec.owner,
+      payerName: pay.payer,
+      headName: headLabel(head),
+      amount: pay.amount,
+      mode: pay.mode || 'cash',
+      balanceDueAfter: balanceAfter,
+      advanceCredit: unalloc > 0 ? unalloc : undefined,
+    });
+    openWhatsAppChat(phone, text);
   };
 
   const submitAdjust = () => run('Adjustment', async () => {
@@ -556,24 +646,37 @@ const PropertyLedger: React.FC<{
             {!led.rows.length && <tr><td colSpan={7} className="p-3 text-center text-slate-500">No demand raised for this property yet.</td></tr>}
           </tbody>
         </table>
-        <p className="text-base font-extrabold text-rose-700 mt-3 flex items-center gap-2">
-          <span className="inline-block w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-          Total due today: <span className="font-mono tracking-tight">{money(led.totalDue)}</span>
-        </p>
-        {led.warnings.map((w) => <p key={w} className="text-[11px] text-amber-700">⚠ {w}</p>)}
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <p className="text-base font-extrabold text-rose-700 flex items-center gap-2">
+            <span className={`inline-block w-2 h-2 rounded-full ${led.totalDue > 0.004 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
+            Total due today: <span className="font-mono tracking-tight">{money(led.totalDue)}</span>
+          </p>
+          {led.advanceBalance > 0 && (
+            <p className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Advance credit held: <span className="font-mono">{money(led.advanceBalance)}</span>
+            </p>
+          )}
+        </div>
+        {led.warnings.map((w) => <p key={w} className="text-[11px] text-amber-700 mt-1">⚠ {w}</p>)}
       </div>
 
-      {canCollect(role) && led.totalDue > 0 && (
+      {canCollect(role) && (
         <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-sky-50 rounded-2xl p-4 sm:p-5 space-y-3 border-2 border-emerald-200/80 shadow-[0_10px_28px_rgba(16,185,129,0.1)]">
           <div className="pointer-events-none absolute -right-10 -top-10 w-36 h-36 rounded-full bg-emerald-400/15 blur-2xl" aria-hidden />
           <h4 className="relative text-sm font-extrabold text-emerald-900 tracking-tight flex flex-wrap items-center gap-2">
             <span className="w-9 h-9 rounded-xl bg-emerald-500 text-white grid place-items-center shadow-md shadow-emerald-500/35">
               <Receipt className="w-4 h-4" />
             </span>
-            Take payment
+            {led.totalDue > 0.004 ? 'Take payment' : 'Record advance payment'}
             <span className="sm:ml-auto text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-full font-mono">
-              Due {money(led.totalDue)}
+              {led.totalDue > 0.004 ? `Due ${money(led.totalDue)}` : 'No dues pending'}
             </span>
+            {led.advanceBalance > 0 && (
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full font-mono">
+                Adv: {money(led.advanceBalance)}
+              </span>
+            )}
           </h4>
           <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             <label className="text-[11px] font-semibold text-slate-600">Amount (₹)<input type="number" inputMode="decimal" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className={`${inp} w-full mt-1`} /></label>
@@ -596,16 +699,67 @@ const PropertyLedger: React.FC<{
             </label>
           )}
           <div className="relative flex flex-wrap items-center gap-2 pt-1">
-            {fixedAmount !== null && <button type="button" onClick={() => setAmount(String(Math.min(fixedAmount, ledAt.totalDue)))} className={`${btn} bg-amber-400 text-amber-950 hover:bg-amber-300`}>Fill fixed ({money(fixedAmount)})</button>}
-            <button type="button" onClick={fillFull} className={`${btn} bg-white text-slate-700 border border-slate-200 hover:border-slate-300`}>Fill full amount</button>
-            <button type="button" disabled={busy || !preview?.ok} onClick={() => void submit()} className={`${btn} bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40`}>Record payment</button>
+            {fixedAmount !== null && ledAt.totalDue > 0 && <button type="button" onClick={() => setAmount(String(Math.min(fixedAmount, ledAt.totalDue)))} className={`${btn} bg-amber-400 text-amber-950 hover:bg-amber-300`}>Fill fixed ({money(fixedAmount)})</button>}
+            {ledAt.totalDue > 0 && <button type="button" onClick={fillFull} className={`${btn} bg-white text-slate-700 border border-slate-200 hover:border-slate-300`}>Fill full amount</button>}
+            <button
+              type="button"
+              onClick={() => void handleOpenCounterUpi()}
+              className={`${btn} bg-teal-50 text-teal-800 border border-teal-200 hover:bg-teal-100`}
+              title="Show Dynamic UPI QR code for citizen scanning"
+            >
+              <QrCode className="w-4 h-4 text-teal-600" />
+              UPI QR Code
+            </button>
+            <button type="button" disabled={busy || !preview?.ok} onClick={() => void submit()} className={`${btn} bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40`}>
+              {led.totalDue > 0.004 ? 'Record payment' : 'Record advance payment'}
+            </button>
           </div>
           {preview && !preview.ok && <p className="text-[11px] text-red-600">{preview.error}</p>}
           {preview?.ok && (
-            <div className="text-[11px] text-slate-600 font-mono">
+            <div className="text-[11px] text-slate-600 font-mono space-y-0.5">
               {preview.allocation?.parts.map((p) => <div key={p.fy}>{periodLabel(p.fy)}: interest {money(p.interest)}, tax {money(p.principal)}</div>)}
               {preview.rebate > 0 && <div>Rebate {money(preview.rebate)} will be posted with this payment.</div>}
-              <div>Balance after: {money(preview.result?.totalDue || 0)}</div>
+              {preview.advance && preview.advance > 0 ? (
+                <div className="text-emerald-700 font-bold">
+                  ✓ Advance payment: {money(preview.advance)} will be held as credit for future municipal bills.
+                </div>
+              ) : null}
+              <div>Balance due after: {money(preview.result?.totalDue || 0)}</div>
+            </div>
+          )}
+
+          {/* Cashier Screen Counter UPI QR Modal */}
+          {showCounterQr && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+              <div className="bg-white border border-slate-200 w-full max-w-xs rounded-2xl p-5 shadow-2xl text-center space-y-3">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <QrCode className="w-4 h-4 text-teal-600" />
+                    Scan to Pay ({town})
+                  </span>
+                  <button onClick={() => setShowCounterQr(false)} className="text-slate-400 hover:text-slate-700 p-1">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="p-2 border rounded-xl inline-block bg-slate-50">
+                  <img src={counterQrUrl} alt="UPI QR" className="w-48 h-48 block mx-auto" />
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500">Amount to Pay:</div>
+                  <div className="text-2xl font-bold text-slate-900 font-mono">
+                    {money(amt > 0 ? amt : ledAt.totalDue)}
+                  </div>
+                  <div className="text-[11px] text-slate-600">{rec.id} ({rec.owner})</div>
+                  <div className="text-[10px] text-teal-700 font-mono mt-1">VPA: {defaultTownVpa(town)}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCounterQr(false)}
+                  className="w-full py-2 bg-slate-900 text-white rounded-xl text-xs font-bold"
+                >
+                  Close &amp; Record Payment
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -643,8 +797,18 @@ const PropertyLedger: React.FC<{
                   <td className="p-2 whitespace-nowrap">
                     {e.type === 'payment' && (
                       <>
-                        <button type="button" title="Print receipt" className="text-blue-600 mr-2" onClick={() => printReceipt(e, false)}><Printer className="inline w-3.5 h-3.5" /></button>
-                        <button type="button" title="Download receipt" className="text-blue-600 mr-2" onClick={() => printReceipt(e, true)}><Download className="inline w-3.5 h-3.5" /></button>
+                        <button type="button" title="Print standard A4 receipt" className="text-blue-600 hover:text-blue-800 mr-2 font-bold" onClick={() => printReceipt(e, false)}>
+                          <Printer className="inline w-3.5 h-3.5" />
+                        </button>
+                        <button type="button" title="Print 58mm / 80mm handheld thermal receipt" className="text-emerald-600 hover:text-emerald-800 mr-2 font-bold" onClick={() => void printThermalReceipt(e)}>
+                          <Receipt className="inline w-3.5 h-3.5" /> 58mm
+                        </button>
+                        <button type="button" title="Send confirmation on WhatsApp" className="text-[#25d366] hover:text-[#1eb855] mr-2" onClick={() => sendReceiptWhatsApp(e)}>
+                          <Share2 className="inline w-3.5 h-3.5" />
+                        </button>
+                        <button type="button" title="Download receipt HTML" className="text-slate-600 hover:text-slate-900 mr-2" onClick={() => printReceipt(e, true)}>
+                          <Download className="inline w-3.5 h-3.5" />
+                        </button>
                       </>
                     )}
                     {canManageLedger(role) && e.type !== 'reversal' && e.type !== 'rebate' && !isCancelled && (

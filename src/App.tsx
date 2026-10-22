@@ -21,6 +21,19 @@ export function App() {
   const view = showTools ? activeView : 'gis-survey';
   const { go, back } = useHistoryBack(activeView, setActiveView, 'gis-survey');
 
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
+
   // Soft toast when user presses Back at the root view
   useEffect(() => {
     const onRoot = () => {
@@ -68,6 +81,16 @@ export function App() {
       </ErrorBoundary>
 
       <DemoSwitcher />
+
+      {!isOnline && (
+        <div
+          role="status"
+          className="fixed bottom-4 left-4 z-[200] max-w-sm flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-amber-600/90 border border-amber-300/30 shadow-xl backdrop-blur-md"
+        >
+          <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse shrink-0" />
+          <span>Offline mode: all changes save locally and sync when reconnected</span>
+        </div>
+      )}
 
       {exitHint && (
         <div

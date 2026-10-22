@@ -1,10 +1,14 @@
-node_modules/
-dist/
-site/
-.env
-.env.local
+
+!.env.example
+# browser test output
 *.log
 .DS_Store
-
-# browser test output
+.env
+.env*
+.env.local
+build/
+coverage/
+dist/
+node_modules/
 scripts/browser-tests/.out/
+site/

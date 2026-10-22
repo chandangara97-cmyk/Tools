@@ -123,6 +123,12 @@ export function monthKeys(back = 11, ahead = 1): string[] {
   return out;
 }
 
+/** Financial year label (April to March) for a date, e.g. 2026-10-17 -> "2026-27". */
+export function financialYearOf(d: Date): string {
+  const y = d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1;
+  return `${y}-${String((y + 1) % 100).padStart(2, '0')}`;
+}
+
 export const dueDateOf = (fy: string, s: CollectionSettings) => {
   if (isMonthKey(fy)) { // a month's bill falls due on the due day of the following month
     const y = parseInt(fy.slice(0, 4), 10), m = parseInt(fy.slice(5), 10);
@@ -161,6 +167,7 @@ export interface LedgerResult {
   interestDue: number;
   totalDue: number;
   paidTotal: number;
+  advanceBalance: number;
   allocations: Record<string, PaymentAlloc>;
   warnings: string[];
 }
@@ -196,6 +203,7 @@ export function computeLedger(entries: LedgerEntry[], s: CollectionSettings, asO
   const get = (fy: string) => (st[fy] ||= { demand: 0, adj: 0, rebate: 0, paidP: 0, paidI: 0, P: 0, I: 0, accrued: 0 });
   const allocations: Record<string, PaymentAlloc> = {};
   let paidTotal = 0;
+  let advancePool = 0;
 
   for (const ev of evs) {
     const x = get(ev.fy);
@@ -205,8 +213,26 @@ export function computeLedger(entries: LedgerEntry[], s: CollectionSettings, asO
       continue;
     }
     const e = ev.e;
-    if (e.type === 'demand') { x.demand = r2(x.demand + e.amount); x.P = r2(x.P + e.amount); }
-    else if (e.type === 'adjustment') { x.adj = r2(x.adj + e.amount); x.P = Math.max(0, r2(x.P + e.amount)); }
+    if (e.type === 'demand') {
+      x.demand = r2(x.demand + e.amount);
+      x.P = r2(x.P + e.amount);
+      if (advancePool > 0 && x.P > 0) {
+        const use = Math.min(advancePool, x.P);
+        x.P = r2(x.P - use);
+        x.paidP = r2(x.paidP + use);
+        advancePool = r2(advancePool - use);
+      }
+    }
+    else if (e.type === 'adjustment') {
+      x.adj = r2(x.adj + e.amount);
+      x.P = Math.max(0, r2(x.P + e.amount));
+      if (advancePool > 0 && x.P > 0) {
+        const use = Math.min(advancePool, x.P);
+        x.P = r2(x.P - use);
+        x.paidP = r2(x.paidP + use);
+        advancePool = r2(advancePool - use);
+      }
+    }
     else if (e.type === 'rebate') { x.rebate = r2(x.rebate + e.amount); x.P = Math.max(0, r2(x.P - e.amount)); }
     else if (e.type === 'payment') {
       let rem = e.amount;
@@ -224,7 +250,10 @@ export function computeLedger(entries: LedgerEntry[], s: CollectionSettings, asO
         }
       }
       alloc.unallocated = r2(rem);
-      if (rem > 0) warnings.push(`Payment ${e.receiptNo || e.id} exceeds the dues by ${rem.toFixed(2)}; the excess is not credited to any year.`);
+      if (rem > 0) {
+        advancePool = r2(advancePool + rem);
+        warnings.push(`Payment ${e.receiptNo || e.id} has ₹${rem.toFixed(2)} credited as advance balance.`);
+      }
       allocations[e.id] = alloc;
     }
   }
@@ -242,7 +271,7 @@ export function computeLedger(entries: LedgerEntry[], s: CollectionSettings, asO
   });
   const principalDue = r2(rows.reduce((a, r) => a + r.principalDue, 0));
   const interestDue = r2(rows.reduce((a, r) => a + r.interestDue, 0));
-  return { rows, principalDue, interestDue, totalDue: r2(principalDue + interestDue), paidTotal, allocations, warnings };
+  return { rows, principalDue, interestDue, totalDue: r2(principalDue + interestDue), paidTotal, advanceBalance: r2(advancePool), allocations, warnings };
 }
 
 export interface PaymentPreview {
@@ -250,11 +279,12 @@ export interface PaymentPreview {
   error?: string;
   rebate: number;          // rebate that will be posted with this payment (0 if none)
   rebateFy?: string;
+  advance?: number;        // amount held as advance balance
   result?: LedgerResult;   // ledger after the payment
   allocation?: PaymentAlloc;
 }
 
-/** Check a payment before it is posted: no overpayment, rebate only when the year is cleared in full. */
+/** Check a payment before it is posted: supports dues clearance and advance credit balance. */
 export function previewPayment(
   entries: LedgerEntry[], s: CollectionSettings,
   p: { amount: number; date: string; rebateFy?: string },
@@ -270,10 +300,11 @@ export function previewPayment(
     hyp.push({ id: '__rebate__', type: 'rebate', fy: p.rebateFy, amount: rebate, date: p.date, at: Number.MAX_SAFE_INTEGER - 1, by: '' });
   }
   const after0 = computeLedger(hyp, s, p.date);
-  if (p.amount > after0.totalDue + 0.004) {
-    return { ok: false, error: `Amount is more than the dues (₹${after0.totalDue.toFixed(2)}${rebate ? ' after rebate' : ''}). Advance payments are not supported yet.`, rebate: 0 };
-  }
-  hyp.push({ id: '__payment__', type: 'payment', fy: before.rows[0]?.fy || '', amount: p.amount, date: p.date, at: Number.MAX_SAFE_INTEGER, by: '' });
+  const duesToClear = after0.totalDue;
+  const advance = p.amount > duesToClear + 0.004 ? r2(p.amount - duesToClear) : 0;
+
+  const paymentFy = before.rows[0]?.fy || financialYearOf(new Date(p.date + 'T00:00:00'));
+  hyp.push({ id: '__payment__', type: 'payment', fy: paymentFy, amount: p.amount, date: p.date, at: Number.MAX_SAFE_INTEGER, by: '' });
   const result = computeLedger(hyp, s, p.date);
   if (p.rebateFy) {
     const row = result.rows.find((r) => r.fy === p.rebateFy);
@@ -281,14 +312,14 @@ export function previewPayment(
       return { ok: false, error: `The rebate needs ${p.rebateFy} (and any earlier year) paid in full, including interest. Pay ₹${after0.totalDue.toFixed(2)} to clear everything.`, rebate: 0 };
     }
   }
-  return { ok: true, rebate, rebateFy: p.rebateFy, result, allocation: result.allocations['__payment__'] };
+  return { ok: true, rebate, rebateFy: p.rebateFy, advance, result, allocation: result.allocations['__payment__'] };
 }
 
 /** Everything a full payment today would cost, with or without the rebate. */
 export function quoteFull(entries: LedgerEntry[], s: CollectionSettings, date: string, withRebate: boolean) {
   const base = computeLedger(entries, s, date);
   const rebate = withRebate ? base.rows.reduce((a, r) => a + r.rebateAvailable, 0) : 0;
-  return { total: r2(base.totalDue - rebate), rebate: r2(rebate), gross: base.totalDue };
+  return { total: r2(Math.max(0, base.totalDue - rebate)), rebate: r2(rebate), gross: base.totalDue, advanceBalance: base.advanceBalance };
 }
 
 // ---------- receipt helpers ----------

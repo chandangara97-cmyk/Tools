@@ -23,6 +23,7 @@ import { allowedTabs, allowedHeads, startTab, isSearchOnly, Tab } from '../servi
 import { HeadId, useTownHeads } from '../services/heads';
 import { rekeyTowns, townSlug } from '../services/townPath';
 import { useRateTable } from '../services/assessmentStore';
+import { ensureOfflineTownInitialized, getInitialPropertiesForTown } from '../services/offlineData';
 import { useCollectionSettings } from '../services/collectionStore';
 import { calcAssessment } from '../services/assessment';
 import {
@@ -137,66 +138,16 @@ const GisPropertySurveyInner: React.FC = () => {
     [editableTowns, isSuper, ulb, role],
   );
 
-  // Property Records
+  // Property Records - offline-first
   const [records, setRecords] = useState<PropertyRecord[]>(() => {
     try {
       const saved = localStorage.getItem('gis_survey_properties_v2');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return [
-      {
-        id: '1-0001',
-        town: 'Bhota',
-        ward: '1',
-        sur: 'Field Surveyor 01',
-        owner: 'Ramesh Chand Sharma',
-        hno: '14/B',
-        addr: 'Near Main Bazaar, Bhota',
-        use: 'Commercial',
-        occ: 'Owner-occupied',
-        str: 'RCC',
-        yr: '2016',
-        floors: [120, 115],
-        bu: 235,
-        land: 160,
-        act: 'General Kirana Store & Residence',
-        zone: 'A',
-        ncls: 'D',
-        tenant: '',
-        upn: 'HP-BHT-01-0014',
-        lat: '31.6115',
-        lng: '76.5635',
-        acc: '4.2',
-        rem: 'Ground floor retail, first floor residential',
-        date: '2026-10-12',
-      },
-      {
-        id: '1-0002',
-        town: 'Bhota',
-        ward: '1',
-        sur: 'Field Surveyor 01',
-        owner: 'Sunita Devi',
-        hno: '22',
-        addr: 'Ward 1 Link Road',
-        use: 'Residential',
-        occ: 'Owner-occupied',
-        str: 'RCC',
-        yr: '2020',
-        floors: [95, 90],
-        bu: 185,
-        land: 130,
-        act: '',
-        zone: 'A',
-        ncls: 'E',
-        tenant: '',
-        upn: 'HP-BHT-01-0022',
-        lat: '31.6122',
-        lng: '76.5645',
-        acc: '3.8',
-        rem: 'Two storey residential building',
-        date: '2026-10-13',
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    ];
+    } catch (e) {}
+    return ensureOfflineTownInitialized(selectedTownKey, TOWNS_MAP[selectedTownKey]?.n || selectedTownKey);
   });
 
   // Current Form State
@@ -250,25 +201,39 @@ const GisPropertySurveyInner: React.FC = () => {
   useEffect(() => { recordsRef.current = records; }, [records]);
   useEffect(() => { startSync(); }, []);
   useEffect(() => {
-    const townName = (editableTowns[selectedTownKey] || TOWNS_MAP[selectedTownKey])?.n;
+    const townName = (editableTowns[selectedTownKey] || TOWNS_MAP[selectedTownKey])?.n || selectedTownKey;
     if (!townName) return;
+
+    // Load local records for this town immediately offline
+    const localTownRecords = ensureOfflineTownInitialized(selectedTownKey, townName);
+    setRecords((prev) => {
+      const others = prev.filter((r) => r.town !== townName);
+      return [...others, ...localTownRecords];
+    });
+
     return cloudWatchProperties(selectedTownKey, (list) => {
       const { merged, localOnly: lo } = mergeCloud(selectedTownKey, townName, recordsRef.current, list);
       setRecords(merged);
       setLocalOnly(lo);
     });
   }, [selectedTownKey]);
+
   // keep a reserve of permanent IDs on this device so surveying works offline
   useEffect(() => {
     if (writable && sync.online) void prefetchIdBlock(selectedTownKey, wardNo);
   }, [selectedTownKey, wardNo, sync.online, writable]);
 
-  // Save records and towns to localStorage
+  // Save records and towns to localStorage (both global and per-town)
   useEffect(() => {
     try {
       localStorage.setItem('gis_survey_properties_v2', JSON.stringify(records));
+      const townName = (editableTowns[selectedTownKey] || TOWNS_MAP[selectedTownKey])?.n || selectedTownKey;
+      const townRecs = records.filter((r) => r.town === townName);
+      if (townRecs.length > 0) {
+        localStorage.setItem(`ptax_properties_${selectedTownKey}`, JSON.stringify(townRecs));
+      }
     } catch (e) {}
-  }, [records]);
+  }, [records, selectedTownKey, editableTowns]);
 
   useEffect(() => {
     try {

@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { Download, Printer, FileText } from 'lucide-react';
+import { Download, Printer, FileText, Trophy, Target, TrendingUp, WalletCards } from 'lucide-react';
 import type { PropertyRecord, WardFeature } from '../utils/gisUtils';
 import { triggerFileDownload } from '../utils/gisUtils';
 import { CollectionSettings, LedgerEntry, LedgerResult, computeLedger, todayIso, periodLabel } from '../services/collection';
-import { useLedgers } from '../services/collectionStore';
+import { HeadId, HEAD_LIST, headLabel, useTownHeads } from '../services/heads';
+import { useHeadSettings, useLedgers } from '../services/collectionStore';
 import { esc, money, printHtml } from './CollectionPanel';
 
 interface Props { townKey: string; townName: string; records: PropertyRecord[]; settings: CollectionSettings; wards: WardFeature[] }
@@ -35,7 +36,7 @@ function pageHtml(o: { town: string; title: string; row: Row; today: string; tex
 <table class="kv"><tr><td>Date</td><td><b>${esc(today)}</b></td><td>Property ID</td><td><b>${esc(r.id)}</b></td></tr>
 <tr><td>Owner</td><td>${esc(r.owner)}</td><td>Ward</td><td>${esc(r.ward)}</td></tr>
 <tr><td>House / plot</td><td>${esc(r.hno)}</td><td>Address</td><td>${esc(r.addr)}</td></tr></table>
-<table><tr><th>Year</th><th>Due on</th><th class="r">Demand</th><th class="r">Rebate</th><th class="r">Paid</th><th class="r">Tax due</th><th class="r">Interest due</th><th class="r">Total due</th></tr>${body}
+<table><tr><th>Year / Period</th><th>Due on</th><th class="r">Demand</th><th class="r">Rebate</th><th class="r">Paid</th><th class="r">Tax/Charge due</th><th class="r">Interest due</th><th class="r">Total due</th></tr>${body}
 <tr><th colspan="7" class="r">Total payable as on ${esc(today)}</th><th class="r">${money(led.totalDue)}</th></tr></table>
 ${avail.length ? `<p>Early-payment rebate of ${money(avail.reduce((a, x) => a + x.rebateAvailable, 0))} applies if paid in full by the rebate date.</p>` : ''}
 ${text ? `<p>${esc(text)}</p>` : ''}
@@ -44,7 +45,11 @@ ${text ? `<p>${esc(text)}</p>` : ''}
 }
 
 export const ReportsPanel: React.FC<Props> = ({ townKey, townName, records, settings, wards: wardShapes }) => {
-  const ledgers = useLedgers(townKey);
+  const availableHeads = useTownHeads(townKey);
+  const [selectedHead, setSelectedHead] = useState<HeadId>('property_tax');
+  const { settings: headSettings } = useHeadSettings(townKey, selectedHead);
+  const activeSettings = selectedHead === 'property_tax' ? settings : headSettings;
+  const ledgers = useLedgers(townKey, selectedHead);
   const today = todayIso();
   const [ward, setWard] = useState('all');
   const [minDue, setMinDue] = useState('1');
@@ -59,13 +64,13 @@ export const ReportsPanel: React.FC<Props> = ({ townKey, townName, records, sett
 
   const rows: Row[] = useMemo(() => townRecords.map((r) => {
     const entries = ledgers[r.id] || [];
-    const led = computeLedger(entries, settings, today);
+    const led = computeLedger(entries, activeSettings, today);
     const demand = led.rows.reduce((a, x) => a + x.demand + x.adjustments, 0);
     const paid = led.rows.reduce((a, x) => a + x.paidPrincipal + x.paidInterest, 0);
     const overdue = led.rows.filter((x) => x.dueDate < today).reduce((a, x) => a + x.totalDue, 0);
     const status: Status = !led.rows.length ? 'none' : led.totalDue <= 0 ? 'paid' : paid > 0 ? 'partial' : 'unpaid';
     return { r, entries, led, status, demand, paid, overdue };
-  }), [townRecords, ledgers, settings, today]);
+  }), [townRecords, ledgers, activeSettings, today]);
 
   const inWard = useMemo(() => rows.filter(({ r }) => ward === 'all' || r.ward === ward), [rows, ward]);
 
@@ -89,6 +94,28 @@ export const ReportsPanel: React.FC<Props> = ({ townKey, townName, records, sett
   }, [rows, from, to]);
   const grand = wardTable.reduce((g, w) => ({ props: g.props + w.props, demanded: g.demanded + w.demanded, collected: g.collected + w.collected, rebate: g.rebate + w.rebate, due: g.due + w.due, interestDue: g.interestDue + w.interestDue, defaulters: g.defaulters + w.defaulters }), { props: 0, demanded: 0, collected: 0, rebate: 0, due: 0, interestDue: 0, defaulters: 0 });
 
+  const modeBreakdown = useMemo(() => {
+    const counts: Record<string, number> = { cash: 0, upi: 0, cheque: 0, other: 0 };
+    rows.forEach(({ entries }) => {
+      const cancelled = new Set(entries.filter((e) => e.type === 'reversal').map((e) => e.reverses));
+      entries.forEach((e) => {
+        if (cancelled.has(e.id) || e.type !== 'payment') return;
+        const m = (e.mode || 'cash').toLowerCase();
+        counts[m] = (counts[m] || 0) + e.amount;
+      });
+    });
+    return counts;
+  }, [rows]);
+
+  const wardRankings = useMemo(() => {
+    return [...wardTable]
+      .map((w) => ({
+        ...w,
+        pct: w.demanded > 0 ? (w.collected / w.demanded) * 100 : 0,
+      }))
+      .sort((a, b) => b.pct - a.pct);
+  }, [wardTable]);
+
   const defaulters = useMemo(() => {
     const min = parseFloat(minDue) || 0;
     return inWard.filter((x) => x.overdue > 0 && x.led.totalDue >= min).sort((a, b) => b.led.totalDue - a.led.totalDue);
@@ -97,10 +124,10 @@ export const ReportsPanel: React.FC<Props> = ({ townKey, townName, records, sett
   const dl = (name: string, head: string[], lines: unknown[][]) =>
     triggerFileDownload([head.join(','), ...lines.map((l) => l.join(','))].join('\n'), name, 'text/csv');
 
-  const wardCsv = () => dl(`${townName}_WardCollection_${today}.csv`,
+  const wardCsv = () => dl(`${townName}_${headLabel(selectedHead).replace(/\s+/g, '_')}_WardCollection_${today}.csv`,
     ['Ward', 'Properties', 'Demanded', `Collected ${from || 'start'} to ${to}`, 'Rebate allowed', 'Tax outstanding', 'Interest outstanding', 'Defaulters', 'Collected % of demand'],
     wardTable.map((w) => [q(w.ward), w.props, w.demanded.toFixed(2), w.collected.toFixed(2), w.rebate.toFixed(2), w.due.toFixed(2), w.interestDue.toFixed(2), w.defaulters, w.demanded ? ((w.collected / w.demanded) * 100).toFixed(1) : '']));
-  const defCsv = () => dl(`${townName}_Defaulters_${ward}_${today}.csv`,
+  const defCsv = () => dl(`${townName}_${headLabel(selectedHead).replace(/\s+/g, '_')}_Defaulters_${ward}_${today}.csv`,
     ['Property ID', 'Ward', 'Owner', 'House/plot', 'Overdue (tax+interest)', 'Tax due', 'Interest due', 'Total due', 'Oldest unpaid year'],
     defaulters.map(({ r, led, overdue }) => [r.id, q(r.ward), q(r.owner), q(r.hno), overdue.toFixed(2), led.principalDue.toFixed(2), led.interestDue.toFixed(2), led.totalDue.toFixed(2), led.rows.find((x) => x.totalDue > 0)?.fy || '']));
 
@@ -144,6 +171,117 @@ export const ReportsPanel: React.FC<Props> = ({ townKey, townName, records, sett
 
   return (
     <div className="space-y-4">
+      {/* Bill Head Selector Bar */}
+      <div className={`${card} flex flex-wrap items-center justify-between gap-3 bg-[#131b38]`}>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs font-bold text-[#ffe3a3] uppercase tracking-wider mr-2">Bill Head:</span>
+          {availableHeads.map((hId) => (
+            <button
+              key={hId}
+              type="button"
+              onClick={() => setSelectedHead(hId)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                selectedHead === hId ? 'bg-[#4f46e5] text-white shadow-md' : 'bg-[#121830] text-[#aab4dc] hover:text-white'
+              }`}
+            >
+              {headLabel(hId)}
+            </button>
+          ))}
+        </div>
+        <div className="text-xs font-bold text-[#9aa8ff]">
+          Reporting: {headLabel(selectedHead)}
+        </div>
+      </div>
+
+      {/* Executive Overview & Ward Leaderboard */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {/* Recovery Target Card */}
+        <div className={`${card} bg-gradient-to-br from-[#181f3d] to-[#121830] space-y-2`}>
+          <div className="flex items-center justify-between text-xs font-bold text-[#aab4dc]">
+            <span className="flex items-center gap-1.5 text-white">
+              <Target className="w-4 h-4 text-cyan-400" /> Collection Target
+            </span>
+            <span className="text-cyan-300 font-mono">
+              {grand.demanded > 0 ? `${((grand.collected / grand.demanded) * 100).toFixed(1)}%` : '0%'}
+            </span>
+          </div>
+          <div className="w-full bg-[#0a0f24] rounded-full h-2.5 overflow-hidden border border-[#28325c]">
+            <div
+              className="bg-gradient-to-r from-cyan-500 to-emerald-400 h-2.5 rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(100, grand.demanded > 0 ? (grand.collected / grand.demanded) * 100 : 0)}%` }}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+            <div>
+              <span className="text-[#8790bd] block">Total Collected</span>
+              <span className="text-white font-bold font-mono">{money(grand.collected)}</span>
+            </div>
+            <div>
+              <span className="text-[#8790bd] block">Outstanding Dues</span>
+              <span className="text-rose-400 font-bold font-mono">{money(grand.due + grand.interestDue)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Ward Leaderboard Card */}
+        <div className={`${card} bg-gradient-to-br from-[#181f3d] to-[#121830] space-y-2`}>
+          <div className="flex items-center justify-between text-xs font-bold text-[#aab4dc]">
+            <span className="flex items-center gap-1.5 text-white">
+              <Trophy className="w-4 h-4 text-amber-400" /> Ward Leaderboard
+            </span>
+            <span className="text-amber-300 text-[10px]">Recovery Rank</span>
+          </div>
+          <div className="space-y-1 text-xs">
+            {wardRankings.slice(0, 3).map((w, idx) => (
+              <div key={w.ward} className="flex items-center justify-between p-1 rounded bg-[#0d1326] border border-[#232d54]">
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                    idx === 0 ? 'bg-amber-400 text-slate-950' : idx === 1 ? 'bg-slate-300 text-slate-950' : 'bg-amber-700 text-white'
+                  }`}>
+                    {idx + 1}
+                  </span>
+                  <span className="text-white font-medium">Ward {w.ward}</span>
+                </div>
+                <div className="flex items-center gap-2 font-mono text-[11px]">
+                  <span className="text-[#aab4dc]">{money(w.collected)}</span>
+                  <span className={`font-bold ${w.pct >= 75 ? 'text-emerald-400' : w.pct >= 40 ? 'text-amber-400' : 'text-rose-400'}`}>
+                    {w.pct.toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+            ))}
+            {!wardRankings.length && <p className="text-[#8790bd] text-xs">No ward data available.</p>}
+          </div>
+        </div>
+
+        {/* Payment Channels Card */}
+        <div className={`${card} bg-gradient-to-br from-[#181f3d] to-[#121830] space-y-2`}>
+          <div className="flex items-center justify-between text-xs font-bold text-[#aab4dc]">
+            <span className="flex items-center gap-1.5 text-white">
+              <WalletCards className="w-4 h-4 text-emerald-400" /> Payment Channels
+            </span>
+            <span className="text-emerald-300 text-[10px]">Active Receipts</span>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5 text-center text-xs">
+            <div className="p-1.5 rounded-lg bg-[#0d1326] border border-[#232d54]">
+              <span className="text-[#8790bd] block text-[10px]">Cash</span>
+              <span className="text-white font-bold font-mono text-[11px]">{money(modeBreakdown['cash'] || 0)}</span>
+            </div>
+            <div className="p-1.5 rounded-lg bg-[#0d1326] border border-[#232d54]">
+              <span className="text-emerald-400 block text-[10px]">UPI QR</span>
+              <span className="text-white font-bold font-mono text-[11px]">{money(modeBreakdown['upi'] || 0)}</span>
+            </div>
+            <div className="p-1.5 rounded-lg bg-[#0d1326] border border-[#232d54]">
+              <span className="text-cyan-400 block text-[10px]">Cheque</span>
+              <span className="text-white font-bold font-mono text-[11px]">{money(modeBreakdown['cheque'] || 0)}</span>
+            </div>
+          </div>
+          <div className="text-[10px] text-[#8790bd] text-right">
+            Rebates granted: {money(grand.rebate)}
+          </div>
+        </div>
+      </div>
+
       <div className={`${card} flex flex-wrap items-end gap-3`}>
         <label className="text-[11px] text-[#aab4dc]">Ward<select value={ward} onChange={(e) => setWard(e.target.value)} className={`${inp} block mt-1`}><option value="all">All wards</option>{wards.map((w) => <option key={w}>{w}</option>)}</select></label>
         <label className="text-[11px] text-[#aab4dc]">Collected from<input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={`${inp} block mt-1`} /></label>
@@ -152,7 +290,7 @@ export const ReportsPanel: React.FC<Props> = ({ townKey, townName, records, sett
       </div>
 
       <div className={`${card} space-y-2`}>
-        <div className="flex items-center justify-between"><h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider">Ward-wise collection</h3>
+        <div className="flex items-center justify-between"><h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider">Ward-wise collection ({headLabel(selectedHead)})</h3>
           <button type="button" onClick={wardCsv} disabled={!wardTable.length} className={`${btn} bg-[#1d2547] text-[#aab4dc] border border-[#2f3a6b]`}><Download className="w-3.5 h-3.5" /> CSV</button></div>
         <div className="overflow-x-auto"><table className="w-full text-xs text-left">
           <thead className="text-[#aab4dc] border-b border-[#28325c]"><tr><th className="p-2">Ward</th><th className="p-2 text-right">Props</th><th className="p-2 text-right">Demanded</th><th className="p-2 text-right">Collected</th><th className="p-2 text-right">Rebate</th><th className="p-2 text-right">Outstanding</th><th className="p-2 text-right">Defaulters</th><th className="p-2 text-right">%</th></tr></thead>
@@ -167,12 +305,12 @@ export const ReportsPanel: React.FC<Props> = ({ townKey, townName, records, sett
       </div>
 
       <div className={`${card} space-y-3`}>
-        <h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider">Defaulters {ward === 'all' ? '(all wards)' : `(ward ${ward})`}: {defaulters.length}</h3>
+        <h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider">{headLabel(selectedHead)} Defaulters {ward === 'all' ? '(all wards)' : `(ward ${ward})`}: {defaulters.length}</h3>
         <div className="flex flex-wrap items-end gap-2">
           <label className="text-[11px] text-[#aab4dc]">Minimum total due (₹)<input type="number" min="0" value={minDue} onChange={(e) => setMinDue(e.target.value)} className={`${inp} block mt-1 w-28`} /></label>
           <button type="button" onClick={defCsv} disabled={!defaulters.length} className={`${btn} bg-[#1d2547] text-[#aab4dc] border border-[#2f3a6b]`}><Download className="w-3.5 h-3.5" /> CSV</button>
-          <button type="button" onClick={() => printPages(defaulters, 'Notice of arrears', false, false)} disabled={!defaulters.length} className={`${btn} bg-[#4f46e5] text-white`}><Printer className="w-3.5 h-3.5" /> Print notices</button>
-          <button type="button" onClick={() => printPages(defaulters, 'Notice of arrears', false, true)} disabled={!defaulters.length} className={`${btn} bg-[#2a3464] text-[#9aa8ff]`}><FileText className="w-3.5 h-3.5" /> Download notices</button>
+          <button type="button" onClick={() => printPages(defaulters, `${headLabel(selectedHead)} Notice of arrears`, false, false)} disabled={!defaulters.length} className={`${btn} bg-[#4f46e5] text-white`}><Printer className="w-3.5 h-3.5" /> Print notices</button>
+          <button type="button" onClick={() => printPages(defaulters, `${headLabel(selectedHead)} Notice of arrears`, false, true)} disabled={!defaulters.length} className={`${btn} bg-[#2a3464] text-[#9aa8ff]`}><FileText className="w-3.5 h-3.5" /> Download notices</button>
         </div>
         <label className="text-[11px] text-[#aab4dc] block">Wording printed on bills and notices (add the notified clause or last date here)
           <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} className={`${inp} w-full mt-1`} /></label>
@@ -185,15 +323,15 @@ export const ReportsPanel: React.FC<Props> = ({ townKey, townName, records, sett
           </tbody></table>
           {defaulters.length > 300 && <p className="text-[10px] text-[#8790bd]">Showing 300 of {defaulters.length}. CSV has all.</p>}
         </div>
-        <p className="text-[10px] text-[#8790bd]">A defaulter is a property with dues for a year whose due date has passed. Print and download cover at most 200 notices at a time; narrow by ward or raise the minimum.</p>
+        <p className="text-[10px] text-[#8790bd]">A defaulter is a property with dues for a period whose due date has passed. Print and download cover at most 200 notices at a time; narrow by ward or raise the minimum.</p>
       </div>
 
       <div className={`${card} space-y-2`}>
-        <h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider">Demand bills</h3>
-        <p className="text-xs text-[#aab4dc]">{billable.length} propert{billable.length === 1 ? 'y has' : 'ies have'} dues {ward === 'all' ? 'in all wards' : `in ward ${ward}`}. Bills show the year-wise position and any early-payment rebate still open.</p>
+        <h3 className="text-sm font-bold text-[#9aa8ff] uppercase tracking-wider">{headLabel(selectedHead)} Demand bills</h3>
+        <p className="text-xs text-[#aab4dc]">{billable.length} propert{billable.length === 1 ? 'y has' : 'ies have'} dues {ward === 'all' ? 'in all wards' : `in ward ${ward}`}. Bills show the period-wise position and any early-payment rebate still open.</p>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => printPages(billable, 'Property tax demand bill', true, false)} disabled={!billable.length} className={`${btn} bg-[#4f46e5] text-white`}><Printer className="w-3.5 h-3.5" /> Print bills</button>
-          <button type="button" onClick={() => printPages(billable, 'Property tax demand bill', true, true)} disabled={!billable.length} className={`${btn} bg-[#2a3464] text-[#9aa8ff]`}><FileText className="w-3.5 h-3.5" /> Download bills</button>
+          <button type="button" onClick={() => printPages(billable, `${headLabel(selectedHead)} demand bill`, true, false)} disabled={!billable.length} className={`${btn} bg-[#4f46e5] text-white`}><Printer className="w-3.5 h-3.5" /> Print bills</button>
+          <button type="button" onClick={() => printPages(billable, `${headLabel(selectedHead)} demand bill`, true, true)} disabled={!billable.length} className={`${btn} bg-[#2a3464] text-[#9aa8ff]`}><FileText className="w-3.5 h-3.5" /> Download bills</button>
         </div>
         {billable.length > 200 && <p className="text-[11px] text-[#ffe3a3]">Only the first 200 will be printed; choose a single ward.</p>}
       </div>

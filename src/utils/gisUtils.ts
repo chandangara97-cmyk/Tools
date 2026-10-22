@@ -805,7 +805,7 @@ export function triggerFileDownload(content: Blob | string | Uint8Array, fileNam
   if (typeof content === 'string') {
     blob = new Blob([content], { type: mimeType });
   } else if (content instanceof Uint8Array) {
-    blob = new Blob([content], { type: mimeType });
+    blob = new Blob([content as unknown as BlobPart], { type: mimeType });
   } else {
     blob = content;
   }

@@ -1,8 +1,6 @@
 {
-  "name": "Scheme Hub 2026",
-  "description": "Field survey and property tax tools for Himachal Pradesh: GIS property survey, assessment, collection, KML and Shapefile converters, and survey indices.",
-  "requestFramePermissions": [
-    "geolocation"
-  ],
-  "capabilities": []
+  "name": "Scheme Hub 2026 - CivicCollect Offline GIS & Property Tax System",
+  "description": "Full offline-capable field survey, GIS property mapping, assessment, municipal demand, cashier collections and civic portal for Himachal Pradesh Urban Local Bodies.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

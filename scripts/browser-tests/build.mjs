@@ -46,7 +46,7 @@ const plug = {
     b.onResolve({ filter: /^(lucide-react|firebase\/.*|@capacitor\/.*)$/ }, (a) => ({ path: a.path, namespace: 'stub' }));
     b.onLoad({ filter: /.*/, namespace: 'stub' }, (a) => ({ contents: stubs[a.path] || 'export {}', loader: 'js', resolveDir: G }));
     // firebase.ts config file: no real app
-    b.onResolve({ filter: /\/firebase$/ }, (a) => (a.importer.includes('/Tools-main/src') ? { path: 'fbcfg', namespace: 'fb' } : undefined));
+    b.onResolve({ filter: /\/firebase$/ }, (a) => (a.importer.includes('/src/') ? { path: 'fbcfg', namespace: 'fb' } : undefined));
     b.onLoad({ filter: /.*/, namespace: 'fb' }, () => ({ contents: 'export const db = {}; export const auth = {}; export default {};', loader: 'js' }));
     // auth: a test double whose role comes from the page
     b.onResolve({ filter: /services\/auth$/ }, () => ({ path: 'authstub', namespace: 'au' }));

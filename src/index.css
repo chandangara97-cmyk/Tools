@@ -1,6 +1,16 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-navy-900: #0d1224;
+  --color-navy-800: #121830;
+  --color-navy-700: #181f3d;
+  --color-navy-600: #1d2547;
+  --color-teal-accent: #4f46e5;
+  --color-teal-dark: #0d1224;
+  --color-teal-light: #9aa8ff;
+  --color-gold: #f2b233;
+  --color-gold-soft: #ffe3a3;
+}
 
 /* —— Larger readable type scale (requested) —— */
 html {

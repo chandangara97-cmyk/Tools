@@ -40,6 +40,7 @@ export interface RateTable {
   classFactor: Record<string, number>;  // by `ncls`; "default"
   rebatePct: number;
   taxRatePct: number | null;            // null = not set yet, tax is not computed
+  landRatePerSqM?: number;              // base rate for vacant land per sq m (default: 10)
   bylaw?: BylawInfo;
   clauses?: Record<string, string>;     // clause reference per rule: F1..F5, Class, Rebate, TaxRate
   adjustments?: Adjustment[];
@@ -48,14 +49,39 @@ export interface RateTable {
 export interface FactorLine { factor: string; basis: string; value: number; clause?: string }
 export interface AdjustmentLine { name: string; clause?: string; base: 'rateable' | 'tax'; amount: number }
 
+export interface FloorBreakdownLine {
+  floorIndex: number;
+  floorLabel: string;
+  area: number;
+  rateableValue: number;
+  rebate: number;
+  netTaxableValue: number;
+  tax: number | null;
+}
+
+export interface UnitBreakdownLine {
+  unitId: string;
+  label: string;
+  use: string;
+  occupant: string;
+  builtUp: number;
+  rateableValue: number;
+  netTaxableValue: number;
+  tax: number | null;
+}
+
 export interface CalcResult {
   builtUp: number;
+  isVacantLand?: boolean;
+  landArea?: number;
   lines: FactorLine[];
   rateableValue: number;
   rebate: number;
   netTaxableValue: number;
   tax: number | null;
   adjustments?: AdjustmentLine[];
+  floorBreakdown?: FloorBreakdownLine[];
+  unitBreakdown?: UnitBreakdownLine[];
   warnings: string[];
 }
 
@@ -76,6 +102,7 @@ export function placeholderRateTable(town: string, effectiveFrom = '2026-04-01')
     classFactor: { default: 1 },
     rebatePct: 10,
     taxRatePct: null,
+    landRatePerSqM: 10,
     bylaw: { title: '', authority: '', notificationNo: '', notificationDate: '', notes: '' },
     clauses: {},
     adjustments: [],
@@ -102,6 +129,7 @@ export function nerwaDefaultRateTable(effectiveFrom = '2026-04-01'): RateTable {
     classFactor: { C: 1.1, D: 1, E: 0.9, default: 1 },
     rebatePct: 10,
     taxRatePct: 10,
+    landRatePerSqM: 10,
     bylaw: { title: 'Provisional default (replace with the notified municipal property tax bye-laws)', authority: '', notificationNo: '', notificationDate: '', notes: 'Factors follow the Form-E structure; values are placeholders.' },
     clauses: {},
     adjustments: [],
@@ -121,7 +149,8 @@ export function financialYearOf(d: Date): string {
 export function calcAssessment(rec: PropertyRecord, t: RateTable, asOfYear: number): CalcResult {
   const warnings: string[] = [];
   const builtUp = Number(rec.bu) || 0;
-  if (builtUp <= 0) warnings.push('No built-up area. Land-only assessment is not defined in this rate table, so value is 0.');
+  const landArea = Number(rec.land) || 0;
+  const isVacantLand = rec.use === 'Vacant land' || rec.use === 'Vacant' || (builtUp <= 0 && landArea > 0);
 
   const z = pick(t.zoneF1, rec.zone);
   const s = pick(t.structureF2, rec.str);
@@ -129,39 +158,66 @@ export function calcAssessment(rec: PropertyRecord, t: RateTable, asOfYear: numb
   const u = pick(t.useF5, rec.use);
   const c = pick(t.classFactor, rec.ncls);
   if (!z.hit && !('default' in t.zoneF1)) warnings.push(`No location factor for zone "${rec.zone}".`);
-  if (!u.hit) warnings.push(`Use "${rec.use}" is not in the rate table; default factor used.`);
-
-  const yearBuilt = parseInt(rec.yr, 10);
-  let ageFactor: number;
-  let ageBasis: string;
-  const bands = [...t.ageF3].sort((a, b) => (a.maxAge ?? Infinity) - (b.maxAge ?? Infinity));
-  if (isNaN(yearBuilt)) {
-    ageFactor = bands[bands.length - 1]?.factor ?? 1;
-    ageBasis = 'year built missing';
-    warnings.push('Year built is missing; oldest age band used.');
-  } else {
-    const age = Math.max(0, asOfYear - yearBuilt);
-    const band = bands.find((b) => b.maxAge === null || age <= b.maxAge) ?? bands[bands.length - 1];
-    ageFactor = band?.factor ?? 1;
-    ageBasis = `${age} years old`;
-  }
+  if (!u.hit && !isVacantLand) warnings.push(`Use "${rec.use}" is not in the rate table; default factor used.`);
 
   const cl = (k: string) => t.clauses?.[k] || undefined;
-  const lines: FactorLine[] = [
-    { factor: 'F1 Location', basis: `zone ${rec.zone}`, value: z.v, clause: cl('F1') },
-    { factor: 'F2 Structure', basis: rec.str, value: s.v, clause: cl('F2') },
-    { factor: 'F3 Age', basis: ageBasis, value: ageFactor, clause: cl('F3') },
-    { factor: 'F4 Occupancy', basis: rec.occ, value: o.v, clause: cl('F4') },
-    { factor: 'F5 Use', basis: rec.use, value: u.v, clause: cl('F5') },
-    { factor: 'Class', basis: `class ${rec.ncls || '-'}`, value: c.v, clause: cl('Class') },
-  ];
+  const lines: FactorLine[] = [];
 
-  const rateableValue = r2(lines.reduce((acc, l) => acc * l.value, builtUp));
+  let rateableValue = 0;
+
+  if (isVacantLand) {
+    if (landArea <= 0) {
+      warnings.push('Vacant land specified, but plot land area is 0 or missing.');
+    } else {
+      const landRate = t.landRatePerSqM ?? 10;
+      lines.push(
+        { factor: 'Plot Area', basis: `${landArea} sq m plot`, value: landArea },
+        { factor: 'Base Land Rate', basis: `₹${landRate}/sq m`, value: landRate },
+        { factor: 'F1 Location', basis: `zone ${rec.zone}`, value: z.v, clause: cl('F1') },
+        { factor: 'Class Factor', basis: `class ${rec.ncls || '-'}`, value: c.v, clause: cl('Class') },
+      );
+      // Vacant land rateable value = landArea * landRate * zoneFactor * classFactor
+      rateableValue = r2(landArea * landRate * z.v * c.v);
+      warnings.push(`Vacant land rateable value computed on ${landArea} sq m plot @ ₹${landRate}/sq m base rate.`);
+    }
+  } else {
+    if (builtUp <= 0) {
+      warnings.push('No built-up area and no plot land area recorded, so assessment value is 0.');
+    }
+
+    const yearBuilt = parseInt(rec.yr, 10);
+    let ageFactor: number;
+    let ageBasis: string;
+    const bands = [...t.ageF3].sort((a, b) => (a.maxAge ?? Infinity) - (b.maxAge ?? Infinity));
+    if (isNaN(yearBuilt)) {
+      ageFactor = bands[bands.length - 1]?.factor ?? 1;
+      ageBasis = 'year built missing';
+      warnings.push('Year built is missing; oldest age band used.');
+    } else {
+      const age = Math.max(0, asOfYear - yearBuilt);
+      const band = bands.find((b) => b.maxAge === null || age <= b.maxAge) ?? bands[bands.length - 1];
+      ageFactor = band?.factor ?? 1;
+      ageBasis = `${age} years old`;
+    }
+
+    lines.push(
+      { factor: 'F1 Location', basis: `zone ${rec.zone}`, value: z.v, clause: cl('F1') },
+      { factor: 'F2 Structure', basis: rec.str, value: s.v, clause: cl('F2') },
+      { factor: 'F3 Age', basis: ageBasis, value: ageFactor, clause: cl('F3') },
+      { factor: 'F4 Occupancy', basis: rec.occ, value: o.v, clause: cl('F4') },
+      { factor: 'F5 Use', basis: rec.use, value: u.v, clause: cl('F5') },
+      { factor: 'Class', basis: `class ${rec.ncls || '-'}`, value: c.v, clause: cl('Class') },
+    );
+
+    rateableValue = r2(lines.reduce((acc, l) => acc * l.value, builtUp));
+  }
+
   const rebate = r2((rateableValue * t.rebatePct) / 100);
 
   // bylaw adjustments (surcharges, deductions, flat charges)
   const adjLines: AdjustmentLine[] = [];
-  const applicable = (t.adjustments || []).filter((a) => builtUp > 0 && (!a.appliesToUse || a.appliesToUse === rec.use));
+  const baseValueForAdj = isVacantLand ? landArea : builtUp;
+  const applicable = (t.adjustments || []).filter((a) => baseValueForAdj > 0 && (!a.appliesToUse || a.appliesToUse === rec.use));
   const amountOf = (a: Adjustment, base: number) => r2(a.kind === 'percent' ? (base * a.value) / 100 : a.value);
   let netTaxableValue = r2(rateableValue - rebate);
   for (const a of applicable.filter((x) => x.base === 'rateable')) {
@@ -179,7 +235,65 @@ export function calcAssessment(rec: PropertyRecord, t: RateTable, asOfYear: numb
     tax = Math.max(0, r2(tax + amount));
     adjLines.push({ name: a.name, clause: a.clause, base: 'tax', amount });
   }
-  return { builtUp, lines, rateableValue, rebate, netTaxableValue, tax, adjustments: adjLines, warnings };
+
+  // Per-floor breakdown calculation
+  let floorBreakdown: FloorBreakdownLine[] | undefined;
+  if (!isVacantLand && rec.floors && Array.isArray(rec.floors) && rec.floors.length > 0) {
+    const floorNames = ['Ground Floor', '1st Floor', '2nd Floor', '3rd Floor', '4th Floor', '5th Floor', '6th Floor'];
+    floorBreakdown = rec.floors.map((fArea, idx) => {
+      const area = Number(fArea) || 0;
+      const fRateable = r2(lines.reduce((acc, l) => acc * l.value, area));
+      const fRebate = r2((fRateable * t.rebatePct) / 100);
+      const fNet = r2(fRateable - fRebate);
+      const fTax = t.taxRatePct === null ? null : r2((fNet * t.taxRatePct) / 100);
+      return {
+        floorIndex: idx,
+        floorLabel: floorNames[idx] || `Floor ${idx}`,
+        area,
+        rateableValue: fRateable,
+        rebate: fRebate,
+        netTaxableValue: fNet,
+        tax: fTax,
+      };
+    });
+  }
+
+  // Unit-level breakdown calculation if units exist
+  let unitBreakdown: UnitBreakdownLine[] | undefined;
+  if (!isVacantLand && rec.units && Object.keys(rec.units).length > 0) {
+    unitBreakdown = Object.entries(rec.units).map(([uId, uObj]) => {
+      const uArea = Number(uObj.builtUp) || (builtUp / Object.keys(rec.units!).length);
+      const uRateable = r2(lines.reduce((acc, l) => acc * l.value, uArea));
+      const uRebate = r2((uRateable * t.rebatePct) / 100);
+      const uNet = r2(uRateable - uRebate);
+      const uTax = t.taxRatePct === null ? null : r2((uNet * t.taxRatePct) / 100);
+      return {
+        unitId: uId,
+        label: uObj.label || uId,
+        use: uObj.use || rec.use,
+        occupant: uObj.occupant || rec.owner,
+        builtUp: r2(uArea),
+        rateableValue: uRateable,
+        netTaxableValue: uNet,
+        tax: uTax,
+      };
+    });
+  }
+
+  return {
+    builtUp,
+    isVacantLand,
+    landArea: isVacantLand ? landArea : undefined,
+    lines,
+    rateableValue,
+    rebate,
+    netTaxableValue,
+    tax,
+    adjustments: adjLines,
+    floorBreakdown,
+    unitBreakdown,
+    warnings,
+  };
 }
 
 /** Light validation for the rate table JSON an admin pastes in. Returns error text or null. */
@@ -196,6 +310,7 @@ export function validateRateTable(t: unknown): string | null {
   for (const b of x.ageF3) if (typeof b.factor !== 'number' || !(b.factor >= 0)) return 'Each age band needs a numeric factor.';
   if (typeof x.rebatePct !== 'number' || x.rebatePct < 0 || x.rebatePct > 100) return 'rebatePct must be 0 to 100.';
   if (x.taxRatePct !== null && (typeof x.taxRatePct !== 'number' || x.taxRatePct < 0)) return 'taxRatePct must be a number or null.';
+  if (x.landRatePerSqM !== undefined && (typeof x.landRatePerSqM !== 'number' || x.landRatePerSqM < 0)) return 'landRatePerSqM must be a number >= 0.';
   for (const a of x.adjustments || []) {
     if (!a.name || !a.name.trim()) return 'Every adjustment needs a name.';
     if (a.base !== 'rateable' && a.base !== 'tax') return `Adjustment "${a.name}": base must be rateable or tax.`;

@@ -1,15 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useStepBack, readStep } from '../hooks/useStepBack';
-import { Search, X } from 'lucide-react';
-import { PropertyRecord } from '../utils/gisUtils';
+import { Search, X, QrCode, Share2, FileCheck, Printer, Download, Sparkles } from 'lucide-react';
+import { PropertyRecord, triggerFileDownload } from '../utils/gisUtils';
 import { HeadId } from '../services/heads';
-import { todayIso } from '../services/collection';
+import { todayIso, financialYearOf } from '../services/collection';
 import { useAuth, canCollect, canManageLedger } from '../services/auth';
 import { useAllLedgers, useAllSettings, propertyLiability, rulesApproved, PropertyLiability } from '../services/liability';
 import { searchRecords, sameOwner, MIN_QUERY } from '../services/propertySearch';
 import { BILL_NAME } from './WorkMenu';
-import { money } from './CollectionPanel';
+import { money, printHtml } from './CollectionPanel';
 import { BillMaker } from './BillMaker';
+import { generateUpiUrl, generateQrDataUrl, defaultTownVpa, generateVerificationQr } from '../services/upiService';
+import { formatDemandNoticeWhatsApp, openWhatsAppChat } from '../utils/whatsapp';
+import { generateTaxClearanceCertificateHtml } from '../utils/receiptPrinting';
 
 interface Props { townKey: string; townName: string; records: PropertyRecord[]; heads: HeadId[]; /** Cashier / general public: the box fills the screen and is the only thing on it. */ fullScreen?: boolean }
 
@@ -30,11 +33,77 @@ export const LiabilitySearch: React.FC<Props> = ({ townKey, townName, records, h
   const pickNav = useStepBack('srchPick', picked ?? '', (v: string) => setPicked(v || null), '');
   const [billing, setBilling] = useState(false);
   const [slow, setSlow] = useState(false);
+  const [showUpiModal, setShowUpiModal] = useState(false);
+  const [upiQrUrl, setUpiQrUrl] = useState('');
+  const [upiUri, setUpiUri] = useState('');
+  const [phoneModal, setPhoneModal] = useState(false);
+  const [phoneInput, setPhoneInput] = useState('');
+
   useEffect(() => {
     if (ready) { setSlow(false); return; }
     const t = setTimeout(() => setSlow(true), 12000);
     return () => clearTimeout(t);
   }, [ready]);
+
+  const handleOpenUpi = async () => {
+    if (!rec || !mine) return;
+    const vpa = defaultTownVpa(townName);
+    const uri = generateUpiUrl({
+      vpa,
+      payeeName: `${townName} Municipal Council`,
+      amount: mine.l.total,
+      transactionNote: `PTAX ${rec.id} W${rec.ward}`,
+      transactionRef: `PTAX_${rec.id.replace(/\W/g, '')}_${Date.now().toString(36)}`,
+    });
+    setUpiUri(uri);
+    const qr = await generateQrDataUrl(uri, 240);
+    setUpiQrUrl(qr);
+    setShowUpiModal(true);
+  };
+
+  const handleSendWhatsApp = (phone: string) => {
+    if (!rec || !mine) return;
+    const breakdown = mine.l.heads.map((h) => ({
+      headName: BILL_NAME[h.head] || h.head,
+      amount: h.total,
+    }));
+    const text = formatDemandNoticeWhatsApp({
+      town: townName,
+      propertyId: rec.id,
+      ownerName: rec.owner,
+      ward: rec.ward,
+      houseNo: rec.hno,
+      duesBreakdown: breakdown,
+      totalDue: mine.l.total,
+      dueDate: today,
+    });
+    openWhatsAppChat(phone, text);
+  };
+
+  const handlePrintNoc = async (download: boolean) => {
+    if (!rec) return;
+    const certNo = `HP-NOC/${townKey.toUpperCase().slice(0, 3)}/${financialYearOf(new Date())}/${rec.id.replace(/\D/g, '').slice(-5) || '10001'}`;
+    const qr = await generateVerificationQr('noc', certNo, townName, rec.id);
+    const html = generateTaxClearanceCertificateHtml({
+      town: townName,
+      certificateNo: certNo,
+      date: today,
+      financialYear: financialYearOf(new Date()),
+      propertyId: rec.id,
+      ownerName: rec.owner,
+      ward: rec.ward,
+      houseNo: rec.hno,
+      address: rec.addr,
+      use: rec.use,
+      builtUpSqM: rec.bu || 0,
+      qrDataUrl: qr,
+    });
+    if (download) {
+      triggerFileDownload(html, `NOC_${rec.id}.html`, 'text/html');
+    } else {
+      printHtml(html);
+    }
+  };
 
   const town = useMemo(() => records.filter((r) => r && r.id && r.town === townName), [records, townName]);
   const matches = useMemo(() => searchRecords(town, q), [town, q]);
@@ -149,12 +218,176 @@ export const LiabilitySearch: React.FC<Props> = ({ townKey, townName, records, h
 
                 {skipped.length > 0 && <p className="text-xs text-[#ffcf8a]">Interest is not added for {skipped.join(', ')}: its collection rules are not approved yet.</p>}
                 <p className="text-[11px] text-[#8790bd]">As on {today}</p>
-                {canBill && !billing && mine.l.heads.length > 0 && !none(mine.l.total) && (
-                  <button type="button" onClick={() => setBilling(true)} className="text-sm font-bold px-4 py-2.5 rounded-xl bg-[#f2b233] text-[#2b1d00]">Generate bill</button>
-                )}
+
+                {/* Action Toolbar */}
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#252e56]">
+                  {!none(mine.l.total) ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => void handleOpenUpi()}
+                        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
+                      >
+                        <QrCode className="w-4 h-4" />
+                        Scan &amp; Pay via UPI QR
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPhoneModal(true)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#25d366]/20 border border-[#25d366]/40 hover:bg-[#25d366]/30 text-[#25d366] font-bold text-xs active:scale-95 transition-all"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        Send Notice (WhatsApp)
+                      </button>
+
+                      {canBill && !billing && mine.l.heads.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setBilling(true)}
+                          className="text-xs font-bold px-3.5 py-2.5 rounded-xl bg-[#f2b233] text-[#2b1d00] hover:bg-[#f5be4f] transition-all"
+                        >
+                          Generate bill
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <div className="w-full flex flex-wrap items-center justify-between gap-3 bg-[#10b981]/10 border border-[#10b981]/30 p-3 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <FileCheck className="w-5 h-5 text-[#10b981]" />
+                        <div>
+                          <span className="text-xs font-bold text-white block">Tax Clearance Certificate (NOC) Available</span>
+                          <span className="text-[10px] text-[#aab4dc]">Zero municipal liabilities pending against this property</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handlePrintNoc(false)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#4f46e5] hover:bg-[#4338ca] text-white font-bold text-xs shadow-sm"
+                        >
+                          <Printer className="w-3.5 h-3.5" /> Print NOC
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handlePrintNoc(true)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#1d2547] border border-[#2f3a6b] hover:border-[#9aa8ff] text-[#aab4dc] font-bold text-xs"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Download
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
+
+          {/* Dynamic UPI QR Code Modal */}
+          {showUpiModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+              <div className="bg-[#181f3d] border border-[#28325c] w-full max-w-sm rounded-2xl p-5 shadow-2xl space-y-4 text-center">
+                <div className="flex items-center justify-between border-b border-[#252e56] pb-3">
+                  <div className="text-left">
+                    <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                      <QrCode className="w-4 h-4 text-emerald-400" />
+                      Dynamic NPCI UPI QR
+                    </h3>
+                    <p className="text-[10px] text-[#aab4dc]">Scan with PhonePe, Google Pay, Paytm or BHIM</p>
+                  </div>
+                  <button onClick={() => setShowUpiModal(false)} className="text-[#aab4dc] hover:text-white p-1">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="bg-white p-3 rounded-2xl mx-auto inline-block shadow-inner border border-slate-200">
+                  {upiQrUrl ? (
+                    <img src={upiQrUrl} alt="UPI QR" className="w-48 h-48 block mx-auto" />
+                  ) : (
+                    <div className="w-48 h-48 flex items-center justify-center text-slate-400 text-xs">Generating QR...</div>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-xs text-[#aab4dc]">Total Payable Amount:</div>
+                  <div className="text-2xl font-black text-emerald-400 font-mono">{money(mine.l.total)}</div>
+                  <div className="text-[11px] text-[#d6dcf5] font-mono">{rec.id} · Ward {rec.ward}</div>
+                  <div className="text-[10px] text-[#8790bd] truncate">VPA: {defaultTownVpa(townName)}</div>
+                </div>
+
+                <div className="pt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(upiUri);
+                      alert('UPI Payment Link copied to clipboard!');
+                    }}
+                    className="flex-1 py-2 px-3 rounded-xl bg-[#1d2547] border border-[#2f3a6b] text-xs font-bold text-[#d6dcf5] hover:text-white"
+                  >
+                    Copy UPI Link
+                  </button>
+                  <a
+                    href={upiUri}
+                    className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white flex items-center justify-center gap-1"
+                  >
+                    Open UPI App
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* WhatsApp Phone Prompt Modal */}
+          {phoneModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+              <div className="bg-[#181f3d] border border-[#28325c] w-full max-w-sm rounded-2xl p-5 shadow-2xl space-y-4">
+                <div className="flex items-center justify-between border-b border-[#252e56] pb-2">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                    <Share2 className="w-4 h-4 text-[#25d366]" />
+                    Send Notice on WhatsApp
+                  </h3>
+                  <button onClick={() => setPhoneModal(false)} className="text-[#aab4dc] hover:text-white p-1">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs text-[#aab4dc]">
+                    Owner Phone / WhatsApp Number:
+                    <input
+                      type="tel"
+                      value={phoneInput}
+                      onChange={(e) => setPhoneInput(e.target.value)}
+                      placeholder="e.g. 9816012345"
+                      className="w-full mt-1.5 h-10 px-3 rounded-xl bg-[#121830] border border-[#2f3a6b] text-white text-sm outline-none focus:border-[#25d366]"
+                    />
+                  </label>
+                  <p className="text-[10px] text-[#8790bd]">Bilingual notice with bill summary, due date &amp; UPI payment link will be sent.</p>
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setPhoneModal(false)}
+                    className="flex-1 py-2 rounded-xl bg-[#1d2547] text-xs font-bold text-[#aab4dc]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!phoneInput.trim()) { alert('Please enter phone number'); return; }
+                      handleSendWhatsApp(phoneInput);
+                      setPhoneModal(false);
+                    }}
+                    className="flex-1 py-2 rounded-xl bg-[#25d366] hover:bg-[#20ba5a] text-xs font-bold text-slate-950"
+                  >
+                    Send on WhatsApp
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {ready && canBill && billing && <BillMaker key={rec.id} town={townName} rows={ownerRows} currentId={rec.id} onClose={() => setBilling(false)} />}
 
