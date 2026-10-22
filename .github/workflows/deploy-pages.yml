@@ -18,20 +18,47 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+
+      # Finds the folder that holds package.json, even if the zip was uploaded into a subfolder.
+      - name: Locate project
+        id: loc
+        run: |
+          echo "Repo root contents:"; ls -la
+          PKG=$(find . -maxdepth 3 -name package.json -not -path '*/node_modules/*' -not -path '*/functions/*' | awk '{print length, $0}' | sort -n | head -1 | cut -d' ' -f2-)
+          if [ -z "$PKG" ]; then
+            echo "::error::No package.json found in the repo. Upload the project files (not the .zip itself) to the repo root."
+            exit 1
+          fi
+          DIR=$(dirname "$PKG")
+          echo "Project folder: $DIR"
+          for f in landing/index.html scripts/assemble-site.mjs src/main.tsx; do
+            [ -f "$DIR/$f" ] || echo "::warning::Missing $DIR/$f - some files were probably not uploaded"
+          done
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v5
         with:
-          node-version: 24
-      - run: npm install
+          node-version: 22
+
+      - name: Install
+        working-directory: ${{ steps.loc.outputs.dir }}
+        run: npm install --no-audit --no-fund
+
       - name: Build
+        working-directory: ${{ steps.loc.outputs.dir }}
         run: npm run build
         env:
           VITE_BASE: /${{ github.event.repository.name }}/app/
+
       - name: Assemble site (town login at root, app in /app/)
+        working-directory: ${{ steps.loc.outputs.dir }}
         run: npm run build:site
-      - uses: actions/upload-pages-artifact@v3
+
+      - uses: actions/upload-pages-artifact@v4
         with:
-          path: site
+          path: ${{ steps.loc.outputs.dir }}/site
+
   deploy:
     needs: build
     runs-on: ubuntu-latest

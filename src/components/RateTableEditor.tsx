@@ -158,8 +158,8 @@ export const RateTableEditor: React.FC<Props> = ({ initial, busy, onSave }) => {
       <MapEditor id="classFactor" code="Class" title="Classification factor" hint="class code, factor" map={t.classFactor} clause={clause('Class')} onMap={(m) => set({ classFactor: m })} onClause={(c) => setClause('Class', c)} />
 
       <div className={card}>
-        <h4 className="text-xs font-bold text-white">Rebate, tax rate and vacant land</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <h4 className="text-xs font-bold text-white">Rebate and tax rate</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
             <label className={lbl}>Rebate on rateable value (%)</label>
             <input className={inp} type="number" step="any" min={0} max={100} value={t.rebatePct} onChange={(e) => set({ rebatePct: e.target.value === '' ? 0 : Number(e.target.value) })} />
@@ -169,11 +169,6 @@ export const RateTableEditor: React.FC<Props> = ({ initial, busy, onSave }) => {
             <label className={lbl}>Tax rate on net taxable value (%)</label>
             <input className={inp} type="number" step="any" min={0} placeholder="not set" value={t.taxRatePct ?? ''} onChange={(e) => set({ taxRatePct: e.target.value === '' ? null : Number(e.target.value) })} />
             <input className={`${inp} mt-1`} placeholder="Bylaw clause" value={clause('TaxRate')} onChange={(e) => setClause('TaxRate', e.target.value)} />
-          </div>
-          <div>
-            <label className={lbl}>Vacant land base rate (₹/sq m)</label>
-            <input className={inp} type="number" step="any" min={0} placeholder="10" value={t.landRatePerSqM ?? ''} onChange={(e) => set({ landRatePerSqM: e.target.value === '' ? undefined : Number(e.target.value) })} />
-            <input className={`${inp} mt-1`} placeholder="Bylaw clause" value={clause('LandRate')} onChange={(e) => setClause('LandRate', e.target.value)} />
           </div>
         </div>
       </div>

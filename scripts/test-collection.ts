@@ -93,11 +93,9 @@ t('rebate is refused while an earlier year is unpaid', () => {
   assert.equal(p.ok, false);
 });
 
-t('overpayment is accepted and held as advance credit', () => {
+t('overpayment is rejected', () => {
   const d = [E('demand', '2026-27', 1000, '2026-04-01')];
-  const over = previewPayment(d, S, { amount: 1000.01, date: '2026-05-01' });
-  assert.equal(over.ok, true);
-  assert.equal(over.advance, 0.01);
+  assert.equal(previewPayment(d, S, { amount: 1000.01, date: '2026-05-01' }).ok, false);
   assert.equal(previewPayment(d, S, { amount: 1000, date: '2026-05-01' }).ok, true);
 });
 

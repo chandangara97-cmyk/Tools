@@ -75,39 +75,12 @@ export async function prefetchIdBlock(townKey: string, ward: string): Promise<vo
   } catch { /* offline: try again later */ }
 }
 
-function getLocalMaxId(townKey: string, ward: string): number {
-  try {
-    const raw = localStorage.getItem(`ptax_properties_${townKey}`) || localStorage.getItem('gis_survey_properties_v2');
-    if (!raw) return 0;
-    const list = JSON.parse(raw);
-    let max = 0;
-    for (const r of list) {
-      if (String(r.ward) === String(ward) && r.id) {
-        const m = r.id.match(/-(\d+)$/);
-        if (m) {
-          const num = parseInt(m[1], 10);
-          if (num > max) max = num;
-        }
-      }
-    }
-    return max;
-  } catch {
-    return 0;
-  }
-}
-
-/** Issue the next permanent ID. Falls back to local offline generation if network is unavailable. */
+/** Issue the next permanent ID. Throws 'NO_ID_BLOCK' if offline with no reserved numbers left. */
 export async function allocatePropertyId(townKey: string, ward: string): Promise<string> {
   let blocks = readBlocks(townKey, ward);
   if (!blocks.length) {
-    try {
-      const p = reserveBlock(townKey, ward);
-      const to = new Promise<never>((_, rej) => setTimeout(() => rej(new Error('TIMEOUT')), 1500));
-      blocks = [await Promise.race([p, to])];
-    } catch {
-      const nextNum = getLocalMaxId(townKey, ward) + 1;
-      blocks = [{ next: nextNum, end: nextNum + 50 }];
-    }
+    try { blocks = [await reserveBlock(townKey, ward)]; }
+    catch { throw new Error('NO_ID_BLOCK'); }
   }
   const n = blocks[0].next;
   blocks[0] = { next: n + 1, end: blocks[0].end };

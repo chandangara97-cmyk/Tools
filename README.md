@@ -4,12 +4,8 @@ Field survey and property-tax system for Himachal Pradesh urban local bodies (UL
 GIS property survey, assessment, demand and collection, citizen portal, reports,
 and KML/WKT converters.
 
-**Stack:** React 19, TypeScript, Vite 8, Tailwind 4, Firebase (Auth + Realtime Database + Cloud Functions),
-Capacitor 8 (Android APK) and PWA. Needs Node 24+.
-
-**Offline-first:** collections, ledgers, assessments and receipts save to local storage first and
-sync to Firebase when the network returns (`src/services/offlineData.ts`, `syncQueue.ts`).
-Also: UPI QR payment links, WhatsApp demand notices/receipts, 58/80 mm thermal receipts, advance-payment credit.
+**Stack:** React 19, TypeScript, Vite, Tailwind, Firebase (Auth + Realtime Database),
+Capacitor (Android APK) and PWA.
 
 ## Run
 
@@ -48,14 +44,10 @@ The whole product uses one indigo palette and one header (brand bar, then page).
 
 ## Docs
 
-All setup notes are in `docs/`:
-- `docs/FINAL_SETUP.md`: first-time Firebase + deploy checklist (start here)
-- `docs/BUILD_APK.md`: Android build
-- `docs/RAZORPAY_SETUP.md`: online payments (keys stay in Cloud Functions)
-- `docs/ULB_ACCESS.md`, `docs/BILLING_AUTOMATION_SETUP.md`, `docs/PHASE*_NOTES.md`: background notes
-
-Security: deploy `database.rules.secure.json` for production; set the UPI payee address per ULB
-(the code falls back to a placeholder VPA).
+- `FINAL_SETUP.md`: first-time Firebase + deploy checklist (start here)
+- `BUILD_APK.md`: Android build
+- `RAZORPAY_SETUP.md`: online payments (keys stay in Cloud Functions)
+- `ULB_ACCESS.md`, `BILLING_AUTOMATION_SETUP.md`, `PHASE*_NOTES.md`: background notes
 
 ## Data migration
 

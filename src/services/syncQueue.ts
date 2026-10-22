@@ -9,19 +9,11 @@ import { hnoDupKey, upnDupKey, wardKey } from './ids';
 import { getCurrentUid } from './auth';
 import { DEMO_MODE } from '../config/demo';
 
-import { update } from 'firebase/database';
-import type { Assessment } from './assessmentStore';
-
 export interface QueuedPhoto { id: string; data: string }
 
 type Op =
   | { k: 'save'; town: string; rec: PropertyRecord; photos: QueuedPhoto[]; releaseKeys: string[]; oldWard?: string; q: number }
-  | { k: 'delete'; town: string; id: string; ward: string; keys: string[]; photoIds: string[]; q: number }
-  | { k: 'ledger_update'; town: string; updates: Record<string, unknown>; q: number }
-  | { k: 'assessment_save'; assessment: Assessment; q: number }
-  | { k: 'rates_save'; town: string; head: string; body: unknown; q: number }
-  | { k: 'ratetable_save'; town: string; table: unknown; q: number }
-  | { k: 'settings_save'; town: string; head?: string; settings: unknown; q: number };
+  | { k: 'delete'; town: string; id: string; ward: string; keys: string[]; photoIds: string[]; q: number };
 
 export interface Conflict { id: string; town: string; reason: string; rec: PropertyRecord; at: number }
 
@@ -32,7 +24,7 @@ const TXN_TIMEOUT_MS = 10000;
 
 let queue: Op[] = load<Op[]>(QUEUE_KEY, []);
 let conflictList: Conflict[] = load<Conflict[]>(CONFLICT_KEY, []);
-let connected = typeof navigator !== 'undefined' ? navigator.onLine : false;
+let connected = false;
 let flushing = false;
 let storageFull = false;
 let version = 0;
@@ -96,36 +88,6 @@ export function queueDelete(town: string, rec: PropertyRecord) {
   void flush();
 }
 
-export function queueLedgerUpdate(town: string, updates: Record<string, unknown>) {
-  queue.push({ k: 'ledger_update', town, updates, q: Date.now() });
-  changed();
-  void flush();
-}
-
-export function queueAssessmentSave(assessment: Assessment) {
-  queue.push({ k: 'assessment_save', assessment, q: Date.now() });
-  changed();
-  void flush();
-}
-
-export function queuePayableRatesSave(town: string, head: string, body: unknown) {
-  queue.push({ k: 'rates_save', town, head, body, q: Date.now() });
-  changed();
-  void flush();
-}
-
-export function queueRateTableSave(town: string, table: unknown) {
-  queue.push({ k: 'ratetable_save', town, table, q: Date.now() });
-  changed();
-  void flush();
-}
-
-export function queueSettingsSave(town: string, head: string | undefined, settings: unknown) {
-  queue.push({ k: 'settings_save', town, head, settings, q: Date.now() });
-  changed();
-  void flush();
-}
-
 export const discardConflict = (id: string) => {
   conflictList = conflictList.filter((c) => c.id !== id);
   changed();
@@ -181,34 +143,10 @@ async function runOp(op: Op): Promise<'done' | 'conflict'> {
     for (const k of op.releaseKeys) await release(town, k, rec.id).catch(() => {});
     return 'done';
   }
-  if (op.k === 'delete') {
-    // delete: property first, then its keys and photos
-    await withTimeout(remove(ref(db, `properties/${op.town}/${wardKey(op.ward)}/${op.id}`)));
-    await withTimeout(remove(ref(db, `photos/${op.town}/${op.id}`))).catch(() => {});
-    for (const k of op.keys) await release(op.town, k, op.id).catch(() => {});
-    return 'done';
-  }
-  if (op.k === 'ledger_update') {
-    await withTimeout(update(ref(db), op.updates));
-    return 'done';
-  }
-  if (op.k === 'assessment_save') {
-    await withTimeout(set(ref(db, `assessments/${op.assessment.town}/${op.assessment.fy}/${op.assessment.propertyId}`), op.assessment));
-    return 'done';
-  }
-  if (op.k === 'rates_save') {
-    await withTimeout(set(ref(db, `payableRates/${op.town}/${op.head}`), op.body));
-    return 'done';
-  }
-  if (op.k === 'ratetable_save') {
-    await withTimeout(set(ref(db, `rateTables/${op.town}`), op.table));
-    return 'done';
-  }
-  if (op.k === 'settings_save') {
-    const p = op.head && op.head !== 'property_tax' ? `headSettings/${op.town}/${op.head}` : `collectionSettings/${op.town}`;
-    await withTimeout(set(ref(db, p), op.settings));
-    return 'done';
-  }
+  // delete: property first, then its keys and photos
+  await withTimeout(remove(ref(db, `properties/${op.town}/${wardKey(op.ward)}/${op.id}`)));
+  await withTimeout(remove(ref(db, `photos/${op.town}/${op.id}`))).catch(() => {});
+  for (const k of op.keys) await release(op.town, k, op.id).catch(() => {});
   return 'done';
 }
 
@@ -244,26 +182,9 @@ let started = false;
 export function startSync() {
   if (started) return;
   started = true;
-  connected = typeof navigator !== 'undefined' ? navigator.onLine : false;
-  cloudWatchConnection((c) => {
-    connected = c && (typeof navigator !== 'undefined' ? navigator.onLine : true);
-    changed();
-    if (connected) void flush();
-  });
-  if (typeof window !== 'undefined') {
-    window.addEventListener('online', () => {
-      connected = true;
-      changed();
-      void flush();
-    });
-    window.addEventListener('offline', () => {
-      connected = false;
-      changed();
-    });
-  }
-  setInterval(() => {
-    if (connected) void flush();
-  }, 30000);
+  cloudWatchConnection((c) => { connected = c; changed(); if (c) void flush(); });
+  window.addEventListener('online', () => void flush());
+  setInterval(() => void flush(), 30000);
 }
 
 // ---------------- merge cloud snapshot into the local list ----------------

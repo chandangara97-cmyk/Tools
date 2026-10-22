@@ -196,125 +196,16 @@ export const AssessmentPanel: React.FC<Props> = ({ townKey, townName, records, r
                   </tr>
                   {open === r.id && (
                     <tr className="bg-[#121830] text-[#d6dcf5]">
-                      <td colSpan={7} className="p-4 space-y-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {c.isVacantLand ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                              Vacant Land Assessment ({c.landArea} sq m plot)
-                            </span>
-                          ) : (
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                              Building Assessment ({c.builtUp} sq m built-up)
-                            </span>
-                          )}
-                          {r.hno && <span className="text-xs text-[#aab4dc]">Plot/House {r.hno}</span>}
-                          {r.zone && <span className="text-xs text-[#aab4dc]">Zone {r.zone}</span>}
+                      <td colSpan={7} className="p-3">
+                        <div className="font-mono space-y-0.5">
+                          <div>Built-up area: {c.builtUp} sq m</div>
+                          {c.lines.map((l) => <div key={l.factor}>x {l.factor} ({l.basis}): {l.value}{l.clause ? `  [${l.clause}]` : ''}</div>)}
+                          <div>= Rateable value {inr(c.rateableValue)}; rebate {inr(c.rebate)}</div>
+                          {(c.adjustments || []).map((x) => <div key={x.name}>{x.amount < 0 ? '-' : '+'} {x.name} ({x.base === 'tax' ? 'on tax' : 'on value'}): {inr(Math.abs(x.amount))}{x.clause ? `  [${x.clause}]` : ''}</div>)}
+                          <div>= Net taxable value {inr(c.netTaxableValue)}; tax {inr(c.tax)}</div>
                         </div>
-
-                        <div className="font-mono text-xs space-y-0.5 bg-[#0d1326] p-3 rounded-lg border border-[#232d54]">
-                          <div className="text-[#9aa8ff] font-bold mb-1">Calculation Steps:</div>
-                          {c.isVacantLand ? (
-                            <div>Plot area: {c.landArea} sq m</div>
-                          ) : (
-                            <div>Built-up area: {c.builtUp} sq m</div>
-                          )}
-                          {c.lines.map((l) => (
-                            <div key={l.factor}>
-                              x {l.factor} ({l.basis}): {l.value}{l.clause ? `  [${l.clause}]` : ''}
-                            </div>
-                          ))}
-                          <div className="text-white font-bold pt-1">
-                            = Rateable value {inr(c.rateableValue)}; rebate ({rateTable.rebatePct}%) {inr(c.rebate)}
-                          </div>
-                          {(c.adjustments || []).map((x) => (
-                            <div key={x.name}>
-                              {x.amount < 0 ? '-' : '+'} {x.name} ({x.base === 'tax' ? 'on tax' : 'on value'}): {inr(Math.abs(x.amount))}{x.clause ? `  [${x.clause}]` : ''}
-                            </div>
-                          ))}
-                          <div className="text-emerald-400 font-bold border-t border-[#232d54] pt-1 mt-1">
-                            = Net taxable value {inr(c.netTaxableValue)}; tax {inr(c.tax)}
-                          </div>
-                        </div>
-
-                        {c.floorBreakdown && c.floorBreakdown.length > 0 && (
-                          <div className="rounded-lg border border-[#28325c] bg-[#161d3b] p-3 space-y-2">
-                            <h4 className="text-xs font-bold text-[#9aa8ff] uppercase tracking-wider flex items-center justify-between">
-                              <span>Per-Floor Assessment Breakdown ({c.floorBreakdown.length} levels)</span>
-                              <span className="text-[10px] text-[#aab4dc] font-normal">Sum of floors = {c.builtUp} sq m</span>
-                            </h4>
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-[11px] text-left">
-                                <thead className="text-[#8790bd] border-b border-[#232d54]">
-                                  <tr>
-                                    <th className="py-1 px-2">Floor</th>
-                                    <th className="py-1 px-2 text-right">Area (sq m)</th>
-                                    <th className="py-1 px-2 text-right">Rateable Value</th>
-                                    <th className="py-1 px-2 text-right">Rebate</th>
-                                    <th className="py-1 px-2 text-right">Net Taxable</th>
-                                    <th className="py-1 px-2 text-right">Floor Tax</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {c.floorBreakdown.map((fb) => (
-                                    <tr key={fb.floorIndex} className="border-b border-[#1c2447] text-white">
-                                      <td className="py-1 px-2 font-medium">{fb.floorLabel}</td>
-                                      <td className="py-1 px-2 text-right font-mono">{fb.area}</td>
-                                      <td className="py-1 px-2 text-right font-mono">{inr(fb.rateableValue)}</td>
-                                      <td className="py-1 px-2 text-right font-mono text-[#aab4dc]">{inr(fb.rebate)}</td>
-                                      <td className="py-1 px-2 text-right font-mono">{inr(fb.netTaxableValue)}</td>
-                                      <td className="py-1 px-2 text-right font-mono font-bold text-emerald-300">{inr(fb.tax)}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        )}
-
-                        {c.unitBreakdown && c.unitBreakdown.length > 0 && (
-                          <div className="rounded-lg border border-[#28325c] bg-[#161d3b] p-3 space-y-2">
-                            <h4 className="text-xs font-bold text-[#9aa8ff] uppercase tracking-wider">
-                              Per-Unit Breakdown ({c.unitBreakdown.length} units/occupancies)
-                            </h4>
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-[11px] text-left">
-                                <thead className="text-[#8790bd] border-b border-[#232d54]">
-                                  <tr>
-                                    <th className="py-1 px-2">Unit</th>
-                                    <th className="py-1 px-2">Use</th>
-                                    <th className="py-1 px-2">Occupant</th>
-                                    <th className="py-1 px-2 text-right">Area (sq m)</th>
-                                    <th className="py-1 px-2 text-right">Rateable Value</th>
-                                    <th className="py-1 px-2 text-right">Tax</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {c.unitBreakdown.map((ub) => (
-                                    <tr key={ub.unitId} className="border-b border-[#1c2447] text-white">
-                                      <td className="py-1 px-2 font-medium">{ub.label}</td>
-                                      <td className="py-1 px-2 text-[#aab4dc]">{ub.use}</td>
-                                      <td className="py-1 px-2 text-[#d6dcf5]">{ub.occupant}</td>
-                                      <td className="py-1 px-2 text-right font-mono">{ub.builtUp}</td>
-                                      <td className="py-1 px-2 text-right font-mono">{inr(ub.rateableValue)}</td>
-                                      <td className="py-1 px-2 text-right font-mono font-bold text-emerald-300">{inr(ub.tax)}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        )}
-
-                        {c.warnings.map((w) => (
-                          <div key={w} className="text-[#ffe3a3] text-xs flex items-center gap-1.5">
-                            <span>⚠</span> <span>{w}</span>
-                          </div>
-                        ))}
-                        {a && (
-                          <div className="text-[11px] text-[#aab4dc] border-t border-[#232d54] pt-2">
-                            Rate table {a.rateTableId} ({a.rateStatus}){a.reviewNote ? `; review note: ${a.reviewNote}` : ''}
-                          </div>
-                        )}
+                        {c.warnings.map((w) => <div key={w} className="text-[#ffe3a3] mt-1">⚠ {w}</div>)}
+                        {a && <div className="mt-1 text-[#aab4dc]">Rate table {a.rateTableId} ({a.rateStatus}){a.reviewNote ? `; review note: ${a.reviewNote}` : ''}</div>}
                       </td>
                     </tr>
                   )}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Smartphone, Lock, LogOut, Wrench, Command, ChevronDown, Download } from 'lucide-react';
+import { Smartphone, Lock, LogOut, Wrench, Command, ChevronDown } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { useAuth } from '../services/auth';
 import { ChangePasswordButton } from './ChangePassword';
@@ -24,9 +24,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { isInstallable } = usePWAInstall();
   const { signOut, role, displayName } = useAuth();
-  const [downloading, setDownloading] = React.useState(false);
-
-  const handleDownloadClick = () => onOpenAndroidModal();
 
   return (
     <header className="scheme-navbar sticky top-0 z-40 border-b text-slate-100">
@@ -78,29 +75,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
 
           {!minimal && (
-            <>
-              <button
-                type="button"
-                onClick={() => void handleDownloadClick()}
-                disabled={downloading}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-3 py-2.5 text-xs font-bold text-emerald-200 hover:bg-emerald-500/25 hover:border-emerald-300 disabled:opacity-50 transition-all shadow-sm"
-                title="Download offline project package (.zip)"
-              >
-                <Download className={`w-4 h-4 ${downloading ? 'animate-bounce text-emerald-300' : ''}`} />
-                <span className="hidden sm:inline">{downloading ? 'Opening...' : 'Android App'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={onOpenAndroidModal}
-                className="relative inline-flex items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2.5 text-xs font-bold text-cyan-100 hover:border-cyan-200/40"
-                title="Install PWA or Offline Instructions"
-              >
-                <Smartphone className="w-4 h-4" />
-                <span className="hidden md:inline">Install App</span>
-                <span className="md:hidden">Install</span>
-                {isInstallable && <span className="w-2 h-2 rounded-full bg-cyan-300 animate-pulse" />}
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={onOpenAndroidModal}
+              className="relative inline-flex items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2.5 text-xs font-bold text-cyan-100 hover:border-cyan-200/40"
+              title="Install Android app"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span className="hidden md:inline">Install app</span>
+              {isInstallable && <span className="w-2 h-2 rounded-full bg-cyan-300 animate-pulse" />}
+            </button>
           )}
 
           <div className="hidden lg:flex items-center gap-2 border-l border-white/10 pl-3 ml-1">

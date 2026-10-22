@@ -35,14 +35,8 @@ export function getDemoProfile(): DemoProfileT {
 
 export function setDemoProfile(p: DemoProfileT) {
   try {
-    const prev = getDemoProfile();
-    if (prev.ulb !== p.ulb) {
-      // If switching town, swap cached records to the selected town's records if present
-      const newTownRecords = localStorage.getItem(`ptax_properties_${p.ulb}`);
-      if (newTownRecords) {
-        localStorage.setItem('gis_survey_properties_v2', newTownRecords);
-      }
-    }
+    // a different town must not inherit the previous town's locally cached records (cloud data reloads on its own)
+    if (getDemoProfile().ulb !== p.ulb) localStorage.removeItem('gis_survey_properties_v2');
     localStorage.setItem(KEY, JSON.stringify(p));
   } catch { /* ignore */ }
   const u = new URL(location.href); u.searchParams.delete('as'); u.searchParams.delete('town'); u.searchParams.delete('head');

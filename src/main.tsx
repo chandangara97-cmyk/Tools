@@ -5,10 +5,6 @@ import { AuthProvider } from './services/auth';
 import { LoginGate } from './components/LoginGate';
 import './services/serverClock';
 import './index.css';
-import { registerSW } from 'virtual:pwa-register';
-
-// Register PWA service worker for full offline caching
-registerSW({ immediate: true });
 
 // The whole app, including the hub page, opens only after a town sign-in.
 ReactDOM.createRoot(document.getElementById('root')!).render(
