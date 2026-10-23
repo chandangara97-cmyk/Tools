@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Chandan Panwar. All rights reserved.
+ * GIS Property Tax Survey & Billing System. Proprietary and confidential;
+ * see COPYRIGHT.md. Unauthorised copying or distribution is prohibited.
+ */
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { GisPropertySurvey } from './components/GisPropertySurvey';
@@ -9,6 +14,7 @@ import { isSearchOnly } from './services/access';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DemoSwitcher } from './components/DemoSwitcher';
 import { useHistoryBack } from './hooks/useHistoryBack';
+import { CopyrightFooter } from './components/CopyrightFooter';
 
 export function App() {
   const { role, isSuper } = useAuth();
@@ -66,6 +72,8 @@ export function App() {
           </div>
         )}
       </ErrorBoundary>
+
+      <CopyrightFooter />
 
       <DemoSwitcher />
 

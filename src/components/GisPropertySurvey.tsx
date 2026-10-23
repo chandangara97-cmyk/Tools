@@ -20,6 +20,7 @@ import { FundsDashboard } from './FundsDashboard';
 import { NoticesPage } from './NoticesPage';
 import { TownRegister } from './TownRegister';
 import { TownRulesPage } from './TownRulesPage';
+import { ExcelConfigPage } from './ExcelConfigPage';
 import { ErrorBoundary } from './ErrorBoundary';
 import { allowedTabs, allowedHeads, startTab, isSearchOnly, Tab } from '../services/access';
 import { HeadId, useTownHeads } from '../services/heads';
@@ -116,7 +117,7 @@ const GisPropertySurveyInner: React.FC = () => {
   useEffect(() => { if (activeTab !== 'menu' && !tabs.includes(activeTab)) setActiveTab('menu'); }, [activeTab, tabs]);
   const PAGE_TITLE: Record<Tab, string> = {
     search: 'Search dues', survey: 'Property survey', 'map-editor': 'Ward map', records: 'Property records', assessment: 'Assessment',
-    collection: billHead ? BILL_NAME[billHead] : 'Collection', reports: 'Reports & notices', exports: 'GIS exports', dues: 'Pending dues', rules: 'Bill rules', register: 'Register & bye-laws', units: 'Units in structures', demand: 'Demand centre', dashboard: 'Funds dashboard', notices: 'Dues notices',
+    collection: billHead ? BILL_NAME[billHead] : 'Collection', reports: 'Reports & notices', exports: 'GIS exports', dues: 'Pending dues', rules: 'Bill rules', excel: 'Excel settings', register: 'Register & bye-laws', units: 'Units in structures', demand: 'Demand centre', dashboard: 'Funds dashboard', notices: 'Dues notices',
   };
   const writable = canWriteSurvey(role);
   const deletable = canDeleteSurvey(role);
@@ -1076,7 +1077,7 @@ const GisPropertySurveyInner: React.FC = () => {
             <nav className="gis-sidebar-nav">
               {tabs.map((tab) => {
                 const title = tab === 'collection' ? (billHead ? BILL_NAME[billHead] : 'Collection') : PAGE_TITLE[tab];
-                const icon = tab === 'dashboard' ? <BarChart3 /> : tab === 'notices' ? <BellRing /> : tab === 'search' ? <Compass /> : tab === 'survey' ? <PenTool /> : tab === 'map-editor' ? <Layers /> : tab === 'records' ? <Building2 /> : tab === 'assessment' ? <FileCheck /> : tab === 'collection' ? <Receipt /> : tab === 'reports' ? <FileSpreadsheet /> : tab === 'exports' ? <Download /> : tab === 'dues' ? <Wallet /> : tab === 'rules' ? <Info /> : tab === 'register' ? <Landmark /> : tab === 'units' ? <Building2 /> : <Database />;
+                const icon = tab === 'dashboard' ? <BarChart3 /> : tab === 'notices' ? <BellRing /> : tab === 'search' ? <Compass /> : tab === 'survey' ? <PenTool /> : tab === 'map-editor' ? <Layers /> : tab === 'records' ? <Building2 /> : tab === 'assessment' ? <FileCheck /> : tab === 'collection' ? <Receipt /> : tab === 'reports' ? <FileSpreadsheet /> : tab === 'exports' ? <Download /> : tab === 'dues' ? <Wallet /> : tab === 'rules' ? <Info /> : tab === 'excel' ? <FileSpreadsheet /> : tab === 'register' ? <Landmark /> : tab === 'units' ? <Building2 /> : <Database />;
                 return <button key={tab} type="button" onClick={() => openTab(tab, tab === 'collection' ? billHead : null)} className={`gis-sidebar-link ${activeTab === tab ? 'is-active' : ''}`} aria-current={activeTab === tab ? 'page' : undefined}>
                   <span className="gis-sidebar-icon">{icon}</span><span>{title}</span><span className="gis-sidebar-arrow">›</span>
                 </button>;
@@ -1112,6 +1113,9 @@ const GisPropertySurveyInner: React.FC = () => {
 
         {activeTab === 'rules' && (
           <TownRulesPage townKey={selectedTownKey} townName={currentTown.n} heads={bills} />
+        )}
+        {activeTab === 'excel' && (
+          <ExcelConfigPage townKey={selectedTownKey} townName={currentTown.n} />
         )}
         {activeTab === 'register' && (
           <TownRegister townKey={selectedTownKey} townName={currentTown.n} records={records} />

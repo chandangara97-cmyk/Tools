@@ -1,0 +1,9 @@
+export const COPYRIGHT_OWNER = 'Chandan Panwar';
+export const COPYRIGHT_YEAR = 2026;
+export const COPYRIGHT_EMAIL = 'chandanpanwar001@gmail.com';
+export const COPYRIGHT_PHONE = '7018138847';
+export const UDYAM_NUMBER = 'UDYAM-HP-09-0035236';
+export const COPYRIGHT_TEXT = `© ${COPYRIGHT_YEAR} ${COPYRIGHT_OWNER}. All rights reserved.`;
+export const COPYRIGHT_DEVELOPED_BY = `Developed by ${COPYRIGHT_OWNER}`;
+export const COPYRIGHT_CONTACT = `${COPYRIGHT_EMAIL} · +91 ${COPYRIGHT_PHONE}`;
+export const COPYRIGHT_UDYAM = `UDYAM: ${UDYAM_NUMBER}`;

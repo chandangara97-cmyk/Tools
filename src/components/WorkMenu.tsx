@@ -251,7 +251,7 @@ export const WorkMenu: React.FC<Props> = ({ townName, tabs, bills, onChoose }) =
 
       <div className="relative space-y-6">
         {/* Primary actions */}
-        {(has('dashboard') || has('notices') || has('search') || has('dues') || has('rules') || has('register') || has('demand')) && (
+        {(has('dashboard') || has('notices') || has('search') || has('dues') || has('rules') || has('excel') || has('register') || has('demand')) && (
           <div className="space-y-3">
             {has('dashboard') && (
               <ActionRow
@@ -314,6 +314,15 @@ export const WorkMenu: React.FC<Props> = ({ townName, tabs, bills, onChoose }) =
                 title="Bill rules"
                 note="Amounts, interest %, due date and rebate for the whole town"
                 onClick={() => onChoose({ tab: 'rules' })}
+              />
+            )}
+            {has('excel') && (
+              <ActionRow
+                tone="blue"
+                icon={<FileSpreadsheet className="w-5 h-5" strokeWidth={2.4} />}
+                title="Excel settings"
+                note="Update towns, heads, rates, bye-laws and corrections from one Excel file"
+                onClick={() => onChoose({ tab: 'excel' })}
               />
             )}
           </div>

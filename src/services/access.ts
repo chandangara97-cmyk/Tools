@@ -15,6 +15,7 @@ export type Tab =
   | 'exports'
   | 'dues'
   | 'rules'
+  | 'excel'
   | 'register'
   | 'units'
   | 'demand';
@@ -49,7 +50,7 @@ export function allowedTabs(
   head: HeadId | null,
   isSuper: boolean,
 ): Tab[] {
-  if (isSuper || role === 'admin') return [...ALL, 'dues', 'rules', 'register', 'demand']; // 'register' is admin-only
+  if (isSuper || role === 'admin') return [...ALL, 'dues', 'rules', 'excel', 'register', 'demand']; // 'register' and 'excel' are admin-only
   switch (role) {
     case 'supervisor':
       // a supervisor tied to water, garbage etc. only works that bill head
