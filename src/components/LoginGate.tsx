@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../services/auth';
-import { DEMO_MODE } from '../config/demo';
+import { DEMO_MODE, setDemoProfile } from '../config/demo';
 
 // The ONE sign-in page is the site root (landing/index.html). This gate no longer has its own form:
 // anyone who is not signed in is sent there. Deployed base is ".../app/", so the login page is one level up.
@@ -28,8 +28,10 @@ const DemoNoticeGate: React.FC<{ children: React.ReactNode }> = ({ children }) =
     }
   });
   if (seen) return <>{children}</>;
-  const open = () => {
+  // choosing a town opens the demonstration as admin of that town (the page reloads once)
+  const pick = (slug: string) => {
     try { sessionStorage.setItem(NOTICE_SEEN, '1'); } catch { /* ignore */ }
+    setDemoProfile({ role: 'admin', ulb: slug, head: null });
     setSeen(true);
   };
   return (
@@ -51,11 +53,16 @@ const DemoNoticeGate: React.FC<{ children: React.ReactNode }> = ({ children }) =
           ))}
         </div>
         <p lang="hi" className="mb-5 border-t border-white/10 pt-3 text-[14px] text-[#c3cdea]">
-          लॉगिन अभी अस्थायी रूप से बंद है। डेमो में ID और पासवर्ड बंद हैं। वास्तविक फील्ड डेटा शुरू होने पर सभी हेड (प्रॉपर्टी टैक्स, पानी, कचरा आदि) पासवर्ड से सुरक्षित होंगे।
+          लॉगिन अभी अस्थायी रूप से बंद है। डेमो में ID और पासवर्ड बंद हैं। वास्तविक फील्ड डेटा शुरू होने पर सभी हेड (प्रॉपर्टी टैक्स, पानी, कचरा आदि) पासवर्ड से सुरक्षित होंगे। कृपया नेरवा या हमीरपुर शहर चुनें।
         </p>
-        <button type="button" onClick={open} className="w-full rounded-xl bg-gradient-to-br from-[#4f8cff] to-[#477dff] py-3.5 font-bold text-white">
-          Open the demonstration
-        </button>
+        <p className="mb-3 text-center text-[15px] font-bold text-white">Please select Nerwa or Hamirpur town</p>
+        <div className="grid grid-cols-2 gap-3">
+          {[['Nerwa', 'Nerwa'], ['Hamirpur', 'Hamirpur']].map(([slug, label]) => (
+            <button key={slug} type="button" onClick={() => pick(slug)} className="rounded-xl bg-gradient-to-br from-[#4f8cff] to-[#477dff] py-3.5 font-bold text-white">
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

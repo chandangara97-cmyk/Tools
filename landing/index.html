@@ -80,6 +80,8 @@ body.demo #login,body.demo #home{display:none!important}
 #demoNotice .hi{padding-top:12px;border-top:1px solid var(--line);color:#c3cdea}
 #demoNotice .heads{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 14px}
 #demoNotice .heads span{padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.06);font-size:13px;color:var(--ink)}
+#demoNotice .sel{text-align:center;font-weight:700;color:#fff;margin:4px 0 10px}
+#demoNotice .pick{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 #demoNotice .open{display:block;text-align:center;text-decoration:none;padding:14px;border-radius:12px;font-weight:700;color:#fff;background:linear-gradient(135deg,#4f8cff,#477dff);margin-top:6px}
 </style><link rel="stylesheet" href="app/hub-theme.css">
 <script src="app/hub-shell.js" defer></script>
@@ -101,8 +103,9 @@ body.demo #login,body.demo #home{display:none!important}
 <p>IDs and passwords are switched off while this tool is shown with demo data. No real field data is loaded here.</p>
 <p>When real field data goes live, every bill head will be password protected, and each urban body will sign in with its own ID.</p>
 <div class="heads"><span>Property tax</span><span>Water</span><span>Garbage</span><span>Sewerage</span><span>Other bills</span></div>
-<p class="hi" lang="hi">लॉगिन अभी अस्थायी रूप से बंद है। डेमो में ID और पासवर्ड बंद हैं। वास्तविक फील्ड डेटा शुरू होने पर सभी हेड (प्रॉपर्टी टैक्स, पानी, कचरा आदि) पासवर्ड से सुरक्षित होंगे।</p>
-<a class="open" href="app/?demo=1">Open the demonstration</a>
+<p class="hi" lang="hi">लॉगिन अभी अस्थायी रूप से बंद है। डेमो में ID और पासवर्ड बंद हैं। वास्तविक फील्ड डेटा शुरू होने पर सभी हेड (प्रॉपर्टी टैक्स, पानी, कचरा आदि) पासवर्ड से सुरक्षित होंगे। कृपया नेरवा या हमीरपुर शहर चुनें।</p>
+<p class="sel">Please select Nerwa or Hamirpur town</p>
+<div class="pick"><a class="open" href="app/?demo=1&as=admin&town=Nerwa">Nerwa</a><a class="open" href="app/?demo=1&as=admin&town=Hamirpur">Hamirpur</a></div>
 </div>
 <form class="card" id="login" autocomplete="on">
 <div class="seg" id="seg"><button type="button" class="on" id="bT"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 21V9l9-6 9 6v12M9 21v-7h6v7"/></svg>Town login</button>
