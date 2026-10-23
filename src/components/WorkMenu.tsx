@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Search, Building2, Layers, FileSpreadsheet, PenTool, Download,
   ClipboardCheck, Droplets, Trash2, Waves, Receipt, Home, Wallet,
-  SlidersHorizontal, ChevronRight, Sparkles, LayoutGrid, Zap,
+  SlidersHorizontal, ChevronRight, Sparkles, LayoutGrid, Zap, BarChart3, BellRing,
 } from 'lucide-react';
 import { useAuth } from '../services/auth';
 import { HeadId } from '../services/heads';
@@ -251,8 +251,26 @@ export const WorkMenu: React.FC<Props> = ({ townName, tabs, bills, onChoose }) =
 
       <div className="relative space-y-6">
         {/* Primary actions */}
-        {(has('search') || has('dues') || has('rules') || has('register') || has('demand')) && (
+        {(has('dashboard') || has('notices') || has('search') || has('dues') || has('rules') || has('register') || has('demand')) && (
           <div className="space-y-3">
+            {has('dashboard') && (
+              <ActionRow
+                tone="blue"
+                icon={<BarChart3 className="w-5 h-5" strokeWidth={2.4} />}
+                title="Funds dashboard"
+                note="Pie and bar charts of demand, collection and pending"
+                onClick={() => onChoose({ tab: 'dashboard' })}
+              />
+            )}
+            {has('notices') && (
+              <ActionRow
+                tone="rose"
+                icon={<BellRing className="w-5 h-5" strokeWidth={2.4} />}
+                title="Send dues notices"
+                note="Notify owners of pending property tax, garbage and other bills"
+                onClick={() => onChoose({ tab: 'notices' })}
+              />
+            )}
             {has('search') && (
               <ActionRow
                 tone="amber"

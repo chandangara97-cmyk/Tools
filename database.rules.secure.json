@@ -139,6 +139,24 @@
           ".validate": "!newData.exists() || (newData.isString() && newData.val().length < 60)"
         }
       }
+    },
+    "ownerContacts": {
+      "$town": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('ulb').val() === '*' || (root.child('users').child(auth.uid).child('ulb').val() === $town && root.child('ulbs').child($town).child('active').val() === true)) && (root.child('users').child(auth.uid).child('role').exists() && root.child('users').child(auth.uid).child('role').val() !== 'disabled')",
+        "$pid": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('ulb').val() === '*' || (root.child('users').child(auth.uid).child('ulb').val() === $town && root.child('ulbs').child($town).child('active').val() === true)) && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'cashier' || root.child('users').child(auth.uid).child('role').val() === 'supervisor')",
+          ".validate": "!newData.exists() || (newData.hasChildren(['mobile','updatedAt','updatedBy']) && newData.child('mobile').isString() && newData.child('mobile').val().matches(/^[6-9][0-9]{9}$/) && newData.child('updatedBy').val() === auth.uid)"
+        }
+      }
+    },
+    "notices": {
+      "$town": {
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('ulb').val() === '*' || (root.child('users').child(auth.uid).child('ulb').val() === $town && root.child('ulbs').child($town).child('active').val() === true)) && (root.child('users').child(auth.uid).child('role').exists() && root.child('users').child(auth.uid).child('role').val() !== 'disabled')",
+        "$pid": {
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('ulb').val() === '*' || (root.child('users').child(auth.uid).child('ulb').val() === $town && root.child('ulbs').child($town).child('active').val() === true)) && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'cashier' || root.child('users').child(auth.uid).child('role').val() === 'supervisor')",
+          ".validate": "newData.hasChildren(['at','count','channel','total']) && newData.child('channel').val().matches(/^(whatsapp|sms|print|download)$/) && newData.child('count').isNumber() && newData.child('total').isNumber()"
+        }
+      }
     }
   }
 }

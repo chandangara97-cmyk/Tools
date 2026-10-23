@@ -16,6 +16,8 @@ import { ReportsPanel } from './ReportsPanel';
 import { WorkMenu, BILL_NAME, Choice } from './WorkMenu';
 import { LiabilitySearch } from './LiabilitySearch';
 import { AdminDuesPage } from './AdminDuesPage';
+import { FundsDashboard } from './FundsDashboard';
+import { NoticesPage } from './NoticesPage';
 import { TownRegister } from './TownRegister';
 import { TownRulesPage } from './TownRulesPage';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -67,6 +69,8 @@ import {
   Landmark,
   Receipt,
   Wallet,
+  BarChart3,
+  BellRing,
 } from 'lucide-react';
 
 // Towns are keyed by NAME ("Bhota"), so cloud data is saved under the town name.
@@ -112,7 +116,7 @@ const GisPropertySurveyInner: React.FC = () => {
   useEffect(() => { if (activeTab !== 'menu' && !tabs.includes(activeTab)) setActiveTab('menu'); }, [activeTab, tabs]);
   const PAGE_TITLE: Record<Tab, string> = {
     search: 'Search dues', survey: 'Property survey', 'map-editor': 'Ward map', records: 'Property records', assessment: 'Assessment',
-    collection: billHead ? BILL_NAME[billHead] : 'Collection', reports: 'Reports & notices', exports: 'GIS exports', dues: 'Pending dues', rules: 'Bill rules', register: 'Register & bye-laws', units: 'Units in structures', demand: 'Demand centre',
+    collection: billHead ? BILL_NAME[billHead] : 'Collection', reports: 'Reports & notices', exports: 'GIS exports', dues: 'Pending dues', rules: 'Bill rules', register: 'Register & bye-laws', units: 'Units in structures', demand: 'Demand centre', dashboard: 'Funds dashboard', notices: 'Dues notices',
   };
   const writable = canWriteSurvey(role);
   const deletable = canDeleteSurvey(role);
@@ -1072,7 +1076,7 @@ const GisPropertySurveyInner: React.FC = () => {
             <nav className="gis-sidebar-nav">
               {tabs.map((tab) => {
                 const title = tab === 'collection' ? (billHead ? BILL_NAME[billHead] : 'Collection') : PAGE_TITLE[tab];
-                const icon = tab === 'search' ? <Compass /> : tab === 'survey' ? <PenTool /> : tab === 'map-editor' ? <Layers /> : tab === 'records' ? <Building2 /> : tab === 'assessment' ? <FileCheck /> : tab === 'collection' ? <Receipt /> : tab === 'reports' ? <FileSpreadsheet /> : tab === 'exports' ? <Download /> : tab === 'dues' ? <Wallet /> : tab === 'rules' ? <Info /> : tab === 'register' ? <Landmark /> : tab === 'units' ? <Building2 /> : <Database />;
+                const icon = tab === 'dashboard' ? <BarChart3 /> : tab === 'notices' ? <BellRing /> : tab === 'search' ? <Compass /> : tab === 'survey' ? <PenTool /> : tab === 'map-editor' ? <Layers /> : tab === 'records' ? <Building2 /> : tab === 'assessment' ? <FileCheck /> : tab === 'collection' ? <Receipt /> : tab === 'reports' ? <FileSpreadsheet /> : tab === 'exports' ? <Download /> : tab === 'dues' ? <Wallet /> : tab === 'rules' ? <Info /> : tab === 'register' ? <Landmark /> : tab === 'units' ? <Building2 /> : <Database />;
                 return <button key={tab} type="button" onClick={() => openTab(tab, tab === 'collection' ? billHead : null)} className={`gis-sidebar-link ${activeTab === tab ? 'is-active' : ''}`} aria-current={activeTab === tab ? 'page' : undefined}>
                   <span className="gis-sidebar-icon">{icon}</span><span>{title}</span><span className="gis-sidebar-arrow">›</span>
                 </button>;
@@ -1086,6 +1090,12 @@ const GisPropertySurveyInner: React.FC = () => {
       <ErrorBoundary resetKey={`${activeTab}:${billHead ?? ''}`} onBack={() => openTab('menu', null)}>
         {activeTab === 'menu' && (
           <WorkMenu townName={currentTown.n} tabs={tabs} bills={bills} onChoose={choose} />
+        )}
+        {activeTab === 'dashboard' && (
+          <FundsDashboard townKey={selectedTownKey} townName={currentTown.n} records={records} heads={bills} tabs={tabs} onOpen={(t) => openTab(t, null)} />
+        )}
+        {activeTab === 'notices' && (
+          <NoticesPage townKey={selectedTownKey} townName={currentTown.n} records={records} heads={bills} />
         )}
         {activeTab === 'search' && (
           <LiabilitySearch townKey={selectedTownKey} townName={currentTown.n} records={records} heads={bills} fullScreen={searchOnly} />

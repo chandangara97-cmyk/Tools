@@ -109,15 +109,21 @@ test('rules: interest counts only when approved and a rate is set', () => {
   eq([rulesApproved(S), rulesApproved(placeholderSettings()), rulesApproved({ ...S, interestPctPerMonth: null }), rulesApproved(undefined)], [true, false, false, false]);
 });
 
-test('landing: a cashier opens on the work menu so every payment head is visible', () => eq(startTab('cashier', null, false), 'menu'));
-test('landing: a cashier tied to one head also lands on the work menu', () => eq(startTab('cashier', 'water', false), 'menu'));
-test('landing: other roles keep their usual start', () => {
-  eq(startTab('surveyor', null, false), 'menu'); eq(startTab('admin', null, false), 'menu'); eq(startTab('monitor', null, false), 'menu');
+test('landing: a cashier opens straight on the funds dashboard', () => eq(startTab('cashier', null, false), 'dashboard'));
+test('landing: a cashier tied to one head also lands on the funds dashboard', () => eq(startTab('cashier', 'water', false), 'dashboard'));
+test('landing: admin and the platform owner land on the funds dashboard; other roles keep their usual start', () => {
+  eq(startTab('admin', null, false), 'dashboard'); eq(startTab('admin', null, true), 'dashboard');
+  eq(startTab('surveyor', null, false), 'menu'); eq(startTab('monitor', null, false), 'menu');
   eq(startTab('supervisor', null, false), 'menu'); eq(startTab('assessor', null, false), 'menu'); eq(startTab(null, null, false), 'menu');
 });
-test('landing: the owner is never forced to the search page', () => eq(startTab('cashier', null, true), 'menu'));
-test('access: cashier may open search and collection; general public search only', () => {
-  eq(allowedTabs('cashier', null, false), ['search', 'collection']); eq(allowedTabs('cashier', 'water', false), ['search', 'collection']); eq(allowedTabs('public', null, false), ['search']);
+test('landing: the owner is never forced to the search page', () => eq(startTab('cashier', null, true), 'dashboard'));
+test('access: cashier may open dashboard, search, collection and notices; general public search only', () => {
+  eq(allowedTabs('cashier', null, false), ['dashboard', 'search', 'collection', 'notices']); eq(allowedTabs('cashier', 'water', false), ['dashboard', 'search', 'collection', 'notices']); eq(allowedTabs('public', null, false), ['search']);
+});
+test('access: admin gets dashboard and notices; surveyor and assessor never see money pages', () => {
+  const a = allowedTabs('admin', null, false);
+  eq([a.includes('dashboard'), a.includes('notices')], [true, true]);
+  eq([allowedTabs('surveyor', null, false).includes('dashboard'), allowedTabs('assessor', null, false).includes('notices')], [false, false]);
 });
 test('search-only: general public lands on search; the flag covers only the public role', () => {
   eq(startTab('public', null, false), 'search');

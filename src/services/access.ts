@@ -3,6 +3,8 @@ import type { Role } from './auth';
 import type { HeadId } from './heads';
 
 export type Tab =
+  | 'dashboard'
+  | 'notices'
   | 'search'
   | 'survey'
   | 'map-editor'
@@ -28,8 +30,10 @@ export const ROLE_LABEL: Record<Role, string> = {
 };
 
 const ALL: Tab[] = [
+  'dashboard',
   'search',
   'collection',
+  'notices',
   'survey',
   'records',
   'assessment',
@@ -56,12 +60,12 @@ export function allowedTabs(
       return ['assessment', 'records'];
     // Cashier: search + every payment head (collection) on the work menu
     case 'cashier':
-      return ['search', 'collection'];
+      return ['dashboard', 'search', 'collection', 'notices'];
     // General public: full-screen search only
     case 'public':
       return ['search'];
     case 'monitor':
-      return ['search', 'reports', 'collection'];
+      return ['dashboard', 'search', 'reports', 'collection'];
     default:
       return [];
   }
@@ -100,8 +104,8 @@ export function startTab(
 ): Tab | 'menu' {
   const t = allowedTabs(role, head, isSuper);
   if (isSearchOnly(role, isSuper) && t.includes('search')) return 'search';
-  // Cashier lands on the menu so every payment head is visible
-  if (role === 'cashier') return 'menu';
+  // Admin and cashier land straight on the funds dashboard (charts of the current position)
+  if ((isSuper || role === 'admin' || role === 'cashier') && t.includes('dashboard')) return 'dashboard';
   if (t.length !== 1) return 'menu';
   return t[0] !== 'collection' || (!isSuper && role === 'supervisor' && head)
     ? t[0]
