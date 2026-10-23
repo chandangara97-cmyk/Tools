@@ -69,6 +69,18 @@ a.tile b{display:block}a.tile small{color:var(--mute);font-size:13px}
 .go{border-radius:12px!important;font-weight:700!important}
 .tile{border-radius:16px!important;border:1px solid rgba(137,164,211,.18)!important;background:rgba(17,26,45,.7)!important}
 .tile.pri{background:linear-gradient(135deg,rgba(79,140,255,.18),rgba(37,214,197,.1))!important;border-color:rgba(106,151,255,.35)!important}
+
+/* Demonstration notice: shown instead of the sign-in form while DEMO_MODE is true */
+#demoNotice{display:none}
+body.demo #demoNotice{display:block}
+body.demo #login,body.demo #home{display:none!important}
+#demoNotice .tag{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:rgba(242,178,51,.14);border:1px solid rgba(242,178,51,.4);color:#ffd98a;font-size:12.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+#demoNotice h2{margin:14px 0 8px;font-size:24px;line-height:1.2;letter-spacing:-.02em}
+#demoNotice p{margin:0 0 12px;color:#d6dcf5;font-size:15px}
+#demoNotice .hi{padding-top:12px;border-top:1px solid var(--line);color:#c3cdea}
+#demoNotice .heads{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 14px}
+#demoNotice .heads span{padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.06);font-size:13px;color:var(--ink)}
+#demoNotice .open{display:block;text-align:center;text-decoration:none;padding:14px;border-radius:12px;font-weight:700;color:#fff;background:linear-gradient(135deg,#4f8cff,#477dff);margin-top:6px}
 </style><link rel="stylesheet" href="app/hub-theme.css">
 <script src="app/hub-shell.js" defer></script>
 </head><body>
@@ -83,6 +95,15 @@ a.tile b{display:block}a.tile small{color:var(--mute);font-size:13px}
 </section>
 
 <section>
+<div class="card" id="demoNotice" role="status">
+<span class="tag">Demonstration mode</span>
+<h2>Sign-in is temporarily disabled</h2>
+<p>IDs and passwords are switched off while this tool is shown with demo data. No real field data is loaded here.</p>
+<p>When real field data goes live, every bill head will be password protected, and each urban body will sign in with its own ID.</p>
+<div class="heads"><span>Property tax</span><span>Water</span><span>Garbage</span><span>Sewerage</span><span>Other bills</span></div>
+<p class="hi" lang="hi">लॉगिन अभी अस्थायी रूप से बंद है। डेमो में ID और पासवर्ड बंद हैं। वास्तविक फील्ड डेटा शुरू होने पर सभी हेड (प्रॉपर्टी टैक्स, पानी, कचरा आदि) पासवर्ड से सुरक्षित होंगे।</p>
+<a class="open" href="app/?demo=1">Open the demonstration</a>
+</div>
 <form class="card" id="login" autocomplete="on">
 <div class="seg" id="seg"><button type="button" class="on" id="bT"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 21V9l9-6 9 6v12M9 21v-7h6v7"/></svg>Town login</button>
 <button type="button" id="bA"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>Admin login</button></div>
@@ -113,7 +134,7 @@ import{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged}from"https:
 import{getDatabase,ref,get}from"https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
 const APP_URL="app/"; /* where the survey & collection app lives */
 const DEMO_MODE=true; /* true = skip the login page and open the app directly (demo). Set false to require login again. Add ?login=1 to the address to see the login form anyway. */
-if(DEMO_MODE&&!/[?&]login=1/.test(location.search)){location.replace(APP_URL)}
+if(DEMO_MODE&&!/[?&]login=1/.test(location.search)){document.body.classList.add("demo")} /* shows the demonstration notice instead of the sign-in form */
 const app=initializeApp({apiKey:"AIzaSyBJw_9j0wP1dY42wfYYDk_3kIMNKZqHujQ",authDomain:"propertytax-1b855.firebaseapp.com",databaseURL:"https://propertytax-1b855-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"propertytax-1b855",appId:"1:1062167049262:web:1270c8199c81addce11bbf"});
 const auth=getAuth(app),db=getDatabase(app),$=i=>document.getElementById(i);
 const email=v=>{v=v.trim().toLowerCase();return v.includes("@")?v:v+"@propertytax.app"};

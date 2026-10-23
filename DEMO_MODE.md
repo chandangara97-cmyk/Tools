@@ -2,6 +2,9 @@
 
 The app opens straight into the work menu as a platform admin ("Demo Admin", all ULBs). No login, no password.
 
+## Demonstration notice
+The front page and the app both show a "Sign-in is temporarily disabled" notice first (once per browser session). It disappears when `DEMO_MODE` is set to false.
+
 ## What was switched off
 | Place | How |
 |---|---|
