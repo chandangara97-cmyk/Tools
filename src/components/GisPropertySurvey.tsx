@@ -131,7 +131,8 @@ const GisPropertySurveyInner: React.FC = () => {
   const [editableTowns, setEditableTowns] = useState<Record<string, TownData>>(() => {
     try {
       const saved = localStorage.getItem('gis_survey_custom_towns');
-      if (saved) return rekeyTowns(JSON.parse(saved));
+      // the saved copy wins per town (keeps local ward edits), but towns added to the app later (e.g. Baddi) are still offered
+      if (saved) return { ...TOWNS_MAP, ...rekeyTowns(JSON.parse(saved)) };
     } catch (e) {}
     return TOWNS_MAP;
   });
