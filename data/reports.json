@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-22T10:01:39+00:00",
+ "generated": "2026-11-23T10:59:12+00:00",
  "items": [],
  "pinned": [
   {
@@ -64,7 +64,7 @@
  "status": {
   "mospi-press": {
    "ok": false,
-   "checked": "2026-11-22T10:01:39+00:00",
+   "checked": "2026-11-23T10:59:12+00:00",
    "error": "<urlopen error [Errno -2] Name or service not known>",
    "lastOk": null,
    "name": "MoSPI press releases",
@@ -73,7 +73,7 @@
   },
   "hp-des": {
    "ok": false,
-   "checked": "2026-11-22T10:01:39+00:00",
+   "checked": "2026-11-23T10:59:12+00:00",
    "error": "<urlopen error [Errno 101] Network is unreachable>",
    "lastOk": null,
    "name": "HP Department of Economics & Statistics",
